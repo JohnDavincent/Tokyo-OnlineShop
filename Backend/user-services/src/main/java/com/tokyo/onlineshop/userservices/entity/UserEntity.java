@@ -18,8 +18,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @Builder
 @Entity
-@Table(name = "users")
-public class User {
+@Table(name = "user_entities")
+public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -33,9 +33,11 @@ public class User {
     @Column(name = "password",nullable = false)
     private String passwordHash;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private Status status;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "role")
     private RoleName roleName;
 
@@ -51,7 +53,7 @@ public class User {
     @Column(name = "phone_verified_at")
     private LocalDateTime phoneVerifiedAt;
 
-    @OneToMany(mappedBy = "users", cascade = {CascadeType.MERGE,CascadeType.PERSIST}, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", cascade = {CascadeType.MERGE,CascadeType.PERSIST}, fetch = FetchType.LAZY)
     private List<Address> addressList = new ArrayList<>();
 
 }

@@ -44,6 +44,6 @@ public class Address {
     private boolean isDefaultShipping;
 
     @ManyToOne
-    @JoinColumn(name = "users_id")
-    private User user;
+    @JoinColumn(name = "user_entities_id")
+    private UserEntity user;
 }

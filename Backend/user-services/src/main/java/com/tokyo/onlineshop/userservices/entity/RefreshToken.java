@@ -33,5 +33,10 @@ public class RefreshToken {
     @Column(name = "revoke_at")
     private LocalDateTime revokeAt;
 
-    
+
+
+    @ManyToOne
+    @JoinColumn(name = "user_entities_id")
+    private UserEntity user;
+
 }

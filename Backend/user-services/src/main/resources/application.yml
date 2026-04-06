@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/tokyo_db
+    username: admin
+    password: TokyoGuntungOnline290705
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: user_service
+        dialect : org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true

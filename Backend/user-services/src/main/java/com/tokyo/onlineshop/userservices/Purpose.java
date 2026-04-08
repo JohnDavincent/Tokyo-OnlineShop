@@ -1,8 +1,8 @@
 package com.tokyo.onlineshop.userservices;
 
 public enum Purpose {
-    SIGNUP,
+    REGISTER,
     LOGIN,
-    RESET_PASSWORD,
+    RESET_PIN,
     CHANGE_PHONE
 }

@@ -1,6 +1,6 @@
 package com.tokyo.onlineshop.userservices.entity;
 
-import com.tokyo.onlineshop.userservices.RoleName;
+import com.tokyo.onlineshop.userservices.Membership;
 import com.tokyo.onlineshop.userservices.Status;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -8,7 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Ref;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,22 +24,25 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "shop_name")
-    private String shopName;
+    @Column(name = "name")
+    private String name;
 
-    @Column(name = "phone_number", unique = true, nullable = false)
+    @Column(name = "phone_number", unique = true)
     private String phoneNumber;
 
-    @Column(name = "password",nullable = false)
+    @Column(name = "password")
     private String passwordHash;
+
+    @Column(name = "pin_hash")
+    private String pinHash;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private Status status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "role")
-    private RoleName roleName;
+    @Column(name = "membership")
+    private Membership membership;
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;

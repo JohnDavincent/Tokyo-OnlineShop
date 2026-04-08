@@ -22,14 +22,14 @@ public class OtpVerification {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "expired_at")
-    private LocalDateTime expiredAt;
+    @Column(name = "code_hash")
+    private String codeHash;
 
     @Column(name = "phone_number")
     private String phoneNumber;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "Purpose")
+    @Column(name = "purpose")
     private Purpose purpose;
 
     @Column(name = "resend_count")
@@ -40,4 +40,10 @@ public class OtpVerification {
 
     @Column(name = "used_at")
     private LocalDateTime usedAt;
+
+    @Column(name = "expired_at")
+    private LocalDateTime expiresAt;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 }

@@ -53,7 +53,7 @@ public class RefreshTokenServiceImp implements RefreshTokenService{
 
     @Override
     public UserEntity verifyRefreshToken(String token) {
-       RefreshToken refreshToken =  refreshTokenRepository.findByTokenHash(token).orElseThrow(() -> new RuntimeException("Token not found"));
+       RefreshToken refreshToken =  refreshTokenRepository.findByTokenHash(hash(token)).orElseThrow(() -> new RuntimeException("Token not found"));
 
         if(refreshToken.isRevoke()){
             throw new RuntimeException("Refresh token has been revoked");

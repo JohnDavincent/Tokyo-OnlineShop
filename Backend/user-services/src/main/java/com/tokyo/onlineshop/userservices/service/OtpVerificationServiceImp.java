@@ -43,7 +43,7 @@ public class OtpVerificationServiceImp implements OtpVerificationService {
     @Transactional
     @Override
     public void verifiedUserOtpCode(VerifyOtpRequest response) {
-        OtpVerification otp = otpVerificationRepo.findLatestOtpCode(response.getPhoneNumber(),Purpose.REGISTER)
+        OtpVerification otp = otpVerificationRepo.findTopByPhoneNumberAndUsedAtIsNullAndPurposeOrderByIdDesc (response.getPhoneNumber(),Purpose.REGISTER)
                 .orElseThrow(() -> new RuntimeException("No Otp Found"));
 
         if(otp.getExpiresAt().isBefore(LocalDateTime.now())){

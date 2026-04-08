@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class JwtService  {
     private final SecretKey secretKey;
     private final Long accessTokenExpirationMinutes;

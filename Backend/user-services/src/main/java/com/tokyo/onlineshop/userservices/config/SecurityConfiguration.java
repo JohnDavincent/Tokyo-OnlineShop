@@ -27,10 +27,13 @@ public class SecurityConfiguration {
     @Value("${app.security.allowed-origins:http://localhost:3000,http://127.0.0.1:3000}")
     private String allowedOrigins;
 
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+
+
+
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())

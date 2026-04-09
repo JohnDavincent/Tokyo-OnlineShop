@@ -31,6 +31,7 @@ public class AdminAccount {
     @Column(name = "password_hash",nullable = false)
     private String passwordHash;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private Status status;
 

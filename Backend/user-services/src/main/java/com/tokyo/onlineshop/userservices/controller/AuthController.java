@@ -8,6 +8,7 @@ import com.tokyo.onlineshop.userservices.entity.UserEntity;
 import com.tokyo.onlineshop.userservices.repository.UserRepository;
 import com.tokyo.onlineshop.userservices.service.JwtService;
 import com.tokyo.onlineshop.userservices.service.RefreshTokenService;
+import com.tokyo.onlineshop.userservices.service.Role;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +39,7 @@ public class AuthController {
             throw new RuntimeException("Login failed, phone or pin is incorrect!");
         }
 
-        String accessToken = jwtService.generateAccessToken(user.getId(), user.getMembership());
+        String accessToken = jwtService.generateAccessToken(user.getId(), user.getMembership(), Role.USER);
         String refreshToken = refreshTokenService.CreateRefreshToken(user);
 
         return ResponseEntity.ok(new TokenResponse(accessToken,refreshToken));
@@ -50,7 +51,7 @@ public class AuthController {
 
         refreshTokenService.revokeToken(request.getRefreshToken());
 
-        String newAccessToken = jwtService.generateAccessToken(user.getId(), user.getMembership());
+        String newAccessToken = jwtService.generateAccessToken(user.getId(), user.getMembership(),Role.USER);
         String newRefreshToken = refreshTokenService.CreateRefreshToken(user);
 
         return ResponseEntity.ok(new TokenResponse(newAccessToken,newRefreshToken));

@@ -48,9 +48,11 @@ public class SecurityConfiguration {
                                 "/tokyo/register",
                                 "/tokyo/api-auth/login",
                                 "/tokyo/api-auth/refresh",
-                                "/tokyo/api-auth/logout",
+                                "/tokyo/api-auth/delete",
+                                "/tokyo/group/ad-min/login",
                                 "/error"
                         ).permitAll()
+                        .requestMatchers("/tokyo/group/ad-min/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter,UsernamePasswordAuthenticationFilter.class);

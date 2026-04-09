@@ -1,3 +1,8 @@
+server:
+  port: 3000
+  name: user-services
+
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/tokyo_db

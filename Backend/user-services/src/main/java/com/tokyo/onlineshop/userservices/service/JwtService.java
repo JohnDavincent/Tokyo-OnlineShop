@@ -4,7 +4,6 @@ import com.tokyo.onlineshop.userservices.Membership;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -31,12 +30,12 @@ public class JwtService  {
         this.accessTokenExpirationMinutes = accessTokenExpirationMinutes;
     }
 
-    public String generateAccessToken(UUID userId, Membership membership){
+    public String generateAccessToken(UUID userId, Membership membership, Role role){
         Instant now = Instant.now();
 
         return Jwts.builder()
                 .setSubject(userId.toString())
-                .setClaims(Map.of("membership",membership.name()))
+                .setClaims(Map.of("membership",membership.name(),"role",role.name()))
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(accessTokenExpirationMinutes * 60)))
                 .signWith(secretKey)
@@ -65,9 +64,22 @@ public class JwtService  {
         return UUID.fromString(userId);
     }
 
+    public String extractSubject(String token) {
+        return extractClaims(token).getSubject();
+    }
 
+    public Role extractRole(String token) {
+        return Role.valueOf(extractClaims(token).get("role", String.class));
+    }
 
-
-
-
+    public String generateTokenAdmin(String email,Role role){
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .setSubject(email)
+                .setClaims(Map.of("role",role.name()))
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(now.plusSeconds(accessTokenExpirationMinutes * 60)))
+                .signWith(secretKey)
+                .compact();
+    }
 }

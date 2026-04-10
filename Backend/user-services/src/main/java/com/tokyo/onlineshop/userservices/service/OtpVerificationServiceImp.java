@@ -7,6 +7,7 @@ import com.tokyo.onlineshop.userservices.entity.OtpVerification;
 import com.tokyo.onlineshop.userservices.repository.OtpVerificationRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.Random;
 
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OtpVerificationServiceImp implements OtpVerificationService {
@@ -57,6 +59,7 @@ public class OtpVerificationServiceImp implements OtpVerificationService {
         }
 
         if(!passwordEncoder.matches(response.getCode(),otp.getCodeHash())){
+            log.info("otp code in db {}",otp.getCodeHash());
             otp.setAttemptCount(otp.getAttemptCount() + 1);
             otpVerificationRepo.save(otp);
             throw new RuntimeException("OTP code is not matches");

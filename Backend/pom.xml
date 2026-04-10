@@ -20,6 +20,7 @@
 
     <modules>
         <module>user-services</module>
+        <module>product-services</module>
     </modules>
 
     <properties>

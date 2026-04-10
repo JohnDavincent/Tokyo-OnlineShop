@@ -1,5 +1,5 @@
 server:
-  port: 3000
+  port: 5000
   name: user-services
 
 
@@ -21,7 +21,7 @@ spring:
 
 app:
   security:
-    allowed-origins: http://localhost:3000,http://127.0.0.1:3000
+    allowed-origins: http://localhost:5000,http://127.0.0.1:5000
   jwt:
     secret : "x9FvQ2@lZ7mP#kR1sT8wY!bC3dE6uH$jN0aG%rL5oI^qXz&V4nWp*UeKf+M=cD~hB2JtS8yA1"
     access-token :

@@ -58,7 +58,7 @@ export default function Started() {
         setMessage(""); // clear msg
 
         try {
-            const response = await fetch("http://localhost:3000/tokyo/request-otp", {
+            const response = await fetch("http://localhost:5000/tokyo/request-otp", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -131,7 +131,7 @@ export default function Started() {
         setMessage(""); // clear previous errors
 
         try {
-            const response = await fetch("http://localhost:3000/tokyo/verify-otp", {
+            const response = await fetch("http://localhost:5000/tokyo/verify-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ phoneNumber, code: otp })
@@ -166,7 +166,7 @@ export default function Started() {
         setMessage("");
 
         try {
-            const response = await fetch("http://localhost:3000/tokyo/register", {
+            const response = await fetch("http://localhost:5000/tokyo/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -199,7 +199,7 @@ export default function Started() {
         otpRefs.current[0]?.focus();
 
         try {
-            await fetch("http://localhost:3000/tokyo/request-otp", {
+            await fetch("http://localhost:5000/tokyo/request-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ phoneNumber })

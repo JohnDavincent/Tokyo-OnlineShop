@@ -21,6 +21,7 @@
     <modules>
         <module>user-services</module>
         <module>product-services</module>
+        <module>common</module>
     </modules>
 
     <properties>

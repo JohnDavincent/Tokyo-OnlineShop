@@ -1,0 +1,32 @@
+server:
+  port: 3000
+  name: user-services
+
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/tokyo_db
+    username: admin
+    password: TokyoGuntungOnline290705
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        default_schema: user_service
+        dialect : org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+
+app:
+  security:
+    allowed-origins: http://localhost:3000,http://127.0.0.1:3000
+  jwt:
+    secret : "x9FvQ2@lZ7mP#kR1sT8wY!bC3dE6uH$jN0aG%rL5oI^qXz&V4nWp*UeKf+M=cD~hB2JtS8yA1"
+    access-token :
+          expiration-minutes : 30
+    refresh-token :
+          expiration-days: 7
+
+

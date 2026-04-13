@@ -1,5 +1,5 @@
 server:
-  port:5001
+  port: 5001
 
 spring:
   application:
@@ -19,3 +19,7 @@ spring:
         default_schema: product_service
         dialect : org.hibernate.dialect.PostgreSQLDialect
     show-sql: true
+
+app:
+  jwt:
+    secret : "x9FvQ2@lZ7mP#kR1sT8wY!bC3dE6uH$jN0aG%rL5oI^qXz&V4nWp*UeKf+M=cD~hB2JtS8yA1"

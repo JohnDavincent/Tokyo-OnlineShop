@@ -1,2 +1,4 @@
 com/tokyo/onlineshop/Main.class
+com/tokyo/onlineshop/dto/WebResponse.class
+com/tokyo/onlineshop/dto/WebResponse$WebResponseBuilder.class
 com/tokyo/onlineshop/entity/BaseEntity.class

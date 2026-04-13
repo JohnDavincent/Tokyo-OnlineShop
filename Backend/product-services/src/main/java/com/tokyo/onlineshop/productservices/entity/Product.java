@@ -1,7 +1,7 @@
 package com.tokyo.onlineshop.productservices.entity;
 
 import com.tokyo.onlineshop.entity.BaseEntity;
-import com.tokyo.onlineshop.productservices.ProductStatus;
+import com.tokyo.onlineshop.productservices.ProductionStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,7 +9,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -43,8 +42,20 @@ public class Product extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "Product_status")
-    private ProductStatus status;
+    private ProductionStatus status;
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY,cascade = {CascadeType.PERSIST,CascadeType.MERGE})
     private List<ProductUnit> productUnitList = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "categories_id")
+    private Category category;
+
+    @ManyToOne
+    @JoinColumn(name = "brands_id")
+    private Brand brand;
+
+    @ManyToOne
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
 }

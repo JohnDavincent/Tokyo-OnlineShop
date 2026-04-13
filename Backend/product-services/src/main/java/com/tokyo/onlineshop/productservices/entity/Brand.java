@@ -8,36 +8,31 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 @Entity
-@Table(name = "product_units")
-public class ProductUnit extends BaseEntity {
+@Table(name = "brands")
+public class Brand extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    private UUID id;
 
-    @Column(name = "product_unit")
-    private String unit;
+    @Column(name = "brand_name")
+    private String name;
 
-    @Column(name = "convert_quantity")
-    private Integer convertQuantity;
-
-    @Column (name = "product_base_unit_price")
-    private BigDecimal unitBasePrice;
-
-    @Column(name = "product_sell_unit_price")
-    private BigDecimal unitSellPrice;
+    @Column(name = "slug", unique = true, nullable = false)
+    private String slug;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private ProductionStatus status;
 
-    @ManyToOne
-    @JoinColumn(name = "products")
-    private Product product;
+    @OneToMany(mappedBy = "brand", fetch = FetchType.LAZY, cascade = {CascadeType.MERGE,CascadeType.PERSIST})
+    private List<Product> productList = new ArrayList<>();
 }

@@ -1,7 +1,8 @@
 package com.tokyo.onlineshop.productservices;
 
-public enum ProductStatus {
+public enum ProductionStatus {
     AVAILABLE,
     OUT_OF_STOCK,
-    REMOVED
+    REMOVED,
+    IS_NOT_AVAILABLE
 }

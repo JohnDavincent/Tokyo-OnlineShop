@@ -1,4 +1,4 @@
-package com.tokyo.onlineshop.dto;
+package com.tokyo.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

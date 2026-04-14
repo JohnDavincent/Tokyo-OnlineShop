@@ -1,6 +1,6 @@
 package com.tokyo.onlineshop.productservices.entity;
 
-import com.tokyo.onlineshop.entity.BaseEntity;
+import com.tokyo.common.entity.BaseEntity;
 import com.tokyo.onlineshop.productservices.ProductionStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -36,6 +36,9 @@ public class Supplier extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private ProductionStatus status;
+
+    @Column(name = "phone_number")
+    private String phoneNumber;
 
 
     @OneToMany(mappedBy = "supplier", fetch = FetchType.LAZY, cascade = {CascadeType.MERGE,CascadeType.PERSIST})

@@ -35,7 +35,8 @@ public class JwtService  {
 
         return Jwts.builder()
                 .setSubject(userId.toString())
-                .setClaims(Map.of("membership",membership.name(),"role",role.name()))
+                .claim("membership",membership.name())
+                .claim("role",role.name())
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(accessTokenExpirationMinutes * 60)))
                 .signWith(secretKey)
@@ -75,8 +76,8 @@ public class JwtService  {
     public String generateTokenAdmin(String email,Role role){
         Instant now = Instant.now();
         return Jwts.builder()
+                .claim("role", role.name())
                 .setSubject(email)
-                .setClaims(Map.of("role",role.name()))
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(accessTokenExpirationMinutes * 60)))
                 .signWith(secretKey)

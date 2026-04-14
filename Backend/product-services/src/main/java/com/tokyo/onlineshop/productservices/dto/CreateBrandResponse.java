@@ -7,20 +7,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 
-public class CreateCategoryResponse {
-    private UUID id;
+public class CreateBrandResponse {
+    private String name;
     private String slug;
-    private UUID ParentCategory;
     private ProductionStatus status;
     private LocalDateTime createdAt;
-    private String created_by;
-
-
+    private String createdBy;
 }

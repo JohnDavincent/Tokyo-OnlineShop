@@ -1,6 +1,6 @@
 package com.tokyo.onlineshop.productservices.entity;
 
-import com.tokyo.onlineshop.entity.BaseEntity;
+import com.tokyo.common.entity.BaseEntity;
 import com.tokyo.onlineshop.productservices.ProductionStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -55,7 +55,4 @@ public class Product extends BaseEntity {
     @JoinColumn(name = "brands_id")
     private Brand brand;
 
-    @ManyToOne
-    @JoinColumn(name = "supplier_id")
-    private Supplier supplier;
 }

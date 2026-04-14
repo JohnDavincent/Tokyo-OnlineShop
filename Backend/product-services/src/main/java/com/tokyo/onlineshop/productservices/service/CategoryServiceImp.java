@@ -44,6 +44,7 @@ public class CategoryServiceImp implements CategoryService{
         return CreateCategoryResponse.builder()
                 .id(createCategory.getId())
                 .status(createCategory.getStatus())
+                .ParentCategory(request.getParent_id())
                 .slug(createCategory.getSlug())
                 .build();
     }

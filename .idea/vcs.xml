@@ -3,6 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/Backend/user-services" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/Frontend/tokyogo-frontend" vcs="Git" />
   </component>
 </project>

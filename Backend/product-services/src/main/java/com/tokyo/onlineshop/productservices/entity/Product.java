@@ -31,6 +31,9 @@ public class Product extends BaseEntity {
     @Column(name = "sku")
     private String sku;
 
+    @Column(name = "description")
+    private String description;
+
     @Column(name = "stock")
     private Integer stock;
 
@@ -54,5 +57,10 @@ public class Product extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "brands_id")
     private Brand brand;
+
+    public void addProductUnit(ProductUnit unit){
+        productUnitList.add(unit);
+    }
+
 
 }

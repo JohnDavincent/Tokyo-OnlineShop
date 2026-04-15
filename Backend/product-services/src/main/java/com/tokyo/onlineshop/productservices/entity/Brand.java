@@ -35,4 +35,9 @@ public class Brand extends BaseEntity {
 
     @OneToMany(mappedBy = "brand", fetch = FetchType.LAZY, cascade = {CascadeType.MERGE,CascadeType.PERSIST})
     private List<Product> productList = new ArrayList<>();
+
+    public void addProduct(Product product){
+        productList.add(product);
+    }
+
 }

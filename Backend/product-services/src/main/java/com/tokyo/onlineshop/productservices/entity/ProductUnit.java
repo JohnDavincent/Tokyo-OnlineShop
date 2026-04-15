@@ -27,6 +27,9 @@ public class ProductUnit extends BaseEntity {
     @Column(name = "convert_quantity")
     private Integer convertQuantity;
 
+    @Column(name = "quantity_unit")
+    private Integer quantityUnit;
+
     @Column (name = "product_base_unit_price")
     private BigDecimal unitBasePrice;
 

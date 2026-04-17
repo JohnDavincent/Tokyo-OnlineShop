@@ -22,12 +22,12 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
     @Query(
             """
-            SELECT c.subCategory
+            SELECT c.name
             FROM Category c
             WHERE c.parentId = :categoryId
             """
     )
     List<String> getSubCategoryList(@Param("categoryId") UUID categoryId);
 
-    Category findByIdAndSubCategory(UUID id, String subCategory);
+    Category findByParentIdAndName(UUID id, String subCategory);
 }

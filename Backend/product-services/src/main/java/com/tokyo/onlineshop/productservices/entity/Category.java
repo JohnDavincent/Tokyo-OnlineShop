@@ -24,7 +24,7 @@ public class Category extends BaseEntity {
     private UUID id;
 
     @Column(name = "parent_category")
-    private UUID parent_id;
+    private UUID parentId;
 
     @Column(name = "category_name")
     private String name;

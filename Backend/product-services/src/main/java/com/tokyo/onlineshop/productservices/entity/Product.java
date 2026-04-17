@@ -50,6 +50,9 @@ public class Product extends BaseEntity {
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY,cascade = {CascadeType.PERSIST,CascadeType.MERGE})
     private List<ProductUnit> productUnitList = new ArrayList<>();
 
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST,CascadeType.MERGE})
+    private List<ProductImage> productImageList = new ArrayList<>();
+
     @ManyToOne
     @JoinColumn(name = "categories_id")
     private Category category;
@@ -58,8 +61,14 @@ public class Product extends BaseEntity {
     @JoinColumn(name = "brands_id")
     private Brand brand;
 
+
+
     public void addProductUnit(ProductUnit unit){
         productUnitList.add(unit);
+    }
+
+    public void addProductImage(ProductImage image){
+        productImageList.add(image);
     }
 
 

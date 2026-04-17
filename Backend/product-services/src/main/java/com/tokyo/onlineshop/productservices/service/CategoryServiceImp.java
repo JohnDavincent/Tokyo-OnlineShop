@@ -37,7 +37,7 @@ public class CategoryServiceImp implements CategoryService{
             if(!categoryRepository.existsById(request.getParent_id())){
                 throw new RuntimeException("Parent category not found");
             }
-            createCategory.setParent_id(request.getParent_id());
+            createCategory.setParentId(request.getParent_id());
         }
         categoryRepository.save(createCategory);
 

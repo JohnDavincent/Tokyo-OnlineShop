@@ -1,5 +1,6 @@
 package com.tokyo.onlineshop.productservices.dto;
 
+import com.tokyo.onlineshop.productservices.ImageStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -9,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -16,6 +18,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Builder
 public class CreateProductRequest {
+
     @NotBlank
     @Size(min = 3)
     private String name;
@@ -30,23 +33,17 @@ public class CreateProductRequest {
     @Positive
     private Integer baseWeight;
 
-    @NotBlank
     private UUID brand;
 
-    @NotBlank
     private UUID category;
 
-    @NotBlank
     private String subCategory;
 
-    private String unit;
-
-    private Integer convertQuantity;
-
-    private BigDecimal basePrice;
-
-    private BigDecimal sellPrice;
-
     private String description;
+
+    List<CreateUnitRequest> unitList;
+
+    List<CreateImageRequest> imageList;
+
 
 }

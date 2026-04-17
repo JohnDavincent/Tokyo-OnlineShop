@@ -1,10 +1,7 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.onlineshop.productservices.ProductionStatus;
-import com.tokyo.onlineshop.productservices.dto.CreateProductRequest;
-import com.tokyo.onlineshop.productservices.dto.CreateProductResponse;
-import com.tokyo.onlineshop.productservices.dto.CreateUnitRequest;
-import com.tokyo.onlineshop.productservices.dto.CreateUnitResponse;
+import com.tokyo.onlineshop.productservices.dto.*;
 import com.tokyo.onlineshop.productservices.entity.Brand;
 import com.tokyo.onlineshop.productservices.entity.Category;
 import com.tokyo.onlineshop.productservices.entity.Product;
@@ -13,6 +10,7 @@ import com.tokyo.onlineshop.productservices.repository.BrandRepository;
 import com.tokyo.onlineshop.productservices.repository.CategoryRepository;
 import com.tokyo.onlineshop.productservices.repository.ProductRepository;
 import com.tokyo.onlineshop.productservices.repository.ProductUnitRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,8 +26,9 @@ public class ProductServiceImp implements ProductService {
     private final BrandRepository brandRepository;
     private final CategoryRepository categoryRepository;
     private final ProductUnitService productUnitService;
-    private final ProductUnitRepository productUnitRepository;
+    private final ProductImageService productImageService;
 
+    @Transactional
     @Override
     public CreateProductResponse createProduct(CreateProductRequest request) {
         if(request == null){
@@ -61,17 +60,38 @@ public class ProductServiceImp implements ProductService {
                 .anyMatch(sub -> sub.equals(request.getSubCategory()));
 
         if(exists){
-            Category setCategory = categoryRepository.findByIdAndSubCategory(request.getCategory(),request.getSubCategory());
+            Category setCategory = categoryRepository.findByParentIdAndName(request.getCategory(),request.getSubCategory());
             createProduct.setCategory(setCategory);
             setCategory.addProduct(createProduct);
         }else{
-            throw new RuntimeException("Subcategory not found");
+            throw new RuntimeException("Sub category not found");
         }
 
         productRepository.save(createProduct);
 
         //product Unit
-        CreateUnitResponse unitDto = productUnitService.createUnit(createProduct.getId(),request);
+        List<CreateUnitResponse> unitDto = productUnitService.createUnit(createProduct.getId(),request.getUnitList());
 
+        //product image
+        List<CreateImageResponse> imageDto = productImageService.addImage(createProduct.getId(),request.getImageList());
+
+        return CreateProductResponse.builder()
+                .name(createProduct.getName())
+                .description(createProduct.getDescription())
+                .brand(existBrand.getName())
+                .category(category.getName())
+                .subCategory(createProduct.getCategory().getName())
+                .baseWeight(createProduct.getBaseWeightUnit())
+                .stock(createProduct.getStock())
+                .imageList(imageDto)
+                .unitList(unitDto)
+                .build();
     }
+
+    @Override
+    public ProductCard getProductList() {
+        
+    }
+
+
 }

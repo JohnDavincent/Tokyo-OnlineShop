@@ -41,6 +41,4 @@ public class Supplier extends BaseEntity {
     private String phoneNumber;
 
 
-    @OneToMany(mappedBy = "supplier", fetch = FetchType.LAZY, cascade = {CascadeType.MERGE,CascadeType.PERSIST})
-    private List<Product> productList = new ArrayList<>();
 }

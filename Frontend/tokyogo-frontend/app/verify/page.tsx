@@ -36,7 +36,7 @@ export default function verifyPage() {
                                 <span className="material-symbols-outlined text-xl">arrow_forward</span>
                             </Link>
                             <div className="text-center">
-                                <p className="text-xs text-on-surface-variant font-medium mb-1">Didn't receive the code?</p>
+                                <p className="text-xs text-on-surface-variant font-medium mb-1">Didn&apos;t receive the code?</p>
                                 <button className="text-sm font-bold text-primary hover:text-primary-dim underline decoration-primary/30 transition-colors">
                                     Resend Code
                                 </button>
@@ -63,7 +63,7 @@ export default function verifyPage() {
                 <div className="space-y-4">
                     <h3 className="text-lg font-bold text-emerald-900 dark:text-emerald-50 font-headline tracking-tighter">Tokyo GO</h3>
                     <p className="manrope text-xs tracking-wide text-emerald-800 dark:text-emerald-400 max-w-xs">
-                        Premium delivery of Tokyo's finest groceries and wholesale essentials. Experience precision freshness delivered to your door.
+                        Premium delivery of Tokyo&apos;s finest groceries and wholesale essentials. Experience precision freshness delivered to your door.
                     </p>
                 </div>
                 <div className="flex flex-col md:items-end justify-between gap-4">

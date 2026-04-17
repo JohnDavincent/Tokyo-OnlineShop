@@ -19,9 +19,6 @@ import java.util.UUID;
 public class CreateUnitRequest {
 
     @NotBlank
-    private UUID productId;
-
-    @NotBlank
     private String unit;
 
     @Positive

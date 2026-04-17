@@ -22,7 +22,7 @@ export default function Register() {
                                 Precision Freshness <br />Directly to You.
                             </h2>
                             <p className="text-on-primary font-medium max-w-xs">
-                                Tokyo GO curates the finest local ingredients with the speed of an editor's eye.
+                                Tokyo GO curates the finest local ingredients with the speed of an editor&apos;s eye.
                             </p>
                         </div>
                         {/* Signature Gradient Overlay */}

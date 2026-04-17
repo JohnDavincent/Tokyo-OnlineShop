@@ -12,49 +12,62 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class ProductUnitServiceImp implements ProductUnitService{
 
-    private ProductUnitRepository productUnitRepository;
-    private ProductRepository productRepository;
+    private final ProductUnitRepository productUnitRepository;
+    private final ProductRepository productRepository;
 
     @Override
-    public CreateUnitResponse createUnit(UUID productId, CreateProductRequest request) {
+    public List<CreateUnitResponse> createUnit(UUID productId, List<CreateUnitRequest> request) {
+
         if(request == null){
             throw new RuntimeException("Field must be fill");
         }
         Product product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product not found!!"));
+        List<ProductUnit> unitList = new ArrayList<>();
 
-        if(productUnitRepository.ExistsByUnitAndQuantity(
-                request.getUnit(),
-                request.getConvertQuantity(),
-                productId
-        )) {
-            throw new RuntimeException("Product unit already exists");
+        for(CreateUnitRequest unit : request){
+            if(productUnitRepository.existsByUnitAndQuantity(
+                    unit.getUnit(),
+                    unit.getConvertQuantity(),
+                    productId)
+            ){
+                throw new RuntimeException("unit Already Exists");
+            }
+            ProductUnit createUnit = ProductUnit.builder()
+                    .convertQuantity(unit.getConvertQuantity())
+                    .status(ProductionStatus.AVAILABLE)
+                    .unitBasePrice(unit.getBasePrice())
+                    .unitSellPrice(unit.getSellPrice())
+                    .unit(unit.getUnit())
+                    .product(product)
+                    .build();
+
+            product.addProductUnit(createUnit);
+            productUnitRepository.save(createUnit);
+
+            unitList.add(createUnit);
         }
 
-        ProductUnit createUnit = ProductUnit.builder()
-                .unit(request.getUnit())
-                .convertQuantity(request.getConvertQuantity())
-                .unitBasePrice(request.getBasePrice())
-                .unitSellPrice(request.getSellPrice())
-                .product(product)
-                .status(ProductionStatus.AVAILABLE)
-                .build();
-
-        product.addProductUnit(createUnit);
-        productUnitRepository.save(createUnit);
+        return unitList.stream()
+                .map(unit -> {
+                    return CreateUnitResponse.builder()
+                            .convertUnit(unit.getConvertQuantity())
+                            .basePrice(unit.getUnitBasePrice())
+                            .sellPrice(unit.getUnitSellPrice())
+                            .unit(unit.getUnit())
+                            .build();
+                }).collect(Collectors.toList());
 
 
-        return CreateUnitResponse.builder()
-                .unit(createUnit.getUnit())
-                .basePrice(createUnit.getUnitBasePrice())
-                .sellPrice(createUnit.getUnitSellPrice())
-                .convertUnit(createUnit.getConvertQuantity())
-                .build();
+
     }
 }

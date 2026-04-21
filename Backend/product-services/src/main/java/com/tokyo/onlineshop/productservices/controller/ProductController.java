@@ -18,14 +18,14 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/tokyo/gropup/ad-min")
+@RequestMapping("/tokyo/gropup")
 @RequiredArgsConstructor
 public class ProductController {
 
     private final ProductService productService;
     private final ProductImageService productImageService;
 
-    @PostMapping("/product")
+    @PostMapping("/ad-min/product")
     ResponseEntity<WebResponse<CreateProductResponse>> createProduct(@Valid @RequestBody CreateProductRequest req){
         CreateProductResponse data = productService.createProduct(req);
         WebResponse<CreateProductResponse> response = WebResponse.<CreateProductResponse>builder()
@@ -38,7 +38,7 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping(value = "/product/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/ad-min/product/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     ResponseEntity<WebResponse<List<CreateImageResponse>>> uploadProductImage(
             @RequestParam("slug") String slug,
             @RequestPart("images") List<MultipartFile> images,
@@ -55,7 +55,7 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @GetMapping("/product")
+    @GetMapping("product")
     ResponseEntity<WebResponse<List<ProductCard>>> getProductHomeList(){
         List<ProductCard> data = productService.getProductList();
         WebResponse<List<ProductCard>> response = WebResponse.<List<ProductCard>>builder()

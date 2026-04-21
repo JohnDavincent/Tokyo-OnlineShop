@@ -2,14 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const topNav = ["Categories", "Wholesale", "Deals", "Rewards"];
 
 const aisles = [
   {
     title: "Organic Produce",
-    image: "/images/fresh_veggies.png",
+    image: "/beras-jiva-7bf12e12.jpg",
     tone: "from-[#20261e] via-[#263827] to-[#4f6b42]",
   },
   {
@@ -40,44 +40,6 @@ type Product = {
   image: string;
   available: boolean;
 };
-
-const products: Product[] = [
-  {
-    label: "Fresh Fruit",
-    title: "Premium Aomori Fuji Apples",
-    description: "Crisp, sweet, and perfectly round. Direct from Aomori orchards.",
-    prices: ["Rp 15.000", "Rp 85.000", "Rp 320.000"],
-    image:
-      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 720 720'><defs><linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%230e4f53'/><stop offset='1' stop-color='%23061b20'/></linearGradient><radialGradient id='apple' cx='45%' cy='35%' r='65%'><stop stop-color='%23ffb553'/><stop offset='0.55' stop-color='%23db5227'/><stop offset='1' stop-color='%238d150e'/></radialGradient></defs><rect width='720' height='720' rx='36' fill='url(%23bg)'/><circle cx='210' cy='470' r='140' fill='url(%23apple)'/><circle cx='505' cy='468' r='140' fill='url(%23apple)'/><circle cx='362' cy='255' r='140' fill='url(%23apple)'/><path d='M210 316c25-46 62-58 78-58' stroke='%23514d25' stroke-width='18' fill='none' stroke-linecap='round'/><path d='M362 100c19-44 56-60 76-60' stroke='%23514d25' stroke-width='18' fill='none' stroke-linecap='round'/><path d='M505 330c19-42 53-58 72-58' stroke='%23514d25' stroke-width='18' fill='none' stroke-linecap='round'/></svg>",
-    available: true,
-  },
-  {
-    label: "Fresh Fruit",
-    title: "Yamanashi Shine Muscat",
-    description: "Seedless, edible skin, and an incredibly sweet, floral flavor profile.",
-    prices: ["-", "Rp 240.000", "Rp 680.000"],
-    image: "/images/green_grapes.png",
-    available: false,
-  },
-  {
-    label: "Dairy",
-    title: "Hokkaido Premium Milk",
-    description: "Rich, creamy, whole milk sourced from free-roaming Hokkaido cows.",
-    prices: ["Rp 35.000", "Rp 190.000", "Rp 380.000"],
-    image:
-      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 720 720'><defs><linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%23fafafa'/><stop offset='1' stop-color='%23e3f0f4'/></linearGradient></defs><rect width='720' height='720' rx='36' fill='url(%23bg)'/><path d='M240 160h210l70 95v300c0 35-28 63-63 63H303c-35 0-63-28-63-63V235z' fill='%23fdfefe' stroke='%235d95b1' stroke-width='14'/><path d='M240 160h210l70 95H310z' fill='%231087c7'/><text x='386' y='208' fill='%23ffffff' font-size='42' font-family='Arial' text-anchor='middle'>HOKKAIDO</text><text x='384' y='262' fill='%235d95b1' font-size='44' font-family='Arial' text-anchor='middle'>MILK</text><text x='384' y='350' fill='%2378aac1' font-size='34' font-family='Arial' text-anchor='middle'>Premium</text><text x='384' y='395' fill='%2378aac1' font-size='34' font-family='Arial' text-anchor='middle'>Whole Milk</text></svg>",
-    available: true,
-  },
-  {
-    label: "Pantry Staples",
-    title: "Niigata Koshihikari Rice",
-    description: "The gold standard of Japanese rice. Sticky, sweet, and aromatic.",
-    prices: ["-", "Rp 320.000", "Rp 1.800.000"],
-    image:
-      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 720 720'><defs><linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%23407821'/><stop offset='0.5' stop-color='%2396b342'/><stop offset='1' stop-color='%23132d0e'/></linearGradient></defs><rect width='720' height='720' rx='36' fill='url(%23bg)'/><ellipse cx='380' cy='510' rx='220' ry='115' fill='%23804921'/><ellipse cx='380' cy='470' rx='220' ry='90' fill='%23b57b35'/><path d='M210 455c40-72 312-80 344 0' fill='%23cfad64'/><g stroke='%23f9e8a8' stroke-width='8' stroke-linecap='round'><path d='M250 420c0 78 0 95 0 140'/><path d='M282 410c0 78 0 95 0 140'/><path d='M316 405c0 78 0 95 0 140'/><path d='M350 398c0 78 0 95 0 140'/><path d='M384 396c0 78 0 95 0 140'/><path d='M418 398c0 78 0 95 0 140'/><path d='M452 405c0 78 0 95 0 140'/><path d='M486 410c0 78 0 95 0 140'/></g></svg>",
-    available: true,
-  },
-];
 
 /* ─── Icons ─────────────────────────────────────────────── */
 function SearchIcon() {
@@ -220,12 +182,13 @@ function AddToCartModal({ product, onClose }: ModalProps) {
             const price = product.prices[i];
             const meta = unitMeta[unit];
             const unavailable = price === "-";
+            if (unavailable) return null;
             return (
               <div
                 key={unit}
                 className={`flex items-center justify-between gap-4 rounded-2xl border px-4 py-3.5 ${unavailable
-                    ? "border-black/5 bg-black/[0.02] opacity-50"
-                    : "border-black/7 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                  ? "border-black/5 bg-black/[0.02] opacity-50"
+                  : "border-black/7 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                   }`}
               >
                 {/* Label + price */}
@@ -315,6 +278,39 @@ function AddToCartModal({ product, onClose }: ModalProps) {
 /* ─── Page ────────────────────────────────────────────────── */
 export default function HomePage() {
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("http://localhost:5001/tokyo/gropup/product")
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && res.data) {
+          const mappedProducts = res.data.map((apiProduct: any) => {
+            const getPrice = (variants: string[]) => {
+              const u = apiProduct.unitList?.find((u: any) => variants.includes(u.unit.toLowerCase()));
+              return u ? `Rp ${u.sellPrice.toLocaleString("id-ID")}` : "-";
+            };
+
+            return {
+              label: apiProduct.category || "General",
+              title: apiProduct.productName,
+              description: "",
+              prices: [
+                getPrice(["pcs", "piece", "pieces", "pc"]),
+                getPrice(["pax", "pack", "packs"]),
+                getPrice(["box", "boxes", "boxs"])
+              ],
+              image: apiProduct.url ? apiProduct.url.replace('/images/products/', '/') : "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+              available: apiProduct.status === "AVAILABLE",
+            };
+          });
+          setProducts(mappedProducts);
+        }
+      })
+      .catch((err) => console.error("Failed to load products:", err))
+      .finally(() => setIsLoading(false));
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#f6f8f5] text-on-surface">
@@ -344,7 +340,7 @@ export default function HomePage() {
       {/* ── Hero Banner ── */}
       <section className="mx-auto grid max-w-[1180px] gap-5 px-6 pb-14 pt-8 lg:grid-cols-[1.9fr_0.9fr] lg:px-8">
         <article className="group relative min-h-[430px] overflow-hidden rounded-[32px] bg-[#d8d3c9] text-white shadow-[0_24px_60px_rgba(0,45,30,0.12)]">
-          <Image src="/images/fresh_veggies.png" alt="Fresh vegetables in a box" fill className="object-cover object-center transition-transform duration-700 group-hover:scale-[1.03]" priority />
+          <Image src="/indomie-goreng-28901028.png" alt="Fresh Indomie" fill sizes="(max-width: 1024px) 100vw, 66vw" className="object-cover object-center transition-transform duration-700 group-hover:scale-[1.03]" priority />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(14,28,20,0.62),rgba(14,28,20,0.2)_48%,rgba(14,28,20,0.02))]" />
           <div className="relative flex h-full max-w-[420px] flex-col justify-center gap-6 px-8 py-10 sm:px-10">
             <p className="animate-fade-up text-sm font-bold uppercase tracking-[0.16em] text-primary-fixed [animation-delay:120ms]">Precision Freshness</p>
@@ -408,7 +404,7 @@ export default function HomePage() {
                 style={{ animationDelay: `${index * 110}ms` }}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${aisle.tone}`} />
-                <Image src={aisle.image} alt={aisle.title} fill className="object-cover opacity-88 transition-transform duration-700 group-hover:scale-105" />
+                <Image src={aisle.image} alt={aisle.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw" className="object-cover opacity-88 transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08),rgba(0,0,0,0.5))]" />
                 <div className="absolute inset-x-0 bottom-0 p-5">
                   <h3 className="font-headline text-[1.85rem] font-bold tracking-[-0.04em]">{aisle.title}</h3>
@@ -427,60 +423,70 @@ export default function HomePage() {
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {products.map((product, index) => (
-            <article
-              key={product.title}
-              className="group flex h-full flex-col rounded-[20px] border border-black/5 bg-white p-3 shadow-[0_16px_40px_rgba(0,39,25,0.08)] transition-transform duration-300 hover:-translate-y-1"
-              style={{ animationDelay: `${index * 90}ms` }}
-            >
-              {/* Image */}
-              <div className="relative overflow-hidden rounded-[14px]">
-                <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-[#e74d23] px-2.5 py-1 text-[0.64rem] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
-                  <span className="text-[0.72rem]">◉</span> Hot
-                </div>
-                {/* Status at top right */}
-                <div
-                  className={`absolute right-3 top-3 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur-md ${product.available
+          {isLoading ? (
+            <div className="col-span-full py-10 text-center text-sm font-medium text-black/40">
+              Loading products...
+            </div>
+          ) : products.length === 0 ? (
+            <div className="col-span-full py-10 text-center text-sm font-medium text-black/40">
+              No products found.
+            </div>
+          ) : (
+            products.map((product, index) => (
+              <article
+                key={product.title}
+                className="group flex h-full flex-col rounded-[20px] border border-black/5 bg-white p-3 shadow-[0_16px_40px_rgba(0,39,25,0.08)] transition-transform duration-300 hover:-translate-y-1"
+                style={{ animationDelay: `${index * 90}ms` }}
+              >
+                {/* Image */}
+                <div className="relative overflow-hidden rounded-[14px]">
+                  <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-[#e74d23] px-2.5 py-1 text-[0.64rem] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+                    <span className="text-[0.72rem]">◉</span> Hot
+                  </div>
+                  {/* Status at top right */}
+                  <div
+                    className={`absolute right-3 top-3 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur-md ${product.available
                       ? "bg-emerald-500/90 text-white"
                       : "bg-black/60 text-white"
-                    }`}
-                >
-                  {product.available ? "Available" : "Out of Stock"}
-                </div>
-                <div className="relative aspect-[1/0.98] bg-slate-100">
-                  <Image src={product.image} alt={product.title} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="flex flex-1 flex-col px-1 pb-1 pt-4">
-                <p className="text-[0.73rem] font-bold uppercase tracking-[0.16em] text-primary">{product.label}</p>
-                <h3 className="mt-1.5 font-headline text-[1.35rem] font-bold leading-tight tracking-[-0.04em] text-[#131713]">
-                  {product.title}
-                </h3>
-
-                {/* ── Price badges ── */}
-                <div className="mt-4 flex flex-col gap-2">
-                  {unitOrder.map((unit, i) => (
-                    <PriceBadge key={unit} unit={unit} price={product.prices[i]} />
-                  ))}
+                      }`}
+                  >
+                    {product.available ? "Tersedia" : "Stock Barang Habis"}
+                  </div>
+                  <div className="relative aspect-[1/0.98] bg-slate-100">
+                    <Image src={product.image} alt={product.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                  </div>
                 </div>
 
-                {/* ── Add button ── */}
-                <button
-                  id={`add-${product.title.replace(/\s+/g, "-").toLowerCase()}`}
-                  onClick={() => setActiveProduct(product)}
-                  aria-label={`Add ${product.title} to cart`}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_8px_24px_rgba(0,105,65,0.28)] active:translate-y-0"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-4 w-4">
-                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                  </svg>
-                  Add to Cart
-                </button>
-              </div>
-            </article>
-          ))}
+                {/* Info */}
+                <div className="flex flex-1 flex-col px-1 pb-1 pt-4">
+                  <p className="text-[0.73rem] font-bold uppercase tracking-[0.16em] text-primary">{product.label}</p>
+                  <h3 className="mt-1.5 font-headline text-[1.35rem] font-bold leading-tight tracking-[-0.04em] text-[#131713]">
+                    {product.title}
+                  </h3>
+
+                  {/* ── Price badges ── */}
+                  <div className="mb-auto mt-4 flex flex-col gap-2">
+                    {unitOrder.map((unit, i) => (
+                      product.prices[i] !== "-" && <PriceBadge key={unit} unit={unit} price={product.prices[i]} />
+                    ))}
+                  </div>
+
+                  {/* ── Add button ── */}
+                  <button
+                    id={`add-${product.title.replace(/\s+/g, "-").toLowerCase()}`}
+                    onClick={() => setActiveProduct(product)}
+                    aria-label={`Add ${product.title} to cart`}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_8px_24px_rgba(0,105,65,0.28)] active:translate-y-0"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-4 w-4">
+                      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                    </svg>
+                    Tambahkan Ke Keranjang
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
         </div>
       </section>
 

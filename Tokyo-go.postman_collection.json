@@ -1,0 +1,271 @@
+{
+  "info": {
+    "_postman_id": "11f8973b-c852-4362-b336-4ba378c9c712",
+    "name": "Tokyo-go",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52064383",
+    "_collection_link": "https://go.postman.co/collection/52064383-11f8973b-c852-4362-b336-4ba378c9c712?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "inventory",
+      "item": [
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\" : \"admin1@tokyo-go.com\",\n    \"password\" : \"AdminTokyo1123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/tokyo/group/ad-min/category",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "tokyo",
+                "group",
+                "ad-min",
+                "category"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create brands",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJhZG1pbjFAdG9reW8tZ28uY29tIiwiaWF0IjoxNzc2NzU3OTg3LCJleHAiOjE3NzY3NTk3ODd9._i73Se2tjdDsGO8nzr2SaOwpPvC2t2LobEkqDlbYTOCw1fAA0Tb1-uVVO7uwKZ1aXFP9R6ALN48w0QOtN9PoZg",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\" : \"Hokkaido\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5001/tokyo/gropup/ad-min/brand",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "tokyo",
+                "gropup",
+                "ad-min",
+                "brand"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJhZG1pbjFAdG9reW8tZ28uY29tIiwiaWF0IjoxNzc2MzA4MDI5LCJleHAiOjE3NzYzMDk4Mjl9.82MDWxP5YUeA4ISuopjM9G0kEhWqs5Qi1sGJU2LwuOajkMtmxHN_gvTSk4Rcny6cZKp4UAUGbyn0aqUpunLbYw",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Premium Arabica Coffee Beans\",\n  \"sku\": \"COF-ARAB-001\",\n  \"stock\": 150,\n  \"baseWeight\": 1000,\n  \"brand\": \"53cc6b63-9152-437c-a394-68f1c74596dd\",\n  \"category\": \"b03680f6-77cd-4fac-8ca8-eee1edc76784\",\n  \"subCategory\": \"Cokelat\",\n  \"description\": \"High-quality Arabica coffee beans with rich aroma and smooth taste.\",\n  \"unitList\": [\n    \n    {\n      \"unit\": \"pack\",\n      \"convertQuantity\": 10,\n      \"basePrice\": 45000.00,\n      \"sellPrice\": 60000.00\n    },\n    {\n      \"unit\": \"box\",\n      \"convertQuantity\": 50,\n      \"basePrice\": 200000.00,\n      \"sellPrice\": 260000.00\n    }\n  ],\n  \"imageList\": [\n    {\n      \"url\": \"https://example.com/images/coffee-primary.jpg\",\n      \"altText\": \"Premium Arabica Coffee Beans - Main Image\",\n    },\n    {\n      \"url\": \"https://example.com/images/coffee-packaging.jpg\",\n      \"altText\": \"Coffee Packaging\",\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5001/tokyo/gropup/ad-min/product",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "tokyo",
+                "gropup",
+                "ad-min",
+                "product"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "add images",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzUxMiJ9.eyJyb2xlIjoiQURNSU4iLCJzdWIiOiJhZG1pbjFAdG9reW8tZ28uY29tIiwiaWF0IjoxNzc2NzU3OTg3LCJleHAiOjE3NzY3NTk3ODd9._i73Se2tjdDsGO8nzr2SaOwpPvC2t2LobEkqDlbYTOCw1fAA0Tb1-uVVO7uwKZ1aXFP9R6ALN48w0QOtN9PoZg",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "slug",
+                  "value": "hokaido-milk",
+                  "type": "text",
+                  "uuid": "814dee52-9d87-4f5c-adb6-bd3a03a90050"
+                },
+                {
+                  "key": "images",
+                  "type": "file",
+                  "uuid": "dc459dc9-2bfb-4196-961e-e7f3603de467",
+                  "src": "/Users/appfuxion/Downloads/download (1).jpeg"
+                },
+                {
+                  "key": "altText",
+                  "value": "picture of hokaido milk",
+                  "type": "text",
+                  "uuid": "7f4048ec-ebe8-4b25-9b15-0393d6a098c2"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:5001/tokyo/gropup/ad-min/product/image",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5001",
+              "path": [
+                "tokyo",
+                "gropup",
+                "ad-min",
+                "product",
+                "image"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "register",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/tokyo/register",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "tokyo",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Request-otp",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/tokyo/request-otp",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "tokyo",
+            "request-otp"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Verify-otp",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/tokyo/verify-otp",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "tokyo",
+            "verify-otp"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "LoginAdmin",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\" : \"admin1@tokyo-go.com\",\n    \"password\" : \"AdminTokyo1123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/tokyo/group/ad-min/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "tokyo",
+            "group",
+            "ad-min",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

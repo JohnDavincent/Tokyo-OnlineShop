@@ -34,4 +34,7 @@ public class ProductImage {
     @Column(name = "alt_text")
     private String altText;
 
+    @Column(name = "slug")
+    private String slug;
+
 }

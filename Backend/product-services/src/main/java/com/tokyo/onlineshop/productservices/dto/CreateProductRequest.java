@@ -1,6 +1,5 @@
 package com.tokyo.onlineshop.productservices.dto;
 
-import com.tokyo.onlineshop.productservices.ImageStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -44,6 +43,5 @@ public class CreateProductRequest {
     List<CreateUnitRequest> unitList;
 
     List<CreateImageRequest> imageList;
-
 
 }

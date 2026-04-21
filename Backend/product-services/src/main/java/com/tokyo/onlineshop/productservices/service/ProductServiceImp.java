@@ -9,14 +9,12 @@ import com.tokyo.onlineshop.productservices.entity.ProductUnit;
 import com.tokyo.onlineshop.productservices.repository.BrandRepository;
 import com.tokyo.onlineshop.productservices.repository.CategoryRepository;
 import com.tokyo.onlineshop.productservices.repository.ProductRepository;
-import com.tokyo.onlineshop.productservices.repository.ProductUnitRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collector;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +43,7 @@ public class ProductServiceImp implements ProductService {
                 .stock(request.getStock())
                 .description(request.getDescription())
                 .status(ProductionStatus.AVAILABLE)
+                .isFeaturedPage(true)
                 .productUnitList(new ArrayList<>())
                 .build();
 
@@ -89,8 +88,38 @@ public class ProductServiceImp implements ProductService {
     }
 
     @Override
-    public ProductCard getProductList() {
-        
+    public List<ProductCard> getProductList() {
+        List<Product> productList = productRepository.listOfFeaturedPageProduct();
+        if(productList.isEmpty()){
+            throw new RuntimeException("There is no product that is featuredPage");
+        }
+
+        return productList.stream()
+                .map(card -> {
+                    return ProductCard.builder()
+                            .productName(card.getName())
+                            .url(card.getProductImageList().getFirst().getUrl())
+                            .altText(card.getProductImageList().getFirst().getUrl())
+                            .status(card.getStatus())
+                            .category(card.getCategory().getName())
+                            .unitList(
+                                    card.getProductUnitList().stream()
+                                            .map(unit -> {
+                                                    return UnitCard.builder()
+                                                            .unit(unit.getUnit())
+                                                            .convertQuantity(unit.getConvertQuantity())
+                                                            .sellPrice(unit.getUnitSellPrice())
+                                                            .status(unit.getStatus())
+                                                            .build();
+                                                    }
+                                            ).toList()
+                            )
+                            .build();
+                }).toList();
+
+
+
+
     }
 
 

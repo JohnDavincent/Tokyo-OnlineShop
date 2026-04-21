@@ -18,5 +18,6 @@ public class CreateImageResponse {
     private String productName;
     private String altText;
     private Boolean isPrimary;
+    private String slug;
 }
 

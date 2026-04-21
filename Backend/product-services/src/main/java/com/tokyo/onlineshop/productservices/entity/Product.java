@@ -43,6 +43,9 @@ public class Product extends BaseEntity {
     @Column(name = "base_unit")
     private String baseUnit;
 
+    @Column(name = "is_featured_page")
+    private boolean isFeaturedPage;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "Product_status")
     private ProductionStatus status;

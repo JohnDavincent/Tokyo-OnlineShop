@@ -23,3 +23,5 @@ spring:
 app:
   jwt:
     secret : "x9FvQ2@lZ7mP#kR1sT8wY!bC3dE6uH$jN0aG%rL5oI^qXz&V4nWp*UeKf+M=cD~hB2JtS8yA1"
+  upload-dir: /Users/appfuxion/Documents/GitHub/Tokyo-OnlineShop/Frontend/tokyogo-frontend/public
+

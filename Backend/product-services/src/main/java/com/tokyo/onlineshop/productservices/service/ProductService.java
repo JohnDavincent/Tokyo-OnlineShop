@@ -4,8 +4,10 @@ import com.tokyo.onlineshop.productservices.dto.CreateProductRequest;
 import com.tokyo.onlineshop.productservices.dto.CreateProductResponse;
 import com.tokyo.onlineshop.productservices.dto.ProductCard;
 
+import java.util.List;
+
 public interface ProductService {
 
     public CreateProductResponse createProduct(CreateProductRequest request);
-    public ProductCard getProductList();
+    public List<ProductCard> getProductList();
 }

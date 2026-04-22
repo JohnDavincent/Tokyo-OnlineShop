@@ -68,4 +68,17 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("product/arrival")
+    ResponseEntity<WebResponse<List<ProductCard>>> getProductArrivalList(){
+        List<ProductCard> data = productService.getLastArrivalProductList();
+        WebResponse<List<ProductCard>> response = WebResponse.<List<ProductCard>>builder()
+                .value(HttpStatus.OK.value())
+                .success(true)
+                .message("Product Success loaded")
+                .data(data)
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
 }

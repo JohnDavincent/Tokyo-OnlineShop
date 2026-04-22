@@ -23,4 +23,16 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
             """
     )
     public List<Product> listOfFeaturedPageProduct();
+
+    @Query(
+            """
+            SELECT DISTINCT p
+            FROM Product p
+            LEFT JOIN FETCH p.productImageList
+            LEFT JOIN p.productUnitList
+            ORDER BY p.createdAt DESC
+            LIMIT 8
+            """
+    )
+    public List<Product> listOfArrivalProduct();
 }

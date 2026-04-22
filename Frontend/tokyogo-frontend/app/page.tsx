@@ -2,14 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const topNav = ["Categories", "Wholesale", "Deals", "Rewards"];
 
 const aisles = [
   {
     title: "Organic Produce",
-    image: "/beras-jiva-7bf12e12.jpg",
+    image: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'><defs><linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%23192f1b'/><stop offset='1' stop-color='%232c4a30'/></linearGradient></defs><rect width='800' height='800' fill='url(%23bg)'/><text x='400' y='400' fill='%236da473' font-size='64' font-family='Arial' font-weight='bold' text-anchor='middle'>FRESH</text><text x='400' y='480' fill='%236da473' font-size='64' font-family='Arial' font-weight='bold' text-anchor='middle'>PRODUCE</text></svg>",
     tone: "from-[#20261e] via-[#263827] to-[#4f6b42]",
   },
   {
@@ -32,14 +32,60 @@ const aisles = [
   },
 ];
 
-type Product = {
-  label: string;
-  title: string;
-  description: string;
-  prices: [string, string, string]; // [pcs, pax, box]
-  image: string;
-  available: boolean;
+/* ─── Types ─────────────────────────────────────────────── */
+type UnitList = {
+  unit: string;
+  convertQuantity: number;
+  sellPrice: number;
+  status: string;
 };
+
+type ApiProduct = {
+  productName: string;
+  status: string;
+  url: string;
+  altText: string;
+  category: string;
+  unitList: UnitList[];
+};
+
+const API_BASE_URL = "http://localhost:5001";
+
+function extractProducts(payload: unknown): ApiProduct[] {
+  if (Array.isArray(payload)) return payload as ApiProduct[];
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
+    Array.isArray((payload as { data?: unknown }).data)
+  ) {
+    return (payload as { data: ApiProduct[] }).data;
+  }
+  return [];
+}
+
+function resolveProductImage(url?: string) {
+  if (!url) {
+    return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><rect width='400' height='400' fill='%23f1f5f9'/><text x='200' y='200' fill='%23cbd5e1' font-size='32' font-family='Arial' font-weight='bold' text-anchor='middle'>NO IMAGE</text></svg>";
+  }
+
+  if (url.startsWith("data:")) {
+    return url;
+  }
+
+  // The local image files are sitting directly in the generic public/ folder,
+  // so we isolate just the image filename and request it from root.
+  const filename = url.split("/").pop();
+  return `/${filename}`;
+}
+
+function getCardsPerView(width: number) {
+  if (width >= 1400) return 5;
+  if (width >= 1024) return 4;
+  if (width >= 768) return 3;
+  if (width >= 520) return 2;
+  return 1;
+}
 
 /* ─── Icons ─────────────────────────────────────────────── */
 function SearchIcon() {
@@ -75,47 +121,70 @@ function CloseIcon() {
   );
 }
 
+function ArrowLeftIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+      <path d="M15 5 8 12l7 7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+      <path d="m9 5 7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /* ─── Price Badge ─────────────────────────────────────────── */
+function normalizeUnit(rawUnit: string) {
+  const lo = rawUnit.toLowerCase();
+  if (lo.includes("pcs") || lo.includes("piece")) return "Pcs";
+  if (lo.includes("pack") || lo.includes("pax")) return "Pax";
+  if (lo.includes("box")) return "Box";
+  return rawUnit;
+}
+
 const unitMeta: Record<string, { bg: string; dot: string; label: string }> = {
   Pcs: { bg: "bg-[#f0fdf4]", dot: "bg-emerald-500", label: "Per Piece" },
   Pax: { bg: "bg-[#eff6ff]", dot: "bg-blue-500", label: "Per Pack" },
   Box: { bg: "bg-[#fdf4ff]", dot: "bg-purple-500", label: "Per Box" },
 };
 
-function PriceBadge({ unit, price }: { unit: string; price: string }) {
-  const meta = unitMeta[unit];
-  const unavailable = price === "-";
+function PriceBadge({ unit, price }: { unit: string; price: number | string }) {
+  const normUnit = normalizeUnit(unit);
+  const meta = unitMeta[normUnit] || { bg: "bg-[#f3f4f6]", dot: "bg-gray-500", label: "Per Unit" };
+  const unavailable = price === 0 || price === "-";
+  const displayPrice = typeof price === "number" ? `Rp ${price.toLocaleString("id-ID")}` : price;
+
   return (
-    <div className={`flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 ${unavailable ? "bg-black/[0.03]" : meta.bg}`}>
-      <div className="flex items-center gap-2.5">
+    <div className={`flex flex-col items-start gap-1 rounded-xl px-3 py-2.5 ${unavailable ? "bg-black/[0.03]" : meta.bg}`}>
+      <div className="flex items-center gap-1.5">
         <span className={`inline-block h-1.5 w-1.5 rounded-full ${unavailable ? "bg-black/20" : meta.dot}`} />
-        <div className="flex flex-col items-start gap-0.5">
-          <span className="text-[0.64rem] font-bold uppercase tracking-[0.14em] leading-none text-black/50">
-            {unit}
-          </span>
-          <span className="text-[0.55rem] text-black/35 leading-none">{unavailable ? "Not sold" : meta.label}</span>
-        </div>
+        <span className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-black/40">
+          {normUnit}
+        </span>
       </div>
       <span
-        className={`text-[1.05rem] font-extrabold tracking-tight ${unavailable ? "text-black/22 line-through" : "text-[#101210]"
+        className={`text-[1.1rem] font-extrabold leading-none tracking-tight ${unavailable ? "text-black/22 line-through" : "text-[#101210]"
           }`}
       >
-        {unavailable ? "N/A" : price}
+        {unavailable ? "N/A" : displayPrice}
       </span>
+      <span className="text-[0.58rem] text-black/30">{unavailable ? "Not sold" : meta.label}</span>
     </div>
   );
 }
 
 /* ─── Add-to-Cart Modal ───────────────────────────────────── */
 type ModalProps = {
-  product: Product;
+  product: ApiProduct;
   onClose: () => void;
 };
 
-const unitOrder: Array<"Pcs" | "Pax" | "Box"> = ["Pcs", "Pax", "Box"];
-
 function AddToCartModal({ product, onClose }: ModalProps) {
-  const [quantities, setQuantities] = useState<Record<string, number>>({ Pcs: 0, Pax: 0, Box: 0 });
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   function change(unit: string, delta: number) {
     setQuantities((prev) => ({
@@ -129,39 +198,33 @@ function AddToCartModal({ product, onClose }: ModalProps) {
     setQuantities((prev) => ({ ...prev, [unit]: isNaN(val) || val < 0 ? 0 : val }));
   }
 
-  const total = unitOrder.reduce((acc, unit, i) => {
-    const price = product.prices[i];
-    if (price === "-") return acc;
-    // Replace all non-digits to support "Rp 15.000"
-    const num = parseFloat(price.replace(/[^0-9]/g, ""));
-    return acc + num * (quantities[unit] ?? 0);
-  }, 0);
+  const total = product.unitList?.reduce((acc, unitItem) => {
+    const normUnit = normalizeUnit(unitItem.unit);
+    const q = quantities[normUnit] ?? 0;
+    return acc + (unitItem.sellPrice * q);
+  }, 0) || 0;
 
   const hasItems = Object.values(quantities).some((q) => q > 0);
 
   return (
-    /* Backdrop */
     <div
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
       style={{ background: "rgba(0,0,0,0.42)", backdropFilter: "blur(4px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Sheet */}
       <div
         className="relative w-full max-w-md rounded-t-[32px] bg-white px-6 pb-8 pt-6 shadow-[0_-24px_80px_rgba(0,0,0,0.18)] sm:rounded-[28px] sm:pb-8"
         style={{ animation: "slideUp 0.32s cubic-bezier(0.22,1,0.36,1) both" }}
       >
-        {/* Drag handle */}
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-black/12 sm:hidden" />
 
-        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-primary">
-              {product.label}
+              {product.category}
             </p>
             <h3 className="mt-1 font-headline text-[1.45rem] font-extrabold leading-tight tracking-[-0.04em] text-[#101210]">
-              {product.title}
+              {product.productName}
             </h3>
           </div>
           <button
@@ -173,46 +236,42 @@ function AddToCartModal({ product, onClose }: ModalProps) {
           </button>
         </div>
 
-        {/* Divider */}
         <div className="my-5 h-px bg-black/6" />
 
-        {/* Unit rows */}
         <div className="flex flex-col gap-3">
-          {unitOrder.map((unit, i) => {
-            const price = product.prices[i];
-            const meta = unitMeta[unit];
-            const unavailable = price === "-";
-            if (unavailable) return null;
+          {product.unitList?.map((unitItem) => {
+            const normUnit = normalizeUnit(unitItem.unit);
+            const meta = unitMeta[normUnit] || { bg: "", dot: "bg-gray-500", label: "Per Unit" };
+            const unavailable = unitItem.status !== "AVAILABLE";
+
             return (
               <div
-                key={unit}
+                key={unitItem.unit}
                 className={`flex items-center justify-between gap-4 rounded-2xl border px-4 py-3.5 ${unavailable
-                  ? "border-black/5 bg-black/[0.02] opacity-50"
-                  : "border-black/7 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                    ? "border-black/5 bg-black/[0.02] opacity-50"
+                    : "border-black/7 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                   }`}
               >
-                {/* Label + price */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className={`inline-block h-2 w-2 rounded-full ${unavailable ? "bg-black/20" : meta.dot}`} />
                     <span className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-black/45">
-                      {unit} — {meta.label}
+                      {normUnit} — {meta.label}
                     </span>
                   </div>
                   <p className={`mt-1 text-[1.3rem] font-extrabold tracking-tight ${unavailable ? "text-black/25" : "text-[#101210]"}`}>
-                    {unavailable ? "Not available" : price}
+                    {unavailable ? "Not available" : `Rp ${unitItem.sellPrice.toLocaleString("id-ID")}`}
                   </p>
                 </div>
 
-                {/* Quantity spinner */}
                 <div
                   className={`flex items-center gap-1 rounded-xl border ${unavailable ? "pointer-events-none border-black/5 bg-black/5" : "border-black/10 bg-[#f6f8f5]"
                     }`}
                 >
                   <button
-                    aria-label={`Decrease ${unit}`}
-                    disabled={unavailable || (quantities[unit] ?? 0) === 0}
-                    onClick={() => change(unit, -1)}
+                    aria-label={`Decrease ${normUnit}`}
+                    disabled={unavailable || (quantities[normUnit] ?? 0) === 0}
+                    onClick={() => change(normUnit, -1)}
                     className="flex h-9 w-9 items-center justify-center rounded-l-xl text-lg font-bold text-black/50 transition hover:bg-black/8 disabled:opacity-30"
                   >
                     −
@@ -221,14 +280,14 @@ function AddToCartModal({ product, onClose }: ModalProps) {
                     type="number"
                     min="0"
                     disabled={unavailable}
-                    value={quantities[unit] ?? 0}
-                    onChange={(e) => handleInput(unit, e.target.value)}
+                    value={quantities[normUnit] ?? 0}
+                    onChange={(e) => handleInput(normUnit, e.target.value)}
                     className="w-12 bg-transparent text-center text-[1rem] font-bold text-[#101210] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                   <button
-                    aria-label={`Increase ${unit}`}
+                    aria-label={`Increase ${normUnit}`}
                     disabled={unavailable}
-                    onClick={() => change(unit, 1)}
+                    onClick={() => change(normUnit, 1)}
                     className="flex h-9 w-9 items-center justify-center rounded-r-xl text-lg font-bold text-black/50 transition hover:bg-black/8 disabled:opacity-30"
                   >
                     +
@@ -239,7 +298,6 @@ function AddToCartModal({ product, onClose }: ModalProps) {
           })}
         </div>
 
-        {/* Total + CTA */}
         {hasItems && (
           <div className="mt-5 flex items-center justify-between rounded-2xl bg-[#f0fdf4] px-5 py-3.5">
             <div>
@@ -250,9 +308,7 @@ function AddToCartModal({ product, onClose }: ModalProps) {
                 Rp {total.toLocaleString("id-ID")}
               </p>
             </div>
-            <button
-              className="rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-[0_6px_20px_rgba(0,105,65,0.28)] transition hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0"
-            >
+            <button className="rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-[0_6px_20px_rgba(0,105,65,0.28)] transition hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0">
               Add to Cart
             </button>
           </div>
@@ -277,43 +333,58 @@ function AddToCartModal({ product, onClose }: ModalProps) {
 
 /* ─── Page ────────────────────────────────────────────────── */
 export default function HomePage() {
-  const [activeProduct, setActiveProduct] = useState<Product | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [activeProduct, setActiveProduct] = useState<ApiProduct | null>(null);
+  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [arrivals, setArrivals] = useState<ApiProduct[]>([]);
+  const [arrivalIndex, setArrivalIndex] = useState(0);
+  const [cardsPerView, setCardsPerView] = useState(4);
+  const [isArrivalLoading, setIsArrivalLoading] = useState(true);
+  const [arrivalError, setArrivalError] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5001/tokyo/gropup/product")
-      .then((res) => res.json())
-      .then((res) => {
-        if (res.success && res.data) {
-          const mappedProducts = res.data.map((apiProduct: any) => {
-            const getPrice = (variants: string[]) => {
-              const u = apiProduct.unitList?.find((u: any) => variants.includes(u.unit.toLowerCase()));
-              return u ? `Rp ${u.sellPrice.toLocaleString("id-ID")}` : "-";
-            };
-
-            return {
-              label: apiProduct.category || "General",
-              title: apiProduct.productName,
-              description: "",
-              prices: [
-                getPrice(["pcs", "piece", "pieces", "pc"]),
-                getPrice(["pax", "pack", "packs"]),
-                getPrice(["box", "boxes", "boxs"])
-              ],
-              image: apiProduct.url ? apiProduct.url.replace('/images/products/', '/') : "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
-              available: apiProduct.status === "AVAILABLE",
-            };
-          });
-          setProducts(mappedProducts);
-        }
+    fetch(`${API_BASE_URL}/tokyo/gropup/product`)
+      .then(res => res.json())
+      .then(json => {
+        setProducts(extractProducts(json));
       })
-      .catch((err) => console.error("Failed to load products:", err))
-      .finally(() => setIsLoading(false));
+      .catch(e => console.error("Could not fetch products:", e));
   }, []);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/tokyo/gropup/product/arrival`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch arrival products");
+        return res.json();
+      })
+      .then((json) => {
+        setArrivals(extractProducts(json));
+        setArrivalError("");
+      })
+      .catch((e) => {
+        console.error("Could not fetch new arrivals:", e);
+        setArrivalError("New arrival products are not available right now.");
+      })
+      .finally(() => setIsArrivalLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const updateCardsPerView = () => setCardsPerView(getCardsPerView(window.innerWidth));
+
+    updateCardsPerView();
+    window.addEventListener("resize", updateCardsPerView);
+    return () => window.removeEventListener("resize", updateCardsPerView);
+  }, []);
+
+  const cappedArrivals = arrivals.slice(0, 8);
+  const slideData = arrivals.length > 0 ? [...cappedArrivals, { isSeeMore: true, productName: "Cek yang lainnya" } as any] : [];
+  const maxArrivalIndex = Math.max(0, slideData.length - cardsPerView);
+  const safeArrivalIndex = Math.min(arrivalIndex, maxArrivalIndex);
+  const canGoPrev = safeArrivalIndex > 0;
+  const canGoNext = safeArrivalIndex < maxArrivalIndex;
 
   return (
     <main className="min-h-screen bg-[#f6f8f5] text-on-surface">
+
       {/* ── Header ── */}
       <header className="sticky top-0 z-30 border-b border-black/5 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-5 lg:px-8">
@@ -340,7 +411,7 @@ export default function HomePage() {
       {/* ── Hero Banner ── */}
       <section className="mx-auto grid max-w-[1180px] gap-5 px-6 pb-14 pt-8 lg:grid-cols-[1.9fr_0.9fr] lg:px-8">
         <article className="group relative min-h-[430px] overflow-hidden rounded-[32px] bg-[#d8d3c9] text-white shadow-[0_24px_60px_rgba(0,45,30,0.12)]">
-          <Image src="/indomie-goreng-28901028.png" alt="Fresh Indomie" fill sizes="(max-width: 1024px) 100vw, 66vw" className="object-cover object-center transition-transform duration-700 group-hover:scale-[1.03]" priority />
+          <Image src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'><defs><linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%23edebe0'/><stop offset='1' stop-color='%23d6d0c2'/></linearGradient></defs><rect width='1200' height='800' fill='url(%23bg)'/><text x='600' y='400' fill='%239e998a' font-size='72' font-family='Arial' font-weight='bold' text-anchor='middle'>FARM FRESH</text></svg>" alt="Fresh vegetables in a box" fill className="object-cover object-center transition-transform duration-700 group-hover:scale-[1.03]" priority />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(14,28,20,0.62),rgba(14,28,20,0.2)_48%,rgba(14,28,20,0.02))]" />
           <div className="relative flex h-full max-w-[420px] flex-col justify-center gap-6 px-8 py-10 sm:px-10">
             <p className="animate-fade-up text-sm font-bold uppercase tracking-[0.16em] text-primary-fixed [animation-delay:120ms]">Precision Freshness</p>
@@ -377,8 +448,8 @@ export default function HomePage() {
               <p className="text-sm font-medium text-primary">Weekly Special</p>
               <h3 className="mt-2 font-headline text-[1.9rem] font-bold tracking-[-0.04em] text-[#101210]">Premium Sashimi</h3>
               <div className="mt-3 flex items-end justify-center gap-3">
-                <span className="text-sm text-black/35 line-through">¥3,500</span>
-                <span className="text-[1.9rem] font-bold text-[#d03518]">¥2,800</span>
+                <span className="text-sm text-black/35 line-through">Rp 350.000</span>
+                <span className="text-[1.9rem] font-bold text-[#d03518]">Rp 280.000</span>
               </div>
             </div>
           </article>
@@ -404,7 +475,7 @@ export default function HomePage() {
                 style={{ animationDelay: `${index * 110}ms` }}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${aisle.tone}`} />
-                <Image src={aisle.image} alt={aisle.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw" className="object-cover opacity-88 transition-transform duration-700 group-hover:scale-105" />
+                <Image src={aisle.image} alt={aisle.title} fill className="object-cover opacity-88 transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08),rgba(0,0,0,0.5))]" />
                 <div className="absolute inset-x-0 bottom-0 p-5">
                   <h3 className="font-headline text-[1.85rem] font-bold tracking-[-0.04em]">{aisle.title}</h3>
@@ -423,71 +494,241 @@ export default function HomePage() {
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {isLoading ? (
-            <div className="col-span-full py-10 text-center text-sm font-medium text-black/40">
-              Loading products...
-            </div>
-          ) : products.length === 0 ? (
-            <div className="col-span-full py-10 text-center text-sm font-medium text-black/40">
-              No products found.
-            </div>
-          ) : (
-            products.map((product, index) => (
-              <article
-                key={product.title}
-                className="group flex h-full flex-col rounded-[20px] border border-black/5 bg-white p-3 shadow-[0_16px_40px_rgba(0,39,25,0.08)] transition-transform duration-300 hover:-translate-y-1"
-                style={{ animationDelay: `${index * 90}ms` }}
-              >
-                {/* Image */}
-                <div className="relative overflow-hidden rounded-[14px]">
-                  <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-[#e74d23] px-2.5 py-1 text-[0.64rem] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
-                    <span className="text-[0.72rem]">◉</span> Hot
-                  </div>
-                  {/* Status at top right */}
-                  <div
-                    className={`absolute right-3 top-3 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur-md ${product.available
+          {products.map((product, index) => (
+            <article
+              key={product.productName}
+              className="group flex h-full flex-col rounded-[20px] border border-black/5 bg-white p-3 shadow-[0_16px_40px_rgba(0,39,25,0.08)] transition-transform duration-300 hover:-translate-y-1"
+              style={{ animationDelay: `${index * 90}ms` }}
+            >
+              {/* Image */}
+              <div className="relative overflow-hidden rounded-[14px]">
+                <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-[#e74d23] px-2.5 py-1 text-[0.64rem] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+                  <span className="text-[0.72rem]">◉</span> Hot
+                </div>
+                <div
+                  className={`absolute right-3 top-3 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur-md ${product.status === "AVAILABLE"
                       ? "bg-emerald-500/90 text-white"
                       : "bg-black/60 text-white"
-                      }`}
-                  >
-                    {product.available ? "Tersedia" : "Stock Barang Habis"}
-                  </div>
-                  <div className="relative aspect-[1/0.98] bg-slate-100">
-                    <Image src={product.image} alt={product.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
-                  </div>
+                    }`}
+                >
+                  {product.status === "AVAILABLE" ? "Available" : "Out of Stock"}
+                </div>
+                <div className="relative aspect-[1/0.98] bg-slate-100 overflow-hidden rounded-[11px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={resolveProductImage(product.url)} alt={product.altText || product.productName} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" onError={(e) => { (e.currentTarget as HTMLImageElement).src = resolveProductImage(); }} />
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="flex flex-1 flex-col px-1 pb-1 pt-4">
+                <p className="text-[0.73rem] font-bold uppercase tracking-[0.16em] text-primary">{product.category}</p>
+                <h3 className="mt-1.5 font-headline text-[1.35rem] font-bold leading-tight tracking-[-0.04em] text-[#131713]">
+                  {product.productName}
+                </h3>
+
+                {/* ── Price badges ── */}
+                <div className="mt-4 flex flex-col gap-2">
+                  {product.unitList?.map((unitItem) => (
+                    <PriceBadge key={unitItem.unit} unit={unitItem.unit} price={unitItem.sellPrice} />
+                  ))}
                 </div>
 
-                {/* Info */}
-                <div className="flex flex-1 flex-col px-1 pb-1 pt-4">
-                  <p className="text-[0.73rem] font-bold uppercase tracking-[0.16em] text-primary">{product.label}</p>
-                  <h3 className="mt-1.5 font-headline text-[1.35rem] font-bold leading-tight tracking-[-0.04em] text-[#131713]">
-                    {product.title}
-                  </h3>
-
-                  {/* ── Price badges ── */}
-                  <div className="mb-auto mt-4 flex flex-col gap-2">
-                    {unitOrder.map((unit, i) => (
-                      product.prices[i] !== "-" && <PriceBadge key={unit} unit={unit} price={product.prices[i]} />
-                    ))}
-                  </div>
-
-                  {/* ── Add button ── */}
-                  <button
-                    id={`add-${product.title.replace(/\s+/g, "-").toLowerCase()}`}
-                    onClick={() => setActiveProduct(product)}
-                    aria-label={`Add ${product.title} to cart`}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_8px_24px_rgba(0,105,65,0.28)] active:translate-y-0"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-4 w-4">
-                      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                    </svg>
-                    Tambahkan Ke Keranjang
-                  </button>
-                </div>
-              </article>
-            ))
-          )}
+                {/* ── Add button ── */}
+                <button
+                  id={`add-${product.productName.replace(/\s+/g, "-").toLowerCase()}`}
+                  onClick={() => setActiveProduct(product)}
+                  aria-label={`Add ${product.productName} to cart`}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_8px_24px_rgba(0,105,65,0.28)] active:translate-y-0"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-4 w-4">
+                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                  </svg>
+                  Add to Cart
+                </button>
+              </div>
+            </article>
+          ))}
         </div>
+      </section>
+
+      <section className="mx-auto max-w-[1180px] px-6 pb-24 lg:px-8">
+        <div className="mb-8 flex items-end justify-between gap-5">
+          <div>
+            <h2 className="font-headline text-[2.35rem] font-extrabold tracking-[-0.05em] text-[#131713]">
+              New Arrival
+            </h2>
+            <p className="mt-2 max-w-xl text-base text-on-surface/68">
+              Freshly added products from the latest arrival feed.
+            </p>
+          </div>
+
+        </div>
+
+        {isArrivalLoading ? (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="overflow-hidden rounded-[20px] border border-black/5 bg-white p-3 shadow-[0_16px_40px_rgba(0,39,25,0.05)]">
+                <div className="aspect-[1/0.98] animate-pulse rounded-[14px] bg-black/6" />
+                <div className="mt-4 h-3 w-24 animate-pulse rounded-full bg-black/6" />
+                <div className="mt-3 h-8 w-3/4 animate-pulse rounded-full bg-black/6" />
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="h-16 animate-pulse rounded-2xl bg-black/6" />
+                  <div className="h-16 animate-pulse rounded-2xl bg-black/6" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : arrivalError ? (
+          <div className="rounded-[24px] border border-[#f3d6cf] bg-[#fff7f3] px-6 py-5 text-sm text-[#8b3f2f]">
+            {arrivalError}
+          </div>
+        ) : arrivals.length === 0 ? (
+          <div className="rounded-[24px] border border-black/5 bg-white px-6 py-5 text-sm text-on-surface/55">
+            No new arrival products found.
+          </div>
+        ) : (
+          <>
+            <div className="relative">
+              {/* Left Slider Navigation */}
+              <button
+                type="button"
+                aria-label="Previous arrivals"
+                disabled={!canGoPrev}
+                onClick={() => setArrivalIndex((prev) => Math.max(0, prev - 1))}
+                className={`absolute -left-6 top-1/2 z-20 hidden h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-black/8 bg-white text-on-surface shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-all duration-300 hover:scale-110 hover:text-primary md:flex ${
+                  !canGoPrev ? "pointer-events-none opacity-0" : "opacity-100"
+                }`}
+              >
+                <ArrowLeftIcon />
+              </button>
+
+              <div className="overflow-hidden p-2 -m-2">
+                <div 
+                  className="flex gap-5 transition-transform duration-700 ease-out" 
+                  style={{ 
+                    width: "100%", 
+                    transform: `translate3d(calc(-${safeArrivalIndex} * (100% / ${cardsPerView} + ${20 / cardsPerView}px)), 0, 0)` 
+                  }}
+                >
+                  {slideData.map((product, idx) => {
+                    const cardStyle = { flex: `0 0 calc((100% - ${(cardsPerView - 1) * 20}px) / ${cardsPerView})` };
+
+                    if (product.isSeeMore) {
+                      return (
+                        <div key="see-more-card" style={cardStyle}>
+                          <article
+                            className="group flex h-full flex-col items-center justify-center rounded-[20px] border border-black/5 bg-gradient-to-br from-[#f0fdf4] to-[#fcfcfc] p-6 text-center shadow-[0_16px_40px_rgba(0,39,25,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(0,39,25,0.12)] cursor-pointer"
+                            onClick={() => window.location.href = '/'}
+                          >
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary-dim">
+                              <ArrowRightIcon />
+                            </div>
+                            <h3 className="mt-5 font-headline text-[1.45rem] font-bold tracking-tight text-[#131713]">Cek yang<br/>lainnya</h3>
+                            <p className="mt-2 text-sm text-on-surface/60">Lihat seluruh katalog<br/>Arrival terbaru.</p>
+                          </article>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={`arrival-${product.productName}`} style={cardStyle}>
+                        <article className="group flex h-full flex-col rounded-[20px] border border-black/5 bg-white p-3 shadow-[0_16px_40px_rgba(0,39,25,0.08)] transition-transform duration-300 hover:-translate-y-1">
+                  <div className="relative overflow-hidden rounded-[14px]">
+                    <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[0.64rem] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+                      <span className="text-[0.72rem]">✦</span>
+                      New
+                    </div>
+                    <div
+                      className={`absolute right-3 top-3 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur-md ${product.status === "AVAILABLE"
+                          ? "bg-emerald-500/90 text-white"
+                          : "bg-black/60 text-white"
+                        }`}
+                    >
+                      {product.status === "AVAILABLE" ? "Available" : "Out of Stock"}
+                    </div>
+                    <div className="relative aspect-[1/0.98] overflow-hidden rounded-[11px] bg-slate-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={resolveProductImage(product.url)}
+                        alt={product.altText || product.productName}
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = resolveProductImage();
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-1 flex-col px-1 pb-1 pt-4">
+                    <p className="text-[0.73rem] font-bold uppercase tracking-[0.16em] text-primary">
+                      {product.category}
+                    </p>
+                    <h3 className="mt-1.5 font-headline text-[1.35rem] font-bold leading-tight tracking-[-0.04em] text-[#131713]">
+                      {product.productName}
+                    </h3>
+
+                    <div className="mt-4 flex flex-col gap-2">
+                      {product.unitList?.map((unitItem) => (
+                        <PriceBadge key={`${product.productName}-${unitItem.unit}`} unit={unitItem.unit} price={unitItem.sellPrice} />
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveProduct(product)}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-4 w-4">
+                        <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                      </svg>
+                      Add to Cart
+                    </button>
+                  </div>
+                </article>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Right Slider Navigation */}
+              <button
+                type="button"
+                aria-label="Next arrivals"
+                disabled={!canGoNext}
+                onClick={() => setArrivalIndex((prev) => Math.min(maxArrivalIndex, prev + 1))}
+                className={`absolute -right-6 top-1/2 z-20 hidden h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-black/8 bg-white text-on-surface shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-all duration-300 hover:scale-110 hover:text-primary md:flex ${
+                  !canGoNext ? "pointer-events-none opacity-0" : "opacity-100"
+                }`}
+              >
+                <ArrowRightIcon />
+              </button>
+            </div>
+
+            <div className="mt-5 flex items-center justify-between md:hidden">
+              <button
+                type="button"
+                aria-label="Previous arrivals"
+                disabled={!canGoPrev}
+                onClick={() => setArrivalIndex((prev) => Math.max(0, Math.min(prev, maxArrivalIndex) - cardsPerView))}
+                className="flex h-11 items-center gap-2 rounded-full border border-black/8 bg-white px-4 text-sm font-semibold text-on-surface transition disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                <ArrowLeftIcon />
+                Prev
+              </button>
+              <button
+                type="button"
+                aria-label="Next arrivals"
+                disabled={!canGoNext}
+                onClick={() => setArrivalIndex((prev) => Math.min(Math.min(prev, maxArrivalIndex) + cardsPerView, maxArrivalIndex))}
+                className="flex h-11 items-center gap-2 rounded-full border border-black/8 bg-white px-4 text-sm font-semibold text-on-surface transition disabled:cursor-not-allowed disabled:opacity-35"
+              >
+                Next
+                <ArrowRightIcon />
+              </button>
+            </div>
+          </>
+        )}
       </section>
 
       {/* ── Footer ── */}

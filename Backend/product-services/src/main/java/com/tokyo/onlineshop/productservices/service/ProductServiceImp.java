@@ -43,7 +43,7 @@ public class ProductServiceImp implements ProductService {
                 .stock(request.getStock())
                 .description(request.getDescription())
                 .status(ProductionStatus.AVAILABLE)
-                .isFeaturedPage(true)
+                .isFeaturedPage(false)
                 .productUnitList(new ArrayList<>())
                 .build();
 
@@ -116,10 +116,37 @@ public class ProductServiceImp implements ProductService {
                             )
                             .build();
                 }).toList();
+    }
 
+    @Override
+    public List<ProductCard> getLastArrivalProductList() {
+        List<Product> productList = productRepository.listOfArrivalProduct();
+        if(productList.isEmpty()){
+            throw new RuntimeException("There is no product that is featuredPage");
+        }
 
-
-
+        return productList.stream()
+                .map(card -> {
+                    return ProductCard.builder()
+                            .productName(card.getName())
+                            .url(card.getProductImageList().getFirst().getUrl())
+                            .altText(card.getProductImageList().getFirst().getUrl())
+                            .status(card.getStatus())
+                            .category(card.getCategory().getName())
+                            .unitList(
+                                    card.getProductUnitList().stream()
+                                            .map(unit -> {
+                                                        return UnitCard.builder()
+                                                                .unit(unit.getUnit())
+                                                                .convertQuantity(unit.getConvertQuantity())
+                                                                .sellPrice(unit.getUnitSellPrice())
+                                                                .status(unit.getStatus())
+                                                                .build();
+                                                    }
+                                            ).toList()
+                            )
+                            .build();
+                }).toList();
     }
 
 

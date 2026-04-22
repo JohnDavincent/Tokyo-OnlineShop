@@ -10,4 +10,5 @@ public interface ProductService {
 
     public CreateProductResponse createProduct(CreateProductRequest request);
     public List<ProductCard> getProductList();
+    public List<ProductCard> getLastArrivalProductList();
 }

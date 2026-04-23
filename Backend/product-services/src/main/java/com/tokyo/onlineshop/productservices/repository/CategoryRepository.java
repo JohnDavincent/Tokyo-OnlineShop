@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,5 +30,17 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
     )
     List<String> getSubCategoryList(@Param("categoryId") UUID categoryId);
 
+    @Query(
+            """
+            SELECT DISTINCT c.id, c.name
+            FROM Category c
+            WHERE c.parentId = NULL
+            """
+    )
+    Map<UUID,String> getCategoryList();
+
+
     Category findByParentIdAndName(UUID id, String subCategory);
+
+
 }

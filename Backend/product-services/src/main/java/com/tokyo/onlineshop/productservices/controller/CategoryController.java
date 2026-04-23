@@ -8,10 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/tokyo/gropup/ad-min")
@@ -22,8 +20,8 @@ public class CategoryController {
 
     @PostMapping("/category")
     @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<WebResponse<CreateCategoryResponse>> createCategory(@RequestBody CreateCategoryRequest request){
-        CreateCategoryResponse data = categoryService.CreateCategory(request);
+    ResponseEntity<WebResponse<CreateCategoryResponse>> createCategory(@RequestBody CreateCategoryRequest request, @RequestPart("images")MultipartFile file){
+        CreateCategoryResponse data = categoryService.CreateCategory(request,file);
         WebResponse<CreateCategoryResponse> response = WebResponse.<CreateCategoryResponse>builder()
                 .value(HttpStatus.CREATED.value())
                 .message("success create Category")

@@ -36,6 +36,12 @@ public class Category extends BaseEntity {
     @Column(name = "status")
     private ProductionStatus status;
 
+    @Column(name = "image_url")
+    private String image_url;
+
+    @Column(name = "image_alt_text")
+    private String alt_text;
+
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY, cascade = {CascadeType.MERGE,CascadeType.PERSIST})
     private List<Product> productList = new ArrayList<>();
 

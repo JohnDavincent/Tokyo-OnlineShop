@@ -80,7 +80,6 @@ function resolveProductImage(url?: string) {
 }
 
 function getCardsPerView(width: number) {
-  if (width >= 1400) return 5;
   if (width >= 1024) return 4;
   if (width >= 768) return 3;
   if (width >= 520) return 2;
@@ -248,8 +247,8 @@ function AddToCartModal({ product, onClose }: ModalProps) {
               <div
                 key={unitItem.unit}
                 className={`flex items-center justify-between gap-4 rounded-2xl border px-4 py-3.5 ${unavailable
-                    ? "border-black/5 bg-black/[0.02] opacity-50"
-                    : "border-black/7 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                  ? "border-black/5 bg-black/[0.02] opacity-50"
+                  : "border-black/7 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
                   }`}
               >
                 <div className="min-w-0 flex-1">
@@ -309,7 +308,7 @@ function AddToCartModal({ product, onClose }: ModalProps) {
               </p>
             </div>
             <button className="rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-[0_6px_20px_rgba(0,105,65,0.28)] transition hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0">
-              Add to Cart
+              tambahkan ke keranjang
             </button>
           </div>
         )}
@@ -376,7 +375,7 @@ export default function HomePage() {
   }, []);
 
   const cappedArrivals = arrivals.slice(0, 8);
-  const slideData = arrivals.length > 0 ? [...cappedArrivals, { isSeeMore: true, productName: "Cek yang lainnya" } as any] : [];
+  const slideData = arrivals.length > 0 ? [...cappedArrivals, { isSeeMore: true, productName: "See More Products" } as any] : [];
   const maxArrivalIndex = Math.max(0, slideData.length - cardsPerView);
   const safeArrivalIndex = Math.min(arrivalIndex, maxArrivalIndex);
   const canGoPrev = safeArrivalIndex > 0;
@@ -507,8 +506,8 @@ export default function HomePage() {
                 </div>
                 <div
                   className={`absolute right-3 top-3 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur-md ${product.status === "AVAILABLE"
-                      ? "bg-emerald-500/90 text-white"
-                      : "bg-black/60 text-white"
+                    ? "bg-emerald-500/90 text-white"
+                    : "bg-black/60 text-white"
                     }`}
                 >
                   {product.status === "AVAILABLE" ? "Available" : "Out of Stock"}
@@ -521,8 +520,8 @@ export default function HomePage() {
 
               {/* Info */}
               <div className="flex flex-1 flex-col px-1 pb-1 pt-4">
-                <p className="text-[0.73rem] font-bold uppercase tracking-[0.16em] text-primary">{product.category}</p>
-                <h3 className="mt-1.5 font-headline text-[1.35rem] font-bold leading-tight tracking-[-0.04em] text-[#131713]">
+                <p className="text-[0.73rem] font-bold uppercase tracking-[0.16em] text-primary truncate">{product.category}</p>
+                <h3 className="mt-1.5 font-headline text-[1.35rem] font-bold leading-tight tracking-[-0.04em] text-[#131713] line-clamp-2 min-h-[3.2rem]">
                   {product.productName}
                 </h3>
 
@@ -538,12 +537,12 @@ export default function HomePage() {
                   id={`add-${product.productName.replace(/\s+/g, "-").toLowerCase()}`}
                   onClick={() => setActiveProduct(product)}
                   aria-label={`Add ${product.productName} to cart`}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_8px_24px_rgba(0,105,65,0.28)] active:translate-y-0"
+                  className="mt-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_8px_24px_rgba(0,105,65,0.28)] active:translate-y-0"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-4 w-4">
                     <path d="M12 5v14M5 12h14" strokeLinecap="round" />
                   </svg>
-                  Add to Cart
+                  tambahkan ke keranjang
                 </button>
               </div>
             </article>
@@ -595,19 +594,18 @@ export default function HomePage() {
                 aria-label="Previous arrivals"
                 disabled={!canGoPrev}
                 onClick={() => setArrivalIndex((prev) => Math.max(0, prev - 1))}
-                className={`absolute -left-6 top-1/2 z-20 hidden h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-black/8 bg-white text-on-surface shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-all duration-300 hover:scale-110 hover:text-primary md:flex ${
-                  !canGoPrev ? "pointer-events-none opacity-0" : "opacity-100"
-                }`}
+                className={`absolute -left-6 top-1/2 z-20 hidden h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-black/8 bg-white text-on-surface shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-all duration-300 hover:scale-110 hover:text-primary md:flex ${!canGoPrev ? "pointer-events-none opacity-0" : "opacity-100"
+                  }`}
               >
                 <ArrowLeftIcon />
               </button>
 
               <div className="overflow-hidden p-2 -m-2">
-                <div 
-                  className="flex gap-5 transition-transform duration-700 ease-out" 
-                  style={{ 
-                    width: "100%", 
-                    transform: `translate3d(calc(-${safeArrivalIndex} * (100% / ${cardsPerView} + ${20 / cardsPerView}px)), 0, 0)` 
+                <div
+                  className="flex gap-5 transition-transform duration-700 ease-out"
+                  style={{
+                    width: "100%",
+                    transform: `translate3d(calc(-${safeArrivalIndex} * (100% / ${cardsPerView} + ${20 / cardsPerView}px)), 0, 0)`
                   }}
                 >
                   {slideData.map((product, idx) => {
@@ -623,8 +621,8 @@ export default function HomePage() {
                             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary-dim">
                               <ArrowRightIcon />
                             </div>
-                            <h3 className="mt-5 font-headline text-[1.45rem] font-bold tracking-tight text-[#131713]">Cek yang<br/>lainnya</h3>
-                            <p className="mt-2 text-sm text-on-surface/60">Lihat seluruh katalog<br/>Arrival terbaru.</p>
+                            <h3 className="mt-5 font-headline text-[1.45rem] font-bold tracking-tight text-[#131713]">See More<br />Products</h3>
+                            <p className="mt-2 text-sm text-on-surface/60">View our complete<br />new arrival catalog.</p>
                           </article>
                         </div>
                       );
@@ -633,58 +631,58 @@ export default function HomePage() {
                     return (
                       <div key={`arrival-${product.productName}`} style={cardStyle}>
                         <article className="group flex h-full flex-col rounded-[20px] border border-black/5 bg-white p-3 shadow-[0_16px_40px_rgba(0,39,25,0.08)] transition-transform duration-300 hover:-translate-y-1">
-                  <div className="relative overflow-hidden rounded-[14px]">
-                    <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[0.64rem] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
-                      <span className="text-[0.72rem]">✦</span>
-                      New
-                    </div>
-                    <div
-                      className={`absolute right-3 top-3 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur-md ${product.status === "AVAILABLE"
-                          ? "bg-emerald-500/90 text-white"
-                          : "bg-black/60 text-white"
-                        }`}
-                    >
-                      {product.status === "AVAILABLE" ? "Available" : "Out of Stock"}
-                    </div>
-                    <div className="relative aspect-[1/0.98] overflow-hidden rounded-[11px] bg-slate-100">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={resolveProductImage(product.url)}
-                        alt={product.altText || product.productName}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = resolveProductImage();
-                        }}
-                      />
-                    </div>
-                  </div>
+                          <div className="relative overflow-hidden rounded-[14px]">
+                            <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[0.64rem] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+                              <span className="text-[0.72rem]">✦</span>
+                              New
+                            </div>
+                            <div
+                              className={`absolute right-3 top-3 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur-md ${product.status === "AVAILABLE"
+                                ? "bg-emerald-500/90 text-white"
+                                : "bg-black/60 text-white"
+                                }`}
+                            >
+                              {product.status === "AVAILABLE" ? "Available" : "Out of Stock"}
+                            </div>
+                            <div className="relative aspect-[1/0.98] overflow-hidden rounded-[11px] bg-slate-100">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={resolveProductImage(product.url)}
+                                alt={product.altText || product.productName}
+                                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = resolveProductImage();
+                                }}
+                              />
+                            </div>
+                          </div>
 
-                  <div className="flex flex-1 flex-col px-1 pb-1 pt-4">
-                    <p className="text-[0.73rem] font-bold uppercase tracking-[0.16em] text-primary">
-                      {product.category}
-                    </p>
-                    <h3 className="mt-1.5 font-headline text-[1.35rem] font-bold leading-tight tracking-[-0.04em] text-[#131713]">
-                      {product.productName}
-                    </h3>
+                          <div className="flex flex-1 flex-col px-1 pb-1 pt-4">
+                            <p className="text-[0.73rem] font-bold uppercase tracking-[0.16em] text-primary truncate">
+                              {product.category}
+                            </p>
+                            <h3 className="mt-1.5 font-headline text-[1.35rem] font-bold leading-tight tracking-[-0.04em] text-[#131713] line-clamp-2 min-h-[3.2rem]">
+                              {product.productName}
+                            </h3>
 
-                    <div className="mt-4 flex flex-col gap-2">
-                      {product.unitList?.map((unitItem) => (
-                        <PriceBadge key={`${product.productName}-${unitItem.unit}`} unit={unitItem.unit} price={unitItem.sellPrice} />
-                      ))}
-                    </div>
+                            <div className="mt-4 flex flex-col gap-2">
+                              {product.unitList?.map((unitItem) => (
+                                <PriceBadge key={`${product.productName}-${unitItem.unit}`} unit={unitItem.unit} price={unitItem.sellPrice} />
+                              ))}
+                            </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setActiveProduct(product)}
-                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-4 w-4">
-                        <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                      </svg>
-                      Add to Cart
-                    </button>
-                  </div>
-                </article>
+                            <button
+                              type="button"
+                              onClick={() => setActiveProduct(product)}
+                              className="mt-auto inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90"
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-4 w-4">
+                                <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+                              </svg>
+                              Add to Cart
+                            </button>
+                          </div>
+                        </article>
                       </div>
                     );
                   })}
@@ -697,9 +695,8 @@ export default function HomePage() {
                 aria-label="Next arrivals"
                 disabled={!canGoNext}
                 onClick={() => setArrivalIndex((prev) => Math.min(maxArrivalIndex, prev + 1))}
-                className={`absolute -right-6 top-1/2 z-20 hidden h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-black/8 bg-white text-on-surface shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-all duration-300 hover:scale-110 hover:text-primary md:flex ${
-                  !canGoNext ? "pointer-events-none opacity-0" : "opacity-100"
-                }`}
+                className={`absolute -right-6 top-1/2 z-20 hidden h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-black/8 bg-white text-on-surface shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-all duration-300 hover:scale-110 hover:text-primary md:flex ${!canGoNext ? "pointer-events-none opacity-0" : "opacity-100"
+                  }`}
               >
                 <ArrowRightIcon />
               </button>
@@ -710,7 +707,7 @@ export default function HomePage() {
                 type="button"
                 aria-label="Previous arrivals"
                 disabled={!canGoPrev}
-                onClick={() => setArrivalIndex((prev) => Math.max(0, Math.min(prev, maxArrivalIndex) - cardsPerView))}
+                onClick={() => setArrivalIndex((prev) => Math.max(0, prev - 1))}
                 className="flex h-11 items-center gap-2 rounded-full border border-black/8 bg-white px-4 text-sm font-semibold text-on-surface transition disabled:cursor-not-allowed disabled:opacity-35"
               >
                 <ArrowLeftIcon />
@@ -720,7 +717,7 @@ export default function HomePage() {
                 type="button"
                 aria-label="Next arrivals"
                 disabled={!canGoNext}
-                onClick={() => setArrivalIndex((prev) => Math.min(Math.min(prev, maxArrivalIndex) + cardsPerView, maxArrivalIndex))}
+                onClick={() => setArrivalIndex((prev) => Math.min(maxArrivalIndex, prev + 1))}
                 className="flex h-11 items-center gap-2 rounded-full border border-black/8 bg-white px-4 text-sm font-semibold text-on-surface transition disabled:cursor-not-allowed disabled:opacity-35"
               >
                 Next

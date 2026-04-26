@@ -1,12 +1,12 @@
 package com.tokyo.onlineshop.productservices.repository;
 
+import com.tokyo.onlineshop.productservices.dto.CategoryListResponse;
 import com.tokyo.onlineshop.productservices.entity.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,15 +32,14 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
 
     @Query(
             """
-            SELECT DISTINCT c.id, c.name
+            SELECT c
             FROM Category c
-            WHERE c.parentId = NULL
+            WHERE c.parentId IS NULL
             """
     )
-    Map<UUID,String> getCategoryList();
-
+    List<Category> getCategoryList();
 
     Category findByParentIdAndName(UUID id, String subCategory);
-
+    Optional<Category> findByParentId(UUID parentId);
 
 }

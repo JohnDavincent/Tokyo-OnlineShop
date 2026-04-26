@@ -13,22 +13,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/tokyo/gropup/ad-min")
+@RequestMapping("/tokyo/gropup/")
 @RequiredArgsConstructor
 public class BrandController {
 
     private final BrandService brandService;
 
-    @PostMapping("/brand")
-    ResponseEntity<WebResponse<CreateBrandResponse>> createBrand(@RequestBody CreateBrandRequest request){
-        CreateBrandResponse data = brandService.createBrand(request);
-        WebResponse<CreateBrandResponse> response = WebResponse.<CreateBrandResponse>builder()
-                .value(HttpStatus.CREATED.value())
-                .success(true)
-                .message("Success created Brand")
-                .data(data)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
 }

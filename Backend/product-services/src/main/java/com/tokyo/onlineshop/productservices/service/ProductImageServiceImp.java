@@ -25,7 +25,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProductImageServiceImp implements ProductImageService {
 
-    @Value("${app.upload-dir}")
+    @Value("${app.upload.dir-pc}")
     private String uploadDir;
 
     private final ProductImageRepository productImageRepository;
@@ -118,4 +118,8 @@ public class ProductImageServiceImp implements ProductImageService {
 
         return imageList;
     }
+
+
+
+
 }

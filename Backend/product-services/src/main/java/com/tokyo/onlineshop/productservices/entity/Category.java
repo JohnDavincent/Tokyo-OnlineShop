@@ -37,7 +37,7 @@ public class Category extends BaseEntity {
     private ProductionStatus status;
 
     @Column(name = "image_url")
-    private String image_url;
+    private String imageurl;
 
     @Column(name = "image_alt_text")
     private String alt_text;

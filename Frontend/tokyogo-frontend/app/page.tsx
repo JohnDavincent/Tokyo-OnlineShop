@@ -6,31 +6,31 @@ import { useEffect, useState } from "react";
 
 const topNav = ["Categories", "Wholesale", "Deals", "Rewards"];
 
-const aisles = [
-  {
-    title: "Organic Produce",
-    image: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'><defs><linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%23192f1b'/><stop offset='1' stop-color='%232c4a30'/></linearGradient></defs><rect width='800' height='800' fill='url(%23bg)'/><text x='400' y='400' fill='%236da473' font-size='64' font-family='Arial' font-weight='bold' text-anchor='middle'>FRESH</text><text x='400' y='480' fill='%236da473' font-size='64' font-family='Arial' font-weight='bold' text-anchor='middle'>PRODUCE</text></svg>",
-    tone: "from-[#20261e] via-[#263827] to-[#4f6b42]",
-  },
-  {
-    title: "Premium Meats",
-    image:
-      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'><defs><linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%2314121c'/><stop offset='1' stop-color='%2336313b'/></linearGradient></defs><rect width='800' height='800' rx='42' fill='url(%23bg)'/><text x='400' y='120' fill='%23f4ca73' font-size='54' font-family='Arial' text-anchor='middle'>PREMIUM</text><text x='400' y='200' fill='%23f4ca73' font-size='54' font-family='Arial' text-anchor='middle'>MEATS</text><ellipse cx='420' cy='530' rx='210' ry='130' fill='%23c58a84'/><path d='M255 520c65-135 280-170 345-68 33 52 12 138-77 184-68 36-151 29-220-11-49-28-78-71-78-105z' fill='%23a44a4c'/><path d='M338 455c86-45 202-50 274 15' stroke='%23f3d1c2' stroke-width='18' fill='none' stroke-linecap='round'/></svg>",
-    tone: "from-[#1a1724] via-[#282433] to-[#3a3140]",
-  },
-  {
-    title: "Dairy & Eggs",
-    image:
-      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'><defs><linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%23d7f1ef'/><stop offset='1' stop-color='%23698786'/></linearGradient></defs><rect width='800' height='800' rx='42' fill='url(%23bg)'/><text x='400' y='146' fill='%23f7fff4' font-size='72' font-family='Arial' text-anchor='middle'>Safe at work!</text><circle cx='195' cy='634' r='46' fill='%23a55b2e'/><circle cx='305' cy='622' r='42' fill='%23d4a778'/><circle cx='390' cy='654' r='41' fill='%23895b36'/><path d='M470 488h118v164H470z' rx='18' fill='%23fff7d4'/><path d='M605 440c0-56 35-98 70-98s70 42 70 98v212H605z' fill='%23edf7fb'/><rect x='585' y='470' width='58' height='182' rx='22' fill='%23f4fbff'/><path d='M470 488h118v22H470z' fill='%23d3b44d'/><path d='M394 444 472 504 448 626 362 578z' fill='%23f2dd7d'/></svg>",
-    tone: "from-[#cfe8e3] via-[#90b7b2] to-[#577a76]",
-  },
-  {
-    title: "Pantry Staples",
-    image:
-      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'><defs><linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'><stop stop-color='%23fbfbf9'/><stop offset='1' stop-color='%239b9a95'/></linearGradient></defs><rect width='800' height='800' rx='42' fill='url(%23bg)'/><rect x='254' y='132' width='292' height='520' rx='18' fill='%236da9b4'/><rect x='286' y='188' width='228' height='375' rx='10' fill='%23cbdae3'/><rect x='286' y='188' width='228' height='48' fill='%23496978'/><text x='400' y='223' fill='%2397b7c4' font-size='38' font-family='Arial' text-anchor='middle'>PANTRY STAPLES</text><rect x='315' y='262' width='71' height='130' rx='14' fill='%23f8f7ef'/><rect x='420' y='278' width='71' height='116' rx='14' fill='%23dad9cc'/><rect x='308' y='426' width='83' height='96' rx='14' fill='%23b39361'/><rect x='418' y='424' width='83' height='102' rx='14' fill='%23f2e4c8'/></svg>",
-    tone: "from-[#fcfcf6] via-[#d6d2c8] to-[#aca79d]",
-  },
+const tones = [
+  "from-[#20261e] via-[#263827] to-[#4f6b42]",
+  "from-[#1a1724] via-[#282433] to-[#3a3140]",
+  "from-[#cfe8e3] via-[#90b7b2] to-[#577a76]",
+  "from-[#fcfcf6] via-[#d6d2c8] to-[#aca79d]",
 ];
+
+// --- ⚙️ CATEGORY HOVER EFFECT SETTINGS ⚙️ ---
+// You can easily adjust these values to change how the hover effect looks!
+// Tailwind CSS classes are used here (e.g., opacity-85, grayscale-[30%])
+const HOVER_CONFIG = {
+  // 1. Settings for the OTHER images when you hover over one:
+  dimOpacity: "group-hover/slider:opacity-70",      // Less dim (was 40, now 85)
+  dimGrayscale: "group-hover/slider:grayscale-[20%]", // Less gray (was 80%, now 30%)
+  dimScale: "group-hover/slider:scale-[0.98]",      // Shrinks slightly by 2%
+
+  // 2. Settings for the SPECIFIC image you are hovering over:
+  hoverOpacity: "hover:!opacity-100",   // Stays fully bright
+  hoverGrayscale: "hover:!grayscale-0", // Keeps true colors
+  hoverScale: "hover:!scale-100",       // Stays normal size
+
+  // 3. Settings for all images when you are NOT hovering anything:
+  baseTintOpacity: "opacity-40", // How strong the color tint is normally
+  baseImageOpacity: "opacity-70" // How bright the actual image is normally
+};
 
 /* ─── Types ─────────────────────────────────────────────── */
 type UnitList = {
@@ -47,6 +47,13 @@ type ApiProduct = {
   altText: string;
   category: string;
   unitList: UnitList[];
+};
+
+type ApiCategory = {
+  id: string;
+  categoryName: string;
+  altText: string | null;
+  imageUrl: string | null;
 };
 
 const API_BASE_URL = "http://localhost:5001";
@@ -77,6 +84,17 @@ function resolveProductImage(url?: string) {
   // so we isolate just the image filename and request it from root.
   const filename = url.split("/").pop();
   return `/${filename}`;
+}
+
+function resolveCategoryImage(url?: string | null) {
+  if (!url) {
+    return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><rect width='400' height='400' fill='%23f1f5f9'/><text x='200' y='200' fill='%23cbd5e1' font-size='32' font-family='Arial' font-weight='bold' text-anchor='middle'>NO IMAGE</text></svg>";
+  }
+  if (url.startsWith("data:")) {
+    return url;
+  }
+  const filename = url.split("/").pop();
+  return `/image/category/${filename}`;
 }
 
 function getCardsPerView(width: number) {
@@ -340,6 +358,11 @@ export default function HomePage() {
   const [isArrivalLoading, setIsArrivalLoading] = useState(true);
   const [arrivalError, setArrivalError] = useState("");
 
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [categoryIndex, setCategoryIndex] = useState(0);
+  const [isCategoryLoading, setIsCategoryLoading] = useState(true);
+  const [categoryError, setCategoryError] = useState("");
+
   useEffect(() => {
     fetch(`${API_BASE_URL}/tokyo/gropup/product`)
       .then(res => res.json())
@@ -367,6 +390,27 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    fetch(`${API_BASE_URL}/tokyo/gropup/category/list`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch categories");
+        return res.json();
+      })
+      .then((json) => {
+        if (json.success && Array.isArray(json.data)) {
+          setCategories(json.data);
+        } else {
+          setCategories([]);
+        }
+        setCategoryError("");
+      })
+      .catch((e) => {
+        console.error("Could not fetch categories:", e);
+        setCategoryError("Categories are not available right now.");
+      })
+      .finally(() => setIsCategoryLoading(false));
+  }, []);
+
+  useEffect(() => {
     const updateCardsPerView = () => setCardsPerView(getCardsPerView(window.innerWidth));
 
     updateCardsPerView();
@@ -380,6 +424,11 @@ export default function HomePage() {
   const safeArrivalIndex = Math.min(arrivalIndex, maxArrivalIndex);
   const canGoPrev = safeArrivalIndex > 0;
   const canGoNext = safeArrivalIndex < maxArrivalIndex;
+
+  const maxCategoryIndex = Math.max(0, categories.length - cardsPerView);
+  const safeCategoryIndex = Math.min(categoryIndex, maxCategoryIndex);
+  const canGoPrevCategory = safeCategoryIndex > 0;
+  const canGoNextCategory = safeCategoryIndex < maxCategoryIndex;
 
   return (
     <main className="min-h-screen bg-[#f6f8f5] text-on-surface">
@@ -455,33 +504,121 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Explore Aisles ── */}
+      {/* ── Explore Categories ── */}
       <section className="mx-auto max-w-[1180px] px-6 pb-14 lg:px-8">
         <div className="overflow-hidden rounded-[34px] bg-[#eef1ee] px-6 py-10 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] sm:px-8 lg:px-10">
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
-              <h2 className="font-headline text-[2.65rem] font-extrabold tracking-[-0.05em] text-primary">Explore Aisles</h2>
+              <h2 className="font-headline text-[2.65rem] font-extrabold tracking-[-0.05em] text-primary">Explore Categories</h2>
               <p className="mt-2 max-w-md text-base text-on-surface/68">Curated essentials for your daily vitality.</p>
             </div>
             <Link href="/" className="hidden items-center gap-2 text-base font-semibold text-primary sm:inline-flex">View All <span aria-hidden>→</span></Link>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {aisles.map((aisle, index) => (
-              <article
-                key={aisle.title}
-                className="group relative min-h-[220px] overflow-hidden rounded-[22px] bg-slate-900 text-white"
-                style={{ animationDelay: `${index * 110}ms` }}
-              >
-                <div className={`absolute inset-0 bg-gradient-to-br ${aisle.tone}`} />
-                <Image src={aisle.image} alt={aisle.title} fill className="object-cover opacity-88 transition-transform duration-700 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08),rgba(0,0,0,0.5))]" />
-                <div className="absolute inset-x-0 bottom-0 p-5">
-                  <h3 className="font-headline text-[1.85rem] font-bold tracking-[-0.04em]">{aisle.title}</h3>
+          {isCategoryLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="min-h-[220px] animate-pulse rounded-[22px] bg-black/10" />
+              ))}
+            </div>
+          ) : categoryError ? (
+            <div className="rounded-[24px] border border-[#f3d6cf] bg-[#fff7f3] px-6 py-5 text-sm text-[#8b3f2f]">
+              {categoryError}
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="rounded-[24px] border border-black/5 bg-white px-6 py-5 text-sm text-on-surface/55">
+              No categories found.
+            </div>
+          ) : (
+            <>
+              <div className="relative">
+                {/* Left Slider Navigation */}
+                <button
+                  type="button"
+                  aria-label="Previous categories"
+                  disabled={!canGoPrevCategory}
+                  onClick={() => setCategoryIndex((prev) => Math.max(0, prev - 1))}
+                  className={`absolute -left-4 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-black/8 bg-white text-on-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all duration-300 hover:scale-110 hover:text-primary md:flex ${!canGoPrevCategory ? "pointer-events-none opacity-0" : "opacity-100"
+                    }`}
+                >
+                  <ArrowLeftIcon />
+                </button>
+
+                <div className="overflow-hidden p-2 -m-2">
+                  <div
+                    className="flex gap-4 transition-transform duration-700 ease-out group/slider"
+                    style={{
+                      width: "100%",
+                      transform: `translate3d(calc(-${safeCategoryIndex} * (100% / ${cardsPerView} + ${16 / cardsPerView}px)), 0, 0)`
+                    }}
+                  >
+                    {categories.map((category, idx) => {
+                      const cardStyle = { flex: `0 0 calc((100% - ${(cardsPerView - 1) * 16}px) / ${cardsPerView})` };
+                      const tone = tones[idx % tones.length];
+
+                      return (
+                        <div key={category.id} style={cardStyle} className={`transition-all duration-500 ${HOVER_CONFIG.dimOpacity} ${HOVER_CONFIG.dimGrayscale} ${HOVER_CONFIG.dimScale} ${HOVER_CONFIG.hoverOpacity} ${HOVER_CONFIG.hoverGrayscale} ${HOVER_CONFIG.hoverScale}`}>
+                          <article className="group relative min-h-[220px] h-full overflow-hidden rounded-[22px] bg-slate-900 text-white shadow-[0_16px_40px_rgba(0,0,0,0.08)] transition-transform duration-300 hover:-translate-y-1">
+                            <div className={`absolute inset-0 bg-gradient-to-br ${tone} ${HOVER_CONFIG.baseTintOpacity} transition-opacity duration-500 group-hover:opacity-0 z-10`} />
+
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={resolveCategoryImage(category.imageUrl)}
+                              alt={category.altText || category.categoryName}
+                              className={`absolute inset-0 h-full w-full object-cover ${HOVER_CONFIG.baseImageOpacity} transition-all duration-700 group-hover:scale-105 group-hover:opacity-100`}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = resolveCategoryImage();
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_30%,rgba(0,0,0,0.8))] z-10" />
+                            <div className="absolute inset-x-0 bottom-0 p-5 z-20">
+                              <h3 className="font-headline text-[1.85rem] font-bold tracking-[-0.04em] leading-tight drop-shadow-md">{category.categoryName}</h3>
+                            </div>
+                          </article>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </article>
-            ))}
-          </div>
+
+                {/* Right Slider Navigation */}
+                <button
+                  type="button"
+                  aria-label="Next categories"
+                  disabled={!canGoNextCategory}
+                  onClick={() => setCategoryIndex((prev) => Math.min(maxCategoryIndex, prev + 1))}
+                  className={`absolute -right-4 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-black/8 bg-white text-on-surface shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all duration-300 hover:scale-110 hover:text-primary md:flex ${!canGoNextCategory ? "pointer-events-none opacity-0" : "opacity-100"
+                    }`}
+                >
+                  <ArrowRightIcon />
+                </button>
+              </div>
+
+              {/* Mobile Navigation */}
+              <div className="mt-5 flex items-center justify-between md:hidden">
+                <button
+                  type="button"
+                  aria-label="Previous categories"
+                  disabled={!canGoPrevCategory}
+                  onClick={() => setCategoryIndex((prev) => Math.max(0, prev - 1))}
+                  className="flex h-11 items-center gap-2 rounded-full border border-black/8 bg-white px-4 text-sm font-semibold text-on-surface transition disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <ArrowLeftIcon />
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  aria-label="Next categories"
+                  disabled={!canGoNextCategory}
+                  onClick={() => setCategoryIndex((prev) => Math.min(maxCategoryIndex, prev + 1))}
+                  className="flex h-11 items-center gap-2 rounded-full border border-black/8 bg-white px-4 text-sm font-semibold text-on-surface transition disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  Next
+                  <ArrowRightIcon />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </section>
 

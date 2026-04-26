@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -147,6 +148,39 @@ public class ProductServiceImp implements ProductService {
                             )
                             .build();
                 }).toList();
+    }
+
+    @Override
+    public GetProductDetailResponse getProductDetail(UUID id) {
+        Product existProduct = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product Not Found!!"));
+        Brand productBrand = brandRepository.findById(existProduct.getBrand().getId()).orElseThrow(() -> new RuntimeException("Brand is not found"));
+        Category productSubCategory = categoryRepository.findById(existProduct.getCategory().getId()).orElseThrow(() -> new RuntimeException("Category not found"));
+        Category productCategory = categoryRepository.findByParentId(productSubCategory.getParentId()).orElseThrow(() -> new RuntimeException("Parent Category not found"));
+
+
+        return GetProductDetailResponse.builder()
+                .name(existProduct.getName())
+                .sku(existProduct.getSku())
+                .description(existProduct.getDescription())
+                .baseWeight(existProduct.getBaseWeightUnit())
+                .category(productCategory.getName())
+                .subCategory(productSubCategory.getName())
+                .brand(productBrand.getName())
+                .unitList(existProduct.getProductUnitList().stream().map(
+                        unit -> CreateUnitResponse.builder()
+                                .unit(unit.getUnit())
+                                .sellPrice(unit.getUnitSellPrice())
+                                .convertUnit(unit.getQuantityUnit())
+                                .build()
+                ).toList())
+                .imageList(existProduct.getProductImageList().stream().map(
+                        image -> CreateImageResponse.builder()
+                                .url(image.getUrl())
+                                .altText(image.getUrl())
+                                .isPrimary(image.getIsPrimary())
+                                .build()
+                ).toList())
+                .build();
     }
 
 

@@ -15,5 +15,4 @@ import java.util.UUID;
 public class CreateCategoryRequest {
     private String name;
     private UUID parent_id;
-    private String altText;
 }

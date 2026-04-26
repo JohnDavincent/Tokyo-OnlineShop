@@ -19,6 +19,7 @@ public class CreateCategoryResponse {
     private String slug;
     private UUID ParentCategory;
     private ProductionStatus status;
+    private String imageUrl;
     private LocalDateTime createdAt;
     private String created_by;
 

@@ -231,12 +231,10 @@ public class ProductServiceImp implements ProductService {
 
 
         return new PageImpl<>(productCards,pageable,productList.getTotalElements());
-
-
-
-
-
     }
+
+
+
 
 
 }

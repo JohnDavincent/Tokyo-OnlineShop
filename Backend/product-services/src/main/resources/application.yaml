@@ -18,7 +18,6 @@ spring:
       hibernate:
         default_schema: product_service
         dialect : org.hibernate.dialect.PostgreSQLDialect
-    show-sql: true
 
 app:
   jwt:

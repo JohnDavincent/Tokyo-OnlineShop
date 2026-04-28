@@ -61,14 +61,21 @@ const API_BASE_URL = "http://localhost:5001";
 
 function extractProducts(payload: unknown): ApiProduct[] {
   if (Array.isArray(payload)) return payload as ApiProduct[];
-  if (
-    payload &&
-    typeof payload === "object" &&
-    "data" in payload &&
-    Array.isArray((payload as { data?: unknown }).data)
-  ) {
-    return (payload as { data: ApiProduct[] }).data;
+  
+  if (payload && typeof payload === "object") {
+    if ("data" in payload && Array.isArray((payload as any).data)) {
+      return (payload as any).data;
+    }
+    if ("data" in payload && (payload as any).data && typeof (payload as any).data === "object") {
+      if ("content" in (payload as any).data && Array.isArray((payload as any).data.content)) {
+        return (payload as any).data.content;
+      }
+    }
+    if ("content" in payload && Array.isArray((payload as any).content)) {
+      return (payload as any).content;
+    }
   }
+  
   return [];
 }
 
@@ -570,23 +577,25 @@ export default function HomePage() {
 
                       return (
                         <div key={category.id} style={cardStyle} className={`transition-all duration-500 ${HOVER_CONFIG.dimOpacity} ${HOVER_CONFIG.dimGrayscale} ${HOVER_CONFIG.dimScale} ${HOVER_CONFIG.hoverOpacity} ${HOVER_CONFIG.hoverGrayscale} ${HOVER_CONFIG.hoverScale}`}>
-                          <article className="group relative min-h-[220px] h-full overflow-hidden rounded-[22px] bg-slate-900 text-white shadow-[0_16px_40px_rgba(0,0,0,0.08)] transition-transform duration-300 hover:-translate-y-1">
-                            <div className={`absolute inset-0 bg-gradient-to-br ${tone} ${HOVER_CONFIG.baseTintOpacity} transition-opacity duration-500 group-hover:opacity-0 z-10`} />
+                          <Link href={`/product/category?categoryId=${category.id}`}>
+                            <article className="group relative min-h-[220px] h-full overflow-hidden rounded-[22px] bg-slate-900 text-white shadow-[0_16px_40px_rgba(0,0,0,0.08)] transition-transform duration-300 hover:-translate-y-1">
+                              <div className={`absolute inset-0 bg-gradient-to-br ${tone} ${HOVER_CONFIG.baseTintOpacity} transition-opacity duration-500 group-hover:opacity-0 z-10`} />
 
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={resolveCategoryImage(category.imageUrl)}
-                              alt={category.altText || category.categoryName}
-                              className={`absolute inset-0 h-full w-full object-cover ${HOVER_CONFIG.baseImageOpacity} transition-all duration-700 group-hover:scale-105 group-hover:opacity-100`}
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = resolveCategoryImage();
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_30%,rgba(0,0,0,0.8))] z-10" />
-                            <div className="absolute inset-x-0 bottom-0 p-5 z-20">
-                              <h3 className="font-headline text-[1.85rem] font-bold tracking-[-0.04em] leading-tight drop-shadow-md">{category.categoryName}</h3>
-                            </div>
-                          </article>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={resolveCategoryImage(category.imageUrl)}
+                                alt={category.altText || category.categoryName}
+                                className={`absolute inset-0 h-full w-full object-cover ${HOVER_CONFIG.baseImageOpacity} transition-all duration-700 group-hover:scale-105 group-hover:opacity-100`}
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = resolveCategoryImage();
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_30%,rgba(0,0,0,0.8))] z-10" />
+                              <div className="absolute inset-x-0 bottom-0 p-5 z-20">
+                                <h3 className="font-headline text-[1.85rem] font-bold tracking-[-0.04em] leading-tight drop-shadow-md">{category.categoryName}</h3>
+                              </div>
+                            </article>
+                          </Link>
                         </div>
                       );
                     })}

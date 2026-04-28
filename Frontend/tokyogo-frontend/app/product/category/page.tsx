@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useState, useMemo } from "react";
+import { Suspense, useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 /* ─── Types ─────────────────────────────────────────────── */
@@ -157,11 +157,36 @@ function ChevronRightIcon({ className = "h-5 w-5" }: { className?: string }) {
 
 const topNav = ["Categories", "Wholesale", "Deals", "Rewards"];
 
+function extractProducts(payload: unknown): ApiProduct[] {
+  if (Array.isArray(payload)) return payload as ApiProduct[];
+  
+  if (payload && typeof payload === "object") {
+    // Check if it's `{ data: [...] }`
+    if ("data" in payload && Array.isArray((payload as any).data)) {
+      return (payload as any).data;
+    }
+    
+    // Check if it's `{ data: { content: [...] } }` (paginated object inside data)
+    if ("data" in payload && (payload as any).data && typeof (payload as any).data === "object") {
+      if ("content" in (payload as any).data && Array.isArray((payload as any).data.content)) {
+        return (payload as any).data.content;
+      }
+    }
+    
+    // Check if it's `{ content: [...] }` (paginated object directly)
+    if ("content" in payload && Array.isArray((payload as any).content)) {
+      return (payload as any).content;
+    }
+  }
+  
+  return [];
+}
+
 /* ─── Page Content (uses useSearchParams, must be wrapped in Suspense) ── */
 function CategoryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeCategory = searchParams.get("category") || "";
+  const activeCategoryId = searchParams.get("categoryId") || "";
 
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
@@ -171,30 +196,48 @@ function CategoryPageContent() {
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarHovered, setSidebarHovered] = useState(false);
+  const activeCategoryBtnRef = useRef<HTMLButtonElement>(null);
+
+  const activeCategoryObj = useMemo(() => {
+    return categories.find((c) => c.id === activeCategoryId);
+  }, [categories, activeCategoryId]);
+
+  const activeCategoryName = activeCategoryObj ? activeCategoryObj.categoryName : "";
 
   useEffect(() => {
-    Promise.all([
-      fetch(`${API_BASE_URL}/tokyo/gropup/product`).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/tokyo/gropup/category/list`).then((r) => r.json()),
-    ])
-      .then(([productJson, categoryJson]) => {
-        const prodData = Array.isArray(productJson) ? productJson : productJson.data || [];
-        setProducts(prodData);
+    if (activeCategoryBtnRef.current) {
+      activeCategoryBtnRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [activeCategoryId]);
 
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/tokyo/gropup/category/list`)
+      .then((r) => r.json())
+      .then((categoryJson) => {
         if (categoryJson.success && Array.isArray(categoryJson.data)) {
           setCategories(categoryJson.data);
         }
       })
-      .catch((e) => console.error("Failed to load data:", e))
-      .finally(() => setLoading(false));
+      .catch((e) => console.error("Failed to load categories:", e));
   }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    const productUrl = activeCategoryId
+      ? `${API_BASE_URL}/tokyo/gropup/product/category-list/${activeCategoryId}`
+      : `${API_BASE_URL}/tokyo/gropup/product`;
+
+    fetch(productUrl)
+      .then((r) => r.json())
+      .then((productJson) => {
+        setProducts(extractProducts(productJson));
+      })
+      .catch((e) => console.error("Failed to load products:", e))
+      .finally(() => setLoading(false));
+  }, [activeCategoryId]);
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
-
-    if (activeCategory) {
-      result = result.filter((p) => p.category.toLowerCase() === activeCategory.toLowerCase());
-    }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -210,22 +253,14 @@ function CategoryPageContent() {
     }
 
     return result;
-  }, [products, activeCategory, searchQuery, sortBy]);
+  }, [products, searchQuery, sortBy]);
 
-  const categoryProductCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    products.forEach((p) => {
-      counts[p.category] = (counts[p.category] || 0) + 1;
-    });
-    return counts;
-  }, [products]);
-
-  function setCategory(cat: string) {
+  function setCategory(catId: string) {
     const params = new URLSearchParams(searchParams.toString());
-    if (cat) {
-      params.set("category", cat);
+    if (catId) {
+      params.set("categoryId", catId);
     } else {
-      params.delete("category");
+      params.delete("categoryId");
     }
     router.replace(`/product/category?${params.toString()}`);
   }
@@ -267,10 +302,10 @@ function CategoryPageContent() {
           <nav className="flex items-center gap-2 text-[0.7rem] font-bold uppercase tracking-widest text-black/35">
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
             <ArrowRightIcon className="h-3 w-3" />
-            <span className="text-black/70">{activeCategory || "All Products"}</span>
+            <span className="text-black/70">{activeCategoryName || "All Products"}</span>
           </nav>
           <h1 className="mt-3 font-headline text-[2.4rem] font-extrabold tracking-[-0.04em] text-[#101210]">
-            {activeCategory || "All Products"}
+            {activeCategoryName || "All Products"}
           </h1>
           <p className="mt-1 text-base text-on-surface/60">
             {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""} available
@@ -283,7 +318,7 @@ function CategoryPageContent() {
         <div className="flex gap-10">
           {/* Sidebar */}
           <aside
-            className="hidden lg:block shrink-0 overflow-visible"
+            className="hidden lg:block shrink-0 self-start sticky top-24 overflow-visible"
             onMouseEnter={() => setSidebarHovered(true)}
             onMouseLeave={() => setSidebarHovered(false)}
             style={{
@@ -291,7 +326,10 @@ function CategoryPageContent() {
               transition: "width 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
-            <div className="sticky top-28 space-y-5">
+            <div
+              className="space-y-5 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1 pb-2"
+              style={{ scrollbarWidth: "thin", scrollbarColor: "#cbd5e1 transparent" }}
+            >
               {/* Collapse Toggle */}
               <div
                 className="flex transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
@@ -329,6 +367,65 @@ function CategoryPageContent() {
                 />
               </div>
 
+              {/* Now Browsing */}
+              <div
+                className="grid transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+                style={{
+                  gridTemplateRows: sidebarCollapsed && !sidebarHovered ? "0fr" : "1fr",
+                  opacity: sidebarCollapsed && !sidebarHovered ? 0 : 1,
+                }}
+              >
+                <div className="overflow-hidden">
+                  <div className="rounded-[20px] bg-white p-3 shadow-[0_4px_24px_rgba(0,39,25,0.06)] border border-black/[0.04]">
+                    <div className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-black/40 mb-2.5">
+                      Now Browsing
+                    </div>
+                    {activeCategoryId ? (
+                      (() => {
+                        const activeCat = activeCategoryObj;
+                        return (
+                          <div className="flex items-center gap-3">
+                            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl ring-2 ring-primary/15">
+                              <img
+                                src={activeCat ? resolveCategoryImage(activeCat.imageUrl) : resolveCategoryImage()}
+                                alt={activeCategoryName}
+                                className="relative z-10 h-full w-full object-cover"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                                }}
+                              />
+                              <span className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[#f0fdf4]">
+                                <PackageIcon className="h-6 w-6 text-primary" />
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-headline text-[1.05rem] font-bold text-[#101210] truncate">
+                                {activeCategoryName}
+                              </div>
+                              <div className="mt-0.5 text-xs font-bold text-primary">
+                                {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#f0fdf4]">
+                          <GridIcon className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <div className="font-headline text-[1.05rem] font-bold text-[#101210]">All Products</div>
+                          <div className="mt-0.5 text-xs font-bold text-primary">
+                            {products.length} product{products.length !== 1 ? "s" : ""}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Categories */}
               <div className="rounded-[24px] bg-white p-2.5 shadow-[0_4px_24px_rgba(0,39,25,0.06)] border border-black/[0.04]">
                 <h3
@@ -344,23 +441,25 @@ function CategoryPageContent() {
                 <div className="space-y-2">
                   {/* All Products */}
                   <button
+                    ref={!activeCategoryId ? activeCategoryBtnRef : undefined}
                     onClick={() => setCategory("")}
                     className={`group w-full flex items-center rounded-2xl px-2.5 py-2.5 text-sm font-bold transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                      !activeCategory
+                      !activeCategoryId
                         ? "bg-primary text-white shadow-[0_6px_20px_rgba(0,105,65,0.25)] scale-[1.02]"
                         : "text-black/60 hover:scale-[1.05] hover:shadow-lg hover:bg-[#f6f8f5] hover:text-[#101210]"
                     }`}
                     style={{ transformOrigin: "center left" }}
                   >
                     <span
-                      className="flex items-center gap-3 min-w-0 shrink-0"
+                      className="flex items-center min-w-0 shrink-0"
                       style={{
+                        gap: sidebarCollapsed && !sidebarHovered ? "0px" : "12px",
                         justifyContent: sidebarCollapsed && !sidebarHovered ? "center" : "flex-start",
                         width: sidebarCollapsed && !sidebarHovered ? "100%" : "auto",
                       }}
                     >
-                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${!activeCategory ? "bg-white/20" : "bg-[#f0fdf4] group-hover:bg-[#dcfce7]"} transition-colors duration-300`}>
-                        <GridIcon className={`h-[18px] w-[18px] shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${!activeCategory ? "" : "group-hover:scale-110"}`} />
+                      <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${!activeCategoryId ? "bg-white/20" : "bg-[#f0fdf4] group-hover:bg-[#dcfce7]"} transition-colors duration-300`}>
+                        <GridIcon className={`h-5 w-5 shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${!activeCategoryId ? "" : "group-hover:scale-110"}`} />
                       </span>
                       <span
                         className="whitespace-nowrap overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
@@ -374,7 +473,7 @@ function CategoryPageContent() {
                     </span>
                     <span
                       className={`ml-auto text-xs font-extrabold shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                        !activeCategory ? "text-white/90" : "text-black/30 group-hover:text-black/50"
+                        !activeCategoryId ? "text-white/90" : "text-black/30 group-hover:text-black/50"
                       }`}
                       style={{
                         maxWidth: sidebarCollapsed && !sidebarHovered ? "0px" : "40px",
@@ -382,19 +481,18 @@ function CategoryPageContent() {
                         overflow: "hidden",
                       }}
                     >
-                      {products.length}
                     </span>
                   </button>
 
                   {/* Category Items */}
                   {categories.map((cat) => {
-                    const count = categoryProductCounts[cat.categoryName] || 0;
-                    const isActive = activeCategory.toLowerCase() === cat.categoryName.toLowerCase();
+                    const isActive = activeCategoryId === cat.id;
                     const catImg = resolveCategoryImage(cat.imageUrl);
                     return (
                       <button
                         key={cat.id}
-                        onClick={() => setCategory(cat.categoryName)}
+                        ref={isActive ? activeCategoryBtnRef : undefined}
+                        onClick={() => setCategory(cat.id)}
                         className={`group w-full flex items-center rounded-2xl px-2.5 py-2.5 text-sm font-bold transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
                           isActive
                             ? "bg-primary text-white shadow-[0_6px_20px_rgba(0,105,65,0.25)] scale-[1.02]"
@@ -403,13 +501,14 @@ function CategoryPageContent() {
                         style={{ transformOrigin: "center left" }}
                       >
                         <span
-                          className="flex items-center gap-3 min-w-0 shrink-0"
+                          className="flex items-center min-w-0 shrink-0"
                           style={{
+                            gap: sidebarCollapsed && !sidebarHovered ? "0px" : "12px",
                             justifyContent: sidebarCollapsed && !sidebarHovered ? "center" : "flex-start",
                             width: sidebarCollapsed && !sidebarHovered ? "100%" : "auto",
                           }}
                         >
-                          <span className={`relative h-9 w-9 shrink-0 overflow-hidden rounded-xl ${isActive ? "ring-2 ring-white/40" : ""} transition-all duration-300`}>
+                          <span className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ${isActive ? "ring-2 ring-white/40" : ""} transition-all duration-300`}>
                             <img
                               src={catImg}
                               alt={cat.categoryName}
@@ -420,7 +519,7 @@ function CategoryPageContent() {
                             />
                             {!cat.imageUrl && (
                               <span className={`absolute inset-0 flex items-center justify-center rounded-xl ${isActive ? "bg-white/20" : "bg-[#f0fdf4] group-hover:bg-[#dcfce7]"} transition-colors duration-300`}>
-                                <PackageIcon className="h-[18px] w-[18px]" />
+                                <PackageIcon className="h-5 w-5" />
                               </span>
                             )}
                           </span>
@@ -444,7 +543,6 @@ function CategoryPageContent() {
                             overflow: "hidden",
                           }}
                         >
-                          {count}
                         </span>
                       </button>
                     );
@@ -477,23 +575,22 @@ function CategoryPageContent() {
                   <button
                     onClick={() => setCategory("")}
                     className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${
-                      !activeCategory ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
+                      !activeCategoryId ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
                     }`}
                   >
-                    All ({products.length})
+                    All
                   </button>
                   {categories.map((cat) => {
-                    const count = categoryProductCounts[cat.categoryName] || 0;
-                    const isActive = activeCategory.toLowerCase() === cat.categoryName.toLowerCase();
+                    const isActive = activeCategoryId === cat.id;
                     return (
                       <button
                         key={cat.id}
-                        onClick={() => setCategory(cat.categoryName)}
+                        onClick={() => setCategory(cat.id)}
                         className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${
                           isActive ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
                         }`}
                       >
-                        {cat.categoryName} ({count})
+                        {cat.categoryName}
                       </button>
                     );
                   })}

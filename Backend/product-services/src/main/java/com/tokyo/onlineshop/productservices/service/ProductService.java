@@ -4,6 +4,7 @@ import com.tokyo.onlineshop.productservices.dto.CreateProductRequest;
 import com.tokyo.onlineshop.productservices.dto.CreateProductResponse;
 import com.tokyo.onlineshop.productservices.dto.GetProductDetailResponse;
 import com.tokyo.onlineshop.productservices.dto.ProductCard;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.UUID;
@@ -14,4 +15,5 @@ public interface ProductService {
     public List<ProductCard> getProductList();
     public List<ProductCard> getLastArrivalProductList();
     public GetProductDetailResponse getProductDetail(UUID id);
+    public Page<ProductCard> GetProductByCategory(UUID categoryId, int page, int size);
 }

@@ -6,6 +6,7 @@ import com.tokyo.onlineshop.productservices.service.ProductImageService;
 import com.tokyo.onlineshop.productservices.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -61,5 +62,23 @@ public class ProductController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/category-list/{categoryId}")
+    ResponseEntity<WebResponse<Page<ProductCard>>> getProductByCategory(
+            @RequestParam(defaultValue = "0", name = "current-pages") int currPages,
+            @RequestParam(defaultValue = "10", name = "size") int size,
+            @PathVariable("categoryId") UUID categoryId
+    ){
+        Page<ProductCard> data = productService.GetProductByCategory(categoryId,currPages,size);
+        WebResponse<Page<ProductCard>> response = WebResponse.<Page<ProductCard>>builder()
+                .value(HttpStatus.OK.value())
+                .success(true)
+                .message("product data success loaded")
+                .data(data)
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
 
 }

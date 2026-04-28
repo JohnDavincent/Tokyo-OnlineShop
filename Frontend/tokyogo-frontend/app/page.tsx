@@ -41,6 +41,7 @@ type UnitList = {
 };
 
 type ApiProduct = {
+  productId: string;
   productName: string;
   status: string;
   url: string;
@@ -201,27 +202,38 @@ type ModalProps = {
 };
 
 function AddToCartModal({ product, onClose }: ModalProps) {
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [quantities, setQuantities] = useState<Record<string, number | string>>({});
 
   function change(unit: string, delta: number) {
-    setQuantities((prev) => ({
-      ...prev,
-      [unit]: Math.max(0, (prev[unit] ?? 0) + delta),
-    }));
+    setQuantities((prev) => {
+      const q = typeof prev[unit] === 'number' ? prev[unit] : (parseInt(prev[unit] as string || "0", 10) || 0);
+      return {
+        ...prev,
+        [unit]: Math.max(0, q + delta),
+      };
+    });
   }
 
   function handleInput(unit: string, raw: string) {
+    if (raw === "") {
+      setQuantities((prev) => ({ ...prev, [unit]: "" }));
+      return;
+    }
     const val = parseInt(raw, 10);
     setQuantities((prev) => ({ ...prev, [unit]: isNaN(val) || val < 0 ? 0 : val }));
   }
 
   const total = product.unitList?.reduce((acc, unitItem) => {
     const normUnit = normalizeUnit(unitItem.unit);
-    const q = quantities[normUnit] ?? 0;
+    const qRaw = quantities[normUnit] ?? 0;
+    const q = typeof qRaw === 'number' ? qRaw : (parseInt(qRaw as string || "0", 10) || 0);
     return acc + (unitItem.sellPrice * q);
   }, 0) || 0;
 
-  const hasItems = Object.values(quantities).some((q) => q > 0);
+  const hasItems = Object.values(quantities).some((qRaw) => {
+    const q = typeof qRaw === 'number' ? qRaw : (parseInt(qRaw as string || "0", 10) || 0);
+    return q > 0;
+  });
 
   return (
     <div
@@ -670,17 +682,14 @@ export default function HomePage() {
                 </div>
 
                 {/* ── Add button ── */}
-                <button
+                <Link
                   id={`add-${product.productName.replace(/\s+/g, "-").toLowerCase()}`}
-                  onClick={() => setActiveProduct(product)}
-                  aria-label={`Add ${product.productName} to cart`}
+                  href={`/product/${product.productId}`}
+                  aria-label={`View ${product.productName} details`}
                   className="mt-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_8px_24px_rgba(0,105,65,0.28)] active:translate-y-0"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-4 w-4">
-                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                  </svg>
-                  tambahkan ke keranjang
-                </button>
+                  Lihat Detail
+                </Link>
               </div>
             </article>
           ))}
@@ -803,21 +812,17 @@ export default function HomePage() {
                             </h3>
 
                             <div className="mt-4 flex flex-col gap-2">
-                              {product.unitList?.map((unitItem) => (
+                              {product.unitList?.map((unitItem: UnitList) => (
                                 <PriceBadge key={`${product.productName}-${unitItem.unit}`} unit={unitItem.unit} price={unitItem.sellPrice} />
                               ))}
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => setActiveProduct(product)}
+                            <Link
+                              href={`/product/${product.productId}`}
                               className="mt-auto inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90"
                             >
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-4 w-4">
-                                <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                              </svg>
-                              Add to Cart
-                            </button>
+                              View Details
+                            </Link>
                           </div>
                         </article>
                       </div>

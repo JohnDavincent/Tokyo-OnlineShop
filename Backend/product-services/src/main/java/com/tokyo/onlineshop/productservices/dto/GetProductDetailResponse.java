@@ -1,18 +1,22 @@
 package com.tokyo.onlineshop.productservices.dto;
 
+import com.tokyo.onlineshop.productservices.ProductionStatus;
 import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
 public class GetProductDetailResponse {
 
+    private UUID id;
     private String name;
     private String sku;
     private Integer stock;
     private Integer baseWeight;
+    private ProductionStatus status;
     private String brand;
     private String category;
     private String subCategory;

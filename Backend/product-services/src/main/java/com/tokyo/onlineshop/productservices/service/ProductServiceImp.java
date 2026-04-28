@@ -6,16 +6,22 @@ import com.tokyo.onlineshop.productservices.entity.Brand;
 import com.tokyo.onlineshop.productservices.entity.Category;
 import com.tokyo.onlineshop.productservices.entity.Product;
 import com.tokyo.onlineshop.productservices.entity.ProductUnit;
+import com.tokyo.onlineshop.productservices.projection.ProductCardProjection;
 import com.tokyo.onlineshop.productservices.repository.BrandRepository;
 import com.tokyo.onlineshop.productservices.repository.CategoryRepository;
 import com.tokyo.onlineshop.productservices.repository.ProductRepository;
+import com.tokyo.onlineshop.productservices.repository.ProductUnitRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +30,7 @@ public class ProductServiceImp implements ProductService {
     private final ProductRepository productRepository;
     private final BrandRepository brandRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductUnitRepository productUnitRepository;
     private final ProductUnitService productUnitService;
     private final ProductImageService productImageService;
 
@@ -98,6 +105,7 @@ public class ProductServiceImp implements ProductService {
         return productList.stream()
                 .map(card -> {
                     return ProductCard.builder()
+                            .productId(card.getId())
                             .productName(card.getName())
                             .url(card.getProductImageList().getFirst().getUrl())
                             .altText(card.getProductImageList().getFirst().getUrl())
@@ -129,6 +137,7 @@ public class ProductServiceImp implements ProductService {
         return productList.stream()
                 .map(card -> {
                     return ProductCard.builder()
+                            .productId(card.getId())
                             .productName(card.getName())
                             .url(card.getProductImageList().getFirst().getUrl())
                             .altText(card.getProductImageList().getFirst().getUrl())
@@ -155,14 +164,15 @@ public class ProductServiceImp implements ProductService {
         Product existProduct = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product Not Found!!"));
         Brand productBrand = brandRepository.findById(existProduct.getBrand().getId()).orElseThrow(() -> new RuntimeException("Brand is not found"));
         Category productSubCategory = categoryRepository.findById(existProduct.getCategory().getId()).orElseThrow(() -> new RuntimeException("Category not found"));
-        Category productCategory = categoryRepository.findByParentId(productSubCategory.getParentId()).orElseThrow(() -> new RuntimeException("Parent Category not found"));
-
+        Category productCategory = categoryRepository.findByParentIdAndName(productSubCategory.getParentId(),productSubCategory.getName());
 
         return GetProductDetailResponse.builder()
+                .id(existProduct.getId())
                 .name(existProduct.getName())
                 .sku(existProduct.getSku())
                 .description(existProduct.getDescription())
                 .baseWeight(existProduct.getBaseWeightUnit())
+                .status(existProduct.getStatus())
                 .category(productCategory.getName())
                 .subCategory(productSubCategory.getName())
                 .brand(productBrand.getName())
@@ -181,6 +191,51 @@ public class ProductServiceImp implements ProductService {
                                 .build()
                 ).toList())
                 .build();
+    }
+
+    @Override
+    public Page<ProductCard> GetProductByCategory(UUID categoryId, int page, int size) {
+        if(!categoryRepository.existsById(categoryId)){
+            throw new RuntimeException("Category not exists");
+        }
+
+        Pageable pageable = PageRequest.of(page,size);
+        Page<ProductCardProjection> productList = productRepository.getProductWithCategoryId(categoryId,pageable);
+        List<UUID> productIds = productList.getContent().stream()
+                .map(ProductCardProjection::getProductId)
+                .toList();
+
+        List<ProductUnit> units = productUnitRepository.findByProductIdIn(productIds);
+        Map<UUID, List<UnitCard>> productUnits = units.stream()
+                .collect(Collectors.groupingBy(
+                        u -> u.getProduct().getId(),
+                        Collectors.mapping(
+                                u -> UnitCard.builder()
+                                        .unit(u.getUnit())
+                                        .sellPrice(u.getUnitSellPrice())
+                                        .convertQuantity(u.getConvertQuantity())
+                                        .status(u.getStatus())
+                                        .build(), Collectors.toList())
+                ));
+
+        List<ProductCard> productCards = productList.stream()
+                            .map(product -> ProductCard.builder()
+                                    .productId(product.getProductId())
+                                    .productName(product.getProductName())
+                                    .status(product.getProductStatus())
+                                    .url(product.getImageUrl())
+                                    .category(product.getCategoryName())
+                                    .unitList(productUnits.getOrDefault(product.getProductId(),List.of()))
+                                    .build()
+                            ).toList();
+
+
+        return new PageImpl<>(productCards,pageable,productList.getTotalElements());
+
+
+
+
+
     }
 
 

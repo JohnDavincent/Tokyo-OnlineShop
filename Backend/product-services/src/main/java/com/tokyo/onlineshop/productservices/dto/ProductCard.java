@@ -9,19 +9,16 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+
 @Builder
-
-public class ProductCard {
-    private String productName;
-    private ProductionStatus status;
-    private String url;
-    private String altText;
-    private String category;
-    private List<UnitCard> unitList;
-
-
-}
+public record ProductCard(
+        UUID productId,
+        String productName,
+        ProductionStatus status,
+        String url,
+        String altText,
+        String category,
+        List<UnitCard> unitList
+) {}

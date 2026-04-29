@@ -32,52 +32,10 @@ const HOVER_CONFIG = {
   baseImageOpacity: "opacity-70" // How bright the actual image is normally
 };
 
-/* ─── Types ─────────────────────────────────────────────── */
-type UnitList = {
-  unit: string;
-  convertQuantity: number;
-  sellPrice: number;
-  status: string;
-};
-
-type ApiProduct = {
-  productId: string;
-  productName: string;
-  status: string;
-  url: string;
-  altText: string;
-  category: string;
-  unitList: UnitList[];
-};
-
-type ApiCategory = {
-  id: string;
-  categoryName: string;
-  altText: string | null;
-  imageUrl: string | null;
-};
-
-const API_BASE_URL = "http://localhost:5001";
-
-function extractProducts(payload: unknown): ApiProduct[] {
-  if (Array.isArray(payload)) return payload as ApiProduct[];
-  
-  if (payload && typeof payload === "object") {
-    if ("data" in payload && Array.isArray((payload as any).data)) {
-      return (payload as any).data;
-    }
-    if ("data" in payload && (payload as any).data && typeof (payload as any).data === "object") {
-      if ("content" in (payload as any).data && Array.isArray((payload as any).data.content)) {
-        return (payload as any).data.content;
-      }
-    }
-    if ("content" in payload && Array.isArray((payload as any).content)) {
-      return (payload as any).content;
-    }
-  }
-  
-  return [];
-}
+import { ApiProduct, ApiCategory, UnitList } from "../types/api";
+import { normalizeUnit } from "../services/config";
+import { getProducts, getArrivalProducts } from "../services/productService";
+import { getCategories } from "../services/categoryService";
 
 function resolveProductImage(url?: string) {
   if (!url) {
@@ -163,17 +121,9 @@ function ArrowRightIcon() {
 }
 
 /* ─── Price Badge ─────────────────────────────────────────── */
-function normalizeUnit(rawUnit: string) {
-  const lo = rawUnit.toLowerCase();
-  if (lo.includes("pcs") || lo.includes("piece")) return "Pcs";
-  if (lo.includes("pack") || lo.includes("pax")) return "Pax";
-  if (lo.includes("box")) return "Box";
-  return rawUnit;
-}
-
 const unitMeta: Record<string, { bg: string; dot: string; label: string }> = {
   Pcs: { bg: "bg-[#f0fdf4]", dot: "bg-emerald-500", label: "Per Piece" },
-  Pax: { bg: "bg-[#eff6ff]", dot: "bg-blue-500", label: "Per Pack" },
+  Pack: { bg: "bg-[#eff6ff]", dot: "bg-blue-500", label: "Per Pack" },
   Box: { bg: "bg-[#fdf4ff]", dot: "bg-purple-500", label: "Per Box" },
 };
 
@@ -383,22 +333,15 @@ export default function HomePage() {
   const [categoryError, setCategoryError] = useState("");
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/tokyo/gropup/product`)
-      .then(res => res.json())
-      .then(json => {
-        setProducts(extractProducts(json));
-      })
+    getProducts()
+      .then(setProducts)
       .catch(e => console.error("Could not fetch products:", e));
   }, []);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/tokyo/gropup/product/arrival`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch arrival products");
-        return res.json();
-      })
-      .then((json) => {
-        setArrivals(extractProducts(json));
+    getArrivalProducts()
+      .then((data) => {
+        setArrivals(data);
         setArrivalError("");
       })
       .catch((e) => {
@@ -409,17 +352,9 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/tokyo/gropup/category/list`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch categories");
-        return res.json();
-      })
-      .then((json) => {
-        if (json.success && Array.isArray(json.data)) {
-          setCategories(json.data);
-        } else {
-          setCategories([]);
-        }
+    getCategories()
+      .then((data) => {
+        setCategories(data);
         setCategoryError("");
       })
       .catch((e) => {

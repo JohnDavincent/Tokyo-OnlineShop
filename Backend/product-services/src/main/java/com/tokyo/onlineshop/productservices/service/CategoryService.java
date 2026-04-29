@@ -1,9 +1,7 @@
 package com.tokyo.onlineshop.productservices.service;
 
-import com.tokyo.onlineshop.productservices.dto.CategoryListResponse;
-import com.tokyo.onlineshop.productservices.dto.CreateCategoryImageResponse;
-import com.tokyo.onlineshop.productservices.dto.CreateCategoryRequest;
-import com.tokyo.onlineshop.productservices.dto.CreateCategoryResponse;
+import com.tokyo.onlineshop.productservices.dto.*;
+import com.tokyo.onlineshop.productservices.projection.SubCategoryProjection;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -14,5 +12,6 @@ public interface CategoryService {
     public CreateCategoryResponse CreateCategory(CreateCategoryRequest request);
     public CreateCategoryImageResponse createImage(UUID categoryId, MultipartFile file);
     public List<CategoryListResponse> getCategoryList();
+    public List<GetSubCategoryListResponse> getSubCategoryList(UUID parentId);
 
 }

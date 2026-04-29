@@ -1,10 +1,7 @@
 package com.tokyo.onlineshop.productservices.controller;
 
 import com.tokyo.common.dto.WebResponse;
-import com.tokyo.onlineshop.productservices.dto.CategoryListResponse;
-import com.tokyo.onlineshop.productservices.dto.CreateCategoryImageResponse;
-import com.tokyo.onlineshop.productservices.dto.CreateCategoryRequest;
-import com.tokyo.onlineshop.productservices.dto.CreateCategoryResponse;
+import com.tokyo.onlineshop.productservices.dto.*;
 import com.tokyo.onlineshop.productservices.service.CategoryService;
 import feign.Response;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +23,7 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
-    @GetMapping("/list")
+    @GetMapping("/list-category")
     ResponseEntity<WebResponse<List<CategoryListResponse>>> getCategoryList(){
         List<CategoryListResponse> data = categoryService.getCategoryList();
         WebResponse<List<CategoryListResponse>> response = WebResponse.<List<CategoryListResponse>>builder()
@@ -37,6 +34,20 @@ public class CategoryController {
                 .build();
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/list-subcategory/{parentId}")
+    ResponseEntity<WebResponse<List<GetSubCategoryListResponse>>> getSubCategoryList(@PathVariable("parentId") UUID parentId){
+
+        List<GetSubCategoryListResponse> data = categoryService.getSubCategoryList(parentId);
+        WebResponse<List<GetSubCategoryListResponse>> response = WebResponse.<List<GetSubCategoryListResponse>>builder()
+                .value(HttpStatus.OK.value())
+                .success(true)
+                .message("Subcategory loaded successfully")
+                .data(data)
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
 
 
 }

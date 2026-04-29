@@ -5,6 +5,7 @@ import com.tokyo.onlineshop.productservices.dto.*;
 import com.tokyo.onlineshop.productservices.entity.Category;
 import com.tokyo.onlineshop.productservices.entity.Product;
 import com.tokyo.onlineshop.productservices.helper.ImageFileHelper;
+import com.tokyo.onlineshop.productservices.projection.SubCategoryProjection;
 import com.tokyo.onlineshop.productservices.repository.CategoryRepository;
 import com.tokyo.onlineshop.productservices.repository.ProductRepository;
 import jakarta.transaction.Transactional;
@@ -115,6 +116,20 @@ public class CategoryServiceImp implements CategoryService{
                                    .build();
                        }
                  ).toList();
+    }
+
+    @Override
+    public List<GetSubCategoryListResponse> getSubCategoryList(UUID parentId) {
+        List<SubCategoryProjection> subCategoryList = categoryRepository.getSubCategoryBasedOnTheParent(parentId);
+        if(subCategoryList == null || subCategoryList.isEmpty()){
+            throw new RuntimeException("Sub category is empty");
+        }
+        return subCategoryList.stream()
+                .map(subcategory -> GetSubCategoryListResponse.builder()
+                        .subCategory(subcategory.getSubCategory())
+                        .id(subcategory.getId())
+                        .build()
+                ).toList();
     }
 
 }

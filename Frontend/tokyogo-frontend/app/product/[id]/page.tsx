@@ -4,46 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-/* ─── Types ─────────────────────────────────────────────── */
-type ApiImage = {
-  url: string;
-  productName: string | null;
-  altText: string | null;
-  isPrimary: boolean;
-  slug: string | null;
-};
-
-type ApiUnit = {
-  id: string | null;
-  unit: string;
-  convertUnit: string | null;
-  basePrice: number | null;
-  sellPrice: number | null;
-  convertQuantity?: number;
-  status?: string;
-};
-
-type ApiProductDetail = {
-  baseWeight: number;
-  brand: string;
-  category: string;
-  description: string;
-  imageList: ApiImage[];
-  name: string;
-  sku: string;
-  stock: number | null;
-  subCategory: string;
-  unitList: ApiUnit[];
-};
-
-type ApiResponse = {
-  success: boolean;
-  message: string;
-  value: number;
-  data: ApiProductDetail;
-};
-
-const API_BASE_URL = "http://localhost:5001";
+import { ApiProductDetail, ApiUnit } from "../../../types/api";
+import { normalizeUnit } from "../../../services/config";
+import { getProductDetail } from "../../../services/productService";
 
 const UNIT_OPTIONS = [
   { norm: "Pcs", label: "Piece", matches: ["pcs", "piece"] },
@@ -61,13 +24,6 @@ function resolveImageUrl(url?: string | null) {
   return `/${filename}`;
 }
 
-function normalizeUnit(rawUnit: string) {
-  const lo = rawUnit.toLowerCase();
-  if (lo.includes("pcs") || lo.includes("piece")) return "Pcs";
-  if (lo.includes("pack") || lo.includes("pax")) return "Pack";
-  if (lo.includes("box")) return "Box";
-  return rawUnit;
-}
 
 function findUnitForOption(product: ApiProductDetail, optionNorm: string): ApiUnit | undefined {
   return product.unitList?.find((u) => normalizeUnit(u.unit) === optionNorm);
@@ -183,59 +139,11 @@ export default function ProductDetailPage() {
 
     async function loadProduct() {
       try {
-        let finalProduct: ApiProductDetail | null = null;
-        let listUnits: any[] = [];
-
-        // Always fetch the list first to grab the convertQuantity mapped values
-        const listRes = await fetch(`${API_BASE_URL}/tokyo/gropup/product`);
-        if (listRes.ok) {
-          const listJson = await listRes.json();
-          const listData = Array.isArray(listJson) ? listJson : (listJson.data || []);
-          
-          const decodedName = decodeURIComponent(productId).toLowerCase();
-          const matched = listData.find((p: any) =>
-            p.productId === productId || p.id === productId || p._id === productId ||
-            (p.productName || p.name || "").toLowerCase() === decodedName
-          );
-
-          if (matched) {
-            listUnits = matched.unitList || [];
-            const realId = matched.productId || matched.id || matched._id || productId;
-            const detailRes = await fetch(`${API_BASE_URL}/tokyo/gropup/product/${encodeURIComponent(realId)}`);
-            if (detailRes.ok) {
-              const detailJson = await detailRes.json();
-              if (detailJson.success && detailJson.data) {
-                finalProduct = detailJson.data;
-              }
-            }
-          }
-        }
-
-        // Fallback: If it wasn't matched in the list, just hit the detail endpoint directly
-        if (!finalProduct) {
-          const detailRes = await fetch(`${API_BASE_URL}/tokyo/gropup/product/${encodeURIComponent(productId)}`);
-          if (detailRes.ok) {
-            const detailJson = await detailRes.json();
-            if (detailJson.success && detailJson.data) {
-              finalProduct = detailJson.data;
-            }
-          }
-        }
+        const finalProduct = await getProductDetail(productId);
 
         if (!finalProduct) {
           setError("Product not found");
           return;
-        }
-
-        // MERGE: The detail API doesn't return convertQuantity, but the list API does!
-        if (listUnits.length > 0 && finalProduct.unitList) {
-          finalProduct.unitList = finalProduct.unitList.map(u => {
-            const listU = listUnits.find(lu => normalizeUnit(lu.unit) === normalizeUnit(u.unit));
-            if (listU) {
-              return { ...u, convertQuantity: listU.convertQuantity, status: listU.status };
-            }
-            return u;
-          });
         }
 
         setProductData(finalProduct);

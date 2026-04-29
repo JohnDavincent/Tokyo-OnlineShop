@@ -19,6 +19,7 @@ type ApiProduct = {
   url: string;
   altText: string;
   category: string;
+  subCategory?: string;
   unitList: UnitList[];
 };
 
@@ -72,6 +73,24 @@ function getPriceRange(unitList?: UnitList[]) {
   const min = Math.min(...prices);
   const max = Math.max(...prices);
   return min === max ? `Rp ${min.toLocaleString("id-ID")}` : `Rp ${min.toLocaleString("id-ID")} - ${max.toLocaleString("id-ID")}`;
+}
+
+function extractProducts(payload: unknown): ApiProduct[] {
+  if (Array.isArray(payload)) return payload as ApiProduct[];
+  if (payload && typeof payload === "object") {
+    if ("data" in payload && Array.isArray((payload as any).data)) {
+      return (payload as any).data;
+    }
+    if ("data" in payload && (payload as any).data && typeof (payload as any).data === "object") {
+      if ("content" in (payload as any).data && Array.isArray((payload as any).data.content)) {
+        return (payload as any).data.content;
+      }
+    }
+    if ("content" in payload && Array.isArray((payload as any).content)) {
+      return (payload as any).content;
+    }
+  }
+  return [];
 }
 
 /* ─── Icons ─────────────────────────────────────────────── */
@@ -155,41 +174,27 @@ function ChevronRightIcon({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
-const topNav = ["Categories", "Wholesale", "Deals", "Rewards"];
-
-function extractProducts(payload: unknown): ApiProduct[] {
-  if (Array.isArray(payload)) return payload as ApiProduct[];
-  
-  if (payload && typeof payload === "object") {
-    // Check if it's `{ data: [...] }`
-    if ("data" in payload && Array.isArray((payload as any).data)) {
-      return (payload as any).data;
-    }
-    
-    // Check if it's `{ data: { content: [...] } }` (paginated object inside data)
-    if ("data" in payload && (payload as any).data && typeof (payload as any).data === "object") {
-      if ("content" in (payload as any).data && Array.isArray((payload as any).data.content)) {
-        return (payload as any).data.content;
-      }
-    }
-    
-    // Check if it's `{ content: [...] }` (paginated object directly)
-    if ("content" in payload && Array.isArray((payload as any).content)) {
-      return (payload as any).content;
-    }
-  }
-  
-  return [];
+function TagIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+      <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="7" cy="7" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
 }
+
+const topNav = ["Categories", "Wholesale", "Deals", "Rewards"];
 
 /* ─── Page Content (uses useSearchParams, must be wrapped in Suspense) ── */
 function CategoryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeCategoryId = searchParams.get("categoryId") || "";
+  const activeSubCategoryFromUrl = searchParams.get("subcategory") || "";
 
-  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [allProducts, setAllProducts] = useState<ApiProduct[]>([]);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
+  const [subCategories, setSubCategories] = useState<{ id: string; subCategory: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("default");
@@ -204,46 +209,78 @@ function CategoryPageContent() {
 
   const activeCategoryName = activeCategoryObj ? activeCategoryObj.categoryName : "";
 
+  /* ── Fetch all products & categories once ── */
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      fetch(`${API_BASE_URL}/tokyo/gropup/product`).then((r) => r.json()),
+      fetch(`${API_BASE_URL}/tokyo/gropup/category/list-category`).then((r) => r.json()),
+    ])
+      .then(([productJson, categoryJson]) => {
+        setAllProducts(extractProducts(productJson));
+        if (categoryJson.success && Array.isArray(categoryJson.data)) {
+          setCategories(categoryJson.data);
+        }
+      })
+      .catch((e) => console.error("Failed to load data:", e))
+      .finally(() => setLoading(false));
+  }, []);
+
   useEffect(() => {
     if (activeCategoryBtnRef.current) {
       activeCategoryBtnRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, [activeCategoryId]);
 
+  /* ── Fetch subcategories when category changes ── */
   useEffect(() => {
-    fetch(`${API_BASE_URL}/tokyo/gropup/category/list`)
+    if (!activeCategoryId) {
+      setSubCategories([]);
+      return;
+    }
+    fetch(`${API_BASE_URL}/tokyo/gropup/category/list-subcategory/${activeCategoryId}`)
       .then((r) => r.json())
-      .then((categoryJson) => {
-        if (categoryJson.success && Array.isArray(categoryJson.data)) {
-          setCategories(categoryJson.data);
+      .then((json) => {
+        if (json.success && Array.isArray(json.data)) {
+          setSubCategories(json.data);
+        } else {
+          setSubCategories([]);
         }
       })
-      .catch((e) => console.error("Failed to load categories:", e));
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    const productUrl = activeCategoryId
-      ? `${API_BASE_URL}/tokyo/gropup/product/category-list/${activeCategoryId}`
-      : `${API_BASE_URL}/tokyo/gropup/product`;
-
-    fetch(productUrl)
-      .then((r) => r.json())
-      .then((productJson) => {
-        setProducts(extractProducts(productJson));
-      })
-      .catch((e) => console.error("Failed to load products:", e))
-      .finally(() => setLoading(false));
+      .catch((e) => {
+        console.error("Failed to load subcategories:", e);
+        setSubCategories([]);
+      });
   }, [activeCategoryId]);
 
-  const filteredProducts = useMemo(() => {
-    let result = [...products];
+  /* ── Active subcategory from URL ── */
+  const activeSubCategory = useMemo(() => {
+    if (!activeSubCategoryFromUrl) return "";
+    const exists = subCategories.some((s) => s.subCategory === activeSubCategoryFromUrl);
+    return exists ? activeSubCategoryFromUrl : "";
+  }, [activeSubCategoryFromUrl, subCategories]);
 
+  /* ── Filtered products ── */
+  const filteredProducts = useMemo(() => {
+    let result = [...allProducts];
+
+    // Category filter
+    if (activeCategoryId && activeCategoryName) {
+      result = result.filter((p) => p.category === activeCategoryName);
+    }
+
+    // Subcategory filter
+    if (activeSubCategory) {
+      result = result.filter((p) => p.subCategory === activeSubCategory);
+    }
+
+    // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((p) => p.productName.toLowerCase().includes(q));
     }
 
+    // Sort
     if (sortBy === "price-low") {
       result.sort((a, b) => getLowestPrice(a.unitList) - getLowestPrice(b.unitList));
     } else if (sortBy === "price-high") {
@@ -253,8 +290,9 @@ function CategoryPageContent() {
     }
 
     return result;
-  }, [products, searchQuery, sortBy]);
+  }, [allProducts, activeCategoryId, activeCategoryName, activeSubCategory, searchQuery, sortBy]);
 
+  /* ── URL helpers ── */
   function setCategory(catId: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (catId) {
@@ -262,8 +300,21 @@ function CategoryPageContent() {
     } else {
       params.delete("categoryId");
     }
+    params.delete("subcategory");
     router.replace(`/product/category?${params.toString()}`);
   }
+
+  function setSubCategory(sub: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (sub) {
+      params.set("subcategory", sub);
+    } else {
+      params.delete("subcategory");
+    }
+    router.replace(`/product/category?${params.toString()}`);
+  }
+
+  const sidebarExpanded = !(sidebarCollapsed && !sidebarHovered);
 
   return (
     <main className="min-h-screen bg-[#f6f8f5] text-on-surface">
@@ -303,9 +354,15 @@ function CategoryPageContent() {
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
             <ArrowRightIcon className="h-3 w-3" />
             <span className="text-black/70">{activeCategoryName || "All Products"}</span>
+            {activeSubCategory && (
+              <>
+                <ArrowRightIcon className="h-3 w-3" />
+                <span className="text-black/70">{activeSubCategory}</span>
+              </>
+            )}
           </nav>
           <h1 className="mt-3 font-headline text-[2.4rem] font-extrabold tracking-[-0.04em] text-[#101210]">
-            {activeCategoryName || "All Products"}
+            {activeSubCategory || activeCategoryName || "All Products"}
           </h1>
           <p className="mt-1 text-base text-on-surface/60">
             {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""} available
@@ -316,13 +373,13 @@ function CategoryPageContent() {
       {/* ── Main Content ── */}
       <div className="mx-auto max-w-[1180px] px-6 py-8 lg:px-8 lg:py-10">
         <div className="flex gap-10">
-          {/* Sidebar */}
+          {/* ── Sidebar ── */}
           <aside
             className="hidden lg:block shrink-0 self-start sticky top-24 overflow-visible"
             onMouseEnter={() => setSidebarHovered(true)}
             onMouseLeave={() => setSidebarHovered(false)}
             style={{
-              width: sidebarCollapsed && !sidebarHovered ? "76px" : "280px",
+              width: sidebarExpanded ? "280px" : "76px",
               transition: "width 0.45s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
@@ -333,9 +390,7 @@ function CategoryPageContent() {
               {/* Collapse Toggle */}
               <div
                 className="flex transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                style={{
-                  justifyContent: sidebarCollapsed && !sidebarHovered ? "center" : "flex-end",
-                }}
+                style={{ justifyContent: sidebarExpanded ? "flex-end" : "center" }}
               >
                 <button
                   onClick={() => setSidebarCollapsed((prev) => !prev)}
@@ -351,10 +406,10 @@ function CategoryPageContent() {
               <div
                 className="relative overflow-hidden"
                 style={{
-                  opacity: sidebarCollapsed && !sidebarHovered ? 0 : 1,
-                  transform: sidebarCollapsed && !sidebarHovered ? "translateX(-12px)" : "translateX(0)",
+                  opacity: sidebarExpanded ? 1 : 0,
+                  transform: sidebarExpanded ? "translateX(0)" : "translateX(-12px)",
                   transition: "opacity 0.35s cubic-bezier(0.4,0,0.2,1), transform 0.35s cubic-bezier(0.4,0,0.2,1)",
-                  pointerEvents: sidebarCollapsed && !sidebarHovered ? "none" : "auto",
+                  pointerEvents: sidebarExpanded ? "auto" : "none",
                 }}
               >
                 <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-black/30" />
@@ -371,8 +426,8 @@ function CategoryPageContent() {
               <div
                 className="grid transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 style={{
-                  gridTemplateRows: sidebarCollapsed && !sidebarHovered ? "0fr" : "1fr",
-                  opacity: sidebarCollapsed && !sidebarHovered ? 0 : 1,
+                  gridTemplateRows: sidebarExpanded ? "1fr" : "0fr",
+                  opacity: sidebarExpanded ? 1 : 0,
                 }}
               >
                 <div className="overflow-hidden">
@@ -417,7 +472,7 @@ function CategoryPageContent() {
                         <div>
                           <div className="font-headline text-[1.05rem] font-bold text-[#101210]">All Products</div>
                           <div className="mt-0.5 text-xs font-bold text-primary">
-                            {products.length} product{products.length !== 1 ? "s" : ""}
+                            {allProducts.length} product{allProducts.length !== 1 ? "s" : ""}
                           </div>
                         </div>
                       </div>
@@ -431,7 +486,7 @@ function CategoryPageContent() {
                 <h3
                   className="text-sm font-bold text-[#101210] mb-3 flex items-center gap-2 px-2"
                   style={{
-                    opacity: sidebarCollapsed && !sidebarHovered ? 0 : 1,
+                    opacity: sidebarExpanded ? 1 : 0,
                     transition: "opacity 0.3s cubic-bezier(0.4,0,0.2,1)",
                   }}
                 >
@@ -443,19 +498,18 @@ function CategoryPageContent() {
                   <button
                     ref={!activeCategoryId ? activeCategoryBtnRef : undefined}
                     onClick={() => setCategory("")}
-                    className={`group w-full flex items-center rounded-2xl px-2.5 py-2.5 text-sm font-bold transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                      !activeCategoryId
-                        ? "bg-primary text-white shadow-[0_6px_20px_rgba(0,105,65,0.25)] scale-[1.02]"
-                        : "text-black/60 hover:scale-[1.05] hover:shadow-lg hover:bg-[#f6f8f5] hover:text-[#101210]"
-                    }`}
+                    className={`group w-full flex items-center rounded-2xl px-2.5 py-2.5 text-sm font-bold transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${!activeCategoryId
+                      ? "bg-primary text-white shadow-[0_6px_20px_rgba(0,105,65,0.25)] scale-[1.02]"
+                      : "text-black/60 hover:scale-[1.05] hover:shadow-lg hover:bg-[#f6f8f5] hover:text-[#101210]"
+                      }`}
                     style={{ transformOrigin: "center left" }}
                   >
                     <span
                       className="flex items-center min-w-0 shrink-0"
                       style={{
-                        gap: sidebarCollapsed && !sidebarHovered ? "0px" : "12px",
-                        justifyContent: sidebarCollapsed && !sidebarHovered ? "center" : "flex-start",
-                        width: sidebarCollapsed && !sidebarHovered ? "100%" : "auto",
+                        gap: sidebarExpanded ? "12px" : "0px",
+                        justifyContent: sidebarExpanded ? "flex-start" : "center",
+                        width: sidebarExpanded ? "auto" : "100%",
                       }}
                     >
                       <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${!activeCategoryId ? "bg-white/20" : "bg-[#f0fdf4] group-hover:bg-[#dcfce7]"} transition-colors duration-300`}>
@@ -464,23 +518,12 @@ function CategoryPageContent() {
                       <span
                         className="whitespace-nowrap overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                         style={{
-                          maxWidth: sidebarCollapsed && !sidebarHovered ? "0px" : "180px",
-                          opacity: sidebarCollapsed && !sidebarHovered ? 0 : 1,
+                          maxWidth: sidebarExpanded ? "180px" : "0px",
+                          opacity: sidebarExpanded ? 1 : 0,
                         }}
                       >
                         All Products
                       </span>
-                    </span>
-                    <span
-                      className={`ml-auto text-xs font-extrabold shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                        !activeCategoryId ? "text-white/90" : "text-black/30 group-hover:text-black/50"
-                      }`}
-                      style={{
-                        maxWidth: sidebarCollapsed && !sidebarHovered ? "0px" : "40px",
-                        opacity: sidebarCollapsed && !sidebarHovered ? 0 : 1,
-                        overflow: "hidden",
-                      }}
-                    >
                     </span>
                   </button>
 
@@ -493,19 +536,18 @@ function CategoryPageContent() {
                         key={cat.id}
                         ref={isActive ? activeCategoryBtnRef : undefined}
                         onClick={() => setCategory(cat.id)}
-                        className={`group w-full flex items-center rounded-2xl px-2.5 py-2.5 text-sm font-bold transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                          isActive
-                            ? "bg-primary text-white shadow-[0_6px_20px_rgba(0,105,65,0.25)] scale-[1.02]"
-                            : "text-black/60 hover:scale-[1.05] hover:shadow-lg hover:bg-[#f6f8f5] hover:text-[#101210]"
-                        }`}
+                        className={`group w-full flex items-center rounded-2xl px-2.5 py-2.5 text-sm font-bold transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${isActive
+                          ? "bg-primary text-white shadow-[0_6px_20px_rgba(0,105,65,0.25)] scale-[1.02]"
+                          : "text-black/60 hover:scale-[1.05] hover:shadow-lg hover:bg-[#f6f8f5] hover:text-[#101210]"
+                          }`}
                         style={{ transformOrigin: "center left" }}
                       >
                         <span
                           className="flex items-center min-w-0 shrink-0"
                           style={{
-                            gap: sidebarCollapsed && !sidebarHovered ? "0px" : "12px",
-                            justifyContent: sidebarCollapsed && !sidebarHovered ? "center" : "flex-start",
-                            width: sidebarCollapsed && !sidebarHovered ? "100%" : "auto",
+                            gap: sidebarExpanded ? "12px" : "0px",
+                            justifyContent: sidebarExpanded ? "flex-start" : "center",
+                            width: sidebarExpanded ? "auto" : "100%",
                           }}
                         >
                           <span className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ${isActive ? "ring-2 ring-white/40" : ""} transition-all duration-300`}>
@@ -526,23 +568,12 @@ function CategoryPageContent() {
                           <span
                             className="whitespace-nowrap overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                             style={{
-                              maxWidth: sidebarCollapsed && !sidebarHovered ? "0px" : "180px",
-                              opacity: sidebarCollapsed && !sidebarHovered ? 0 : 1,
+                              maxWidth: sidebarExpanded ? "180px" : "0px",
+                              opacity: sidebarExpanded ? 1 : 0,
                             }}
                           >
                             {cat.categoryName}
                           </span>
-                        </span>
-                        <span
-                          className={`ml-auto text-xs font-extrabold shrink-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                            isActive ? "text-white/90" : "text-black/30 group-hover:text-black/50"
-                          }`}
-                          style={{
-                            maxWidth: sidebarCollapsed && !sidebarHovered ? "0px" : "40px",
-                            opacity: sidebarCollapsed && !sidebarHovered ? 0 : 1,
-                            overflow: "hidden",
-                          }}
-                        >
                         </span>
                       </button>
                     );
@@ -552,7 +583,7 @@ function CategoryPageContent() {
             </div>
           </aside>
 
-          {/* Mobile Filter Toggle */}
+          {/* ── Mobile Filter Toggle ── */}
           <div className="lg:hidden mb-4 w-full">
             <button
               onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
@@ -563,7 +594,7 @@ function CategoryPageContent() {
             </button>
 
             {mobileFilterOpen && (
-              <div className="mt-3 rounded-[24px] bg-white p-5 shadow-[0_4px_24px_rgba(0,39,25,0.05)] border border-black/[0.04] space-y-3">
+              <div className="mt-3 rounded-[24px] bg-white p-5 shadow-[0_4px_24px_rgba(0,39,25,0.05)] border border-black/[0.04] space-y-4">
                 <input
                   type="text"
                   placeholder="Search products..."
@@ -571,38 +602,65 @@ function CategoryPageContent() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full rounded-xl bg-[#f6f8f5] border border-black/[0.06] py-2.5 px-4 text-sm font-medium placeholder:text-black/30 outline-none"
                 />
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setCategory("")}
-                    className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${
-                      !activeCategoryId ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
-                    }`}
-                  >
-                    All
-                  </button>
-                  {categories.map((cat) => {
-                    const isActive = activeCategoryId === cat.id;
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => setCategory(cat.id)}
-                        className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${
-                          isActive ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
+                {/* Mobile Categories */}
+                <div>
+                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-black/40 mb-2">Categories</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setCategory("")}
+                      className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${!activeCategoryId ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
                         }`}
-                      >
-                        {cat.categoryName}
-                      </button>
-                    );
-                  })}
+                    >
+                      All
+                    </button>
+                    {categories.map((cat) => {
+                      const isActive = activeCategoryId === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setCategory(cat.id)}
+                          className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${isActive ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
+                            }`}
+                        >
+                          {cat.categoryName}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+                {/* Mobile Subcategories */}
+                {subCategories.length > 0 && (
+                  <div>
+                    <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-black/40 mb-2">Subcategories</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setSubCategory("")}
+                        className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${!activeSubCategory ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
+                          }`}
+                      >
+                        All
+                      </button>
+                      {subCategories.map((sub) => (
+                        <button
+                          key={sub.id}
+                          onClick={() => setSubCategory(sub.subCategory)}
+                          className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${activeSubCategory === sub.subCategory ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
+                            }`}
+                        >
+                          {sub.subCategory}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Product Grid */}
+          {/* ── Product Area ── */}
           <div className="flex-1 min-w-0">
             {/* Toolbar */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-5">
               <p className="text-sm text-black/50 hidden sm:block">
                 Showing <span className="font-bold text-[#101210]">{filteredProducts.length}</span> products
               </p>
@@ -621,7 +679,37 @@ function CategoryPageContent() {
               </div>
             </div>
 
-            {/* Grid */}
+            {/* Subcategory Bar */}
+            {subCategories.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  <button
+                    onClick={() => setSubCategory("")}
+                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all duration-200 ${!activeSubCategory
+                      ? "bg-primary text-white shadow-[0_4px_12px_rgba(0,105,65,0.25)]"
+                      : "bg-white text-black/60 border border-black/[0.06] hover:border-primary/30 hover:text-primary"
+                      }`}
+                  >
+                    <TagIcon className="h-3.5 w-3.5" />
+                    All
+                  </button>
+                  {subCategories.map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() => setSubCategory(sub.subCategory)}
+                      className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all duration-200 ${activeSubCategory === sub.subCategory
+                        ? "bg-primary text-white shadow-[0_4px_12px_rgba(0,105,65,0.25)]"
+                        : "bg-white text-black/60 border border-black/[0.06] hover:border-primary/30 hover:text-primary"
+                        }`}
+                    >
+                      {sub.subCategory}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Product Grid */}
             {loading ? (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -640,12 +728,13 @@ function CategoryPageContent() {
                 </div>
                 <h3 className="font-headline text-xl font-bold text-[#101210]">No products found</h3>
                 <p className="mt-2 text-sm text-black/50 max-w-xs">
-                  Try adjusting your search or category filter to find what you are looking for.
+                  Try adjusting your search, category, or subcategory filter to find what you are looking for.
                 </p>
                 <button
                   onClick={() => {
                     setSearchQuery("");
                     setCategory("");
+                    setSubCategory("");
                   }}
                   className="mt-5 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-primary/90 transition-colors"
                 >
@@ -666,9 +755,8 @@ function CategoryPageContent() {
                       {/* Image */}
                       <div className="relative overflow-hidden">
                         <div
-                          className={`absolute left-3 top-3 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur-md ${
-                            isAvail ? "bg-emerald-500/90 text-white" : "bg-black/60 text-white"
-                          }`}
+                          className={`absolute left-3 top-3 z-10 inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur-md ${isAvail ? "bg-emerald-500/90 text-white" : "bg-black/60 text-white"
+                            }`}
                         >
                           {isAvail ? "Available" : "Out of Stock"}
                         </div>
@@ -687,7 +775,7 @@ function CategoryPageContent() {
                       {/* Content */}
                       <div className="flex flex-1 flex-col p-4">
                         <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-primary truncate">
-                          {product.category}
+                          {product.subCategory || product.category}
                         </p>
                         <h3 className="mt-1.5 font-headline text-[1.2rem] font-bold leading-tight tracking-[-0.03em] text-[#131713] line-clamp-2 min-h-[3rem]">
                           {product.productName}
@@ -712,11 +800,10 @@ function CategoryPageContent() {
                             return (
                               <span
                                 key={unitItem.unit}
-                                className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[0.65rem] font-bold ${
-                                  unavailable
-                                    ? "bg-black/[0.03] text-black/25 line-through"
-                                    : "bg-[#f0fdf4] text-primary"
-                                }`}
+                                className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[0.65rem] font-bold ${unavailable
+                                  ? "bg-black/[0.03] text-black/25 line-through"
+                                  : "bg-[#f0fdf4] text-primary"
+                                  }`}
                               >
                                 {norm} {unavailable ? "(N/A)" : `Rp ${unitItem.sellPrice.toLocaleString("id-ID")}`}
                               </span>
@@ -752,7 +839,7 @@ function CategoryPageContent() {
         <div className="mx-auto flex max-w-[1180px] flex-col gap-8 px-6 py-10 lg:flex-row lg:items-end lg:justify-between lg:px-8">
           <div>
             <p className="font-headline text-[2rem] font-extrabold tracking-[-0.04em] text-primary">Tokyo GO</p>
-            <p className="mt-3 text-sm text-on-surface/55">© 2024 Tokyo GO. Precision Freshness.</p>
+            <p className="mt-3 text-sm text-on-surface/55">&copy; 2024 Tokyo GO. Precision Freshness.</p>
           </div>
           <div className="flex flex-wrap gap-x-8 gap-y-3 text-sm text-on-surface/58">
             <Link href="/">About Us</Link>

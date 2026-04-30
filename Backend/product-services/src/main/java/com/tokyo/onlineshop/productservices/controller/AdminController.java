@@ -1,7 +1,7 @@
 package com.tokyo.onlineshop.productservices.controller;
 
 
-import com.tokyo.common.dto.WebResponse;
+import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.onlineshop.productservices.dto.*;
 import com.tokyo.onlineshop.productservices.service.BrandService;
 import com.tokyo.onlineshop.productservices.service.CategoryService;
@@ -31,9 +31,9 @@ public class AdminController {
 
     @PostMapping("/category")
     @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<WebResponse<CreateCategoryResponse>> createCategory(@RequestBody CreateCategoryRequest request){
+    ResponseEntity<BaseResponse<CreateCategoryResponse>> createCategory(@RequestBody CreateCategoryRequest request){
         CreateCategoryResponse data = categoryService.CreateCategory(request);
-        WebResponse<CreateCategoryResponse> response = WebResponse.<CreateCategoryResponse>builder()
+        BaseResponse<CreateCategoryResponse> response = BaseResponse.<CreateCategoryResponse>builder()
                 .value(HttpStatus.CREATED.value())
                 .message("success create Category")
                 .success(true)
@@ -44,9 +44,9 @@ public class AdminController {
     }
 
     @PostMapping("/brand")
-    ResponseEntity<WebResponse<CreateBrandResponse>> createBrand(@RequestBody CreateBrandRequest request){
+    ResponseEntity<BaseResponse<CreateBrandResponse>> createBrand(@RequestBody CreateBrandRequest request){
         CreateBrandResponse data = brandService.createBrand(request);
-        WebResponse<CreateBrandResponse> response = WebResponse.<CreateBrandResponse>builder()
+        BaseResponse<CreateBrandResponse> response = BaseResponse.<CreateBrandResponse>builder()
                 .value(HttpStatus.CREATED.value())
                 .success(true)
                 .message("Success created Brand")
@@ -57,9 +57,9 @@ public class AdminController {
     }
 
     @PostMapping("/product")
-    ResponseEntity<WebResponse<CreateProductResponse>> createProduct(@Valid @RequestBody CreateProductRequest req){
+    ResponseEntity<BaseResponse<CreateProductResponse>> createProduct(@Valid @RequestBody CreateProductRequest req){
         CreateProductResponse data = productService.createProduct(req);
-        WebResponse<CreateProductResponse> response = WebResponse.<CreateProductResponse>builder()
+        BaseResponse<CreateProductResponse> response = BaseResponse.<CreateProductResponse>builder()
                 .value(HttpStatus.CREATED.value())
                 .success(true)
                 .message("Successfully Created Product")
@@ -73,11 +73,11 @@ public class AdminController {
             value = "/category/add-image/{id}",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    ResponseEntity<WebResponse<CreateCategoryImageResponse>> addImage(
+    ResponseEntity<BaseResponse<CreateCategoryImageResponse>> addImage(
             @PathVariable UUID id,
             @RequestPart("images") MultipartFile file){
         CreateCategoryImageResponse data = categoryService.createImage(id,file);
-        WebResponse<CreateCategoryImageResponse> response = WebResponse.<CreateCategoryImageResponse>builder()
+        BaseResponse<CreateCategoryImageResponse> response = BaseResponse.<CreateCategoryImageResponse>builder()
                 .value(HttpStatus.CREATED.value())
                 .message("Add image Successfully")
                 .success(true)
@@ -89,13 +89,13 @@ public class AdminController {
 
 
     @PostMapping(value = "/ad-min/product/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ResponseEntity<WebResponse<List<CreateImageResponse>>> uploadProductImage(
+    ResponseEntity<BaseResponse<List<CreateImageResponse>>> uploadProductImage(
             @RequestParam("slug") String slug,
             @RequestPart("images") List<MultipartFile> images,
             @RequestParam(value = "altText", required = false) List<String> altText
     ) {
         List<CreateImageResponse> data = productImageService.uploadImage(slug, images, altText);
-        WebResponse<List<CreateImageResponse>> response = WebResponse.<List<CreateImageResponse>>builder()
+        BaseResponse<List<CreateImageResponse>> response = BaseResponse.<List<CreateImageResponse>>builder()
                 .value(HttpStatus.CREATED.value())
                 .success(true)
                 .message("Successfully uploaded image")

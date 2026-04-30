@@ -1,17 +1,13 @@
 package com.tokyo.onlineshop.productservices.controller;
 
-import com.tokyo.common.dto.WebResponse;
+import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.onlineshop.productservices.dto.*;
-import com.tokyo.onlineshop.productservices.service.ProductImageService;
 import com.tokyo.onlineshop.productservices.service.ProductService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,9 +21,9 @@ public class ProductController {
 
 
     @GetMapping()
-    ResponseEntity<WebResponse<List<ProductCard>>> getProductHomeList(){
-        List<ProductCard> data = productService.getProductList();
-        WebResponse<List<ProductCard>> response = WebResponse.<List<ProductCard>>builder()
+    ResponseEntity<BaseResponse<List<ProductCard>>> getProductHomeList(){
+        List<ProductCard> data = productService.getProductListFeatured();
+        BaseResponse<List<ProductCard>> response = BaseResponse.<List<ProductCard>>builder()
                 .value(HttpStatus.OK.value())
                 .success(true)
                 .message("Product Success loaded")
@@ -38,9 +34,9 @@ public class ProductController {
     }
 
     @GetMapping("arrival")
-    ResponseEntity<WebResponse<List<ProductCard>>> getProductArrivalList(){
+    ResponseEntity<BaseResponse<List<ProductCard>>> getProductArrivalList(){
         List<ProductCard> data = productService.getLastArrivalProductList();
-        WebResponse<List<ProductCard>> response = WebResponse.<List<ProductCard>>builder()
+        BaseResponse<List<ProductCard>> response = BaseResponse.<List<ProductCard>>builder()
                 .value(HttpStatus.OK.value())
                 .success(true)
                 .message("Product Success loaded")
@@ -51,9 +47,9 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    ResponseEntity<WebResponse<GetProductDetailResponse>> getProductDetail(@PathVariable UUID id){
+    ResponseEntity<BaseResponse<GetProductDetailResponse>> getProductDetail(@PathVariable UUID id){
         GetProductDetailResponse data = productService.getProductDetail(id);
-        WebResponse<GetProductDetailResponse> response = WebResponse.<GetProductDetailResponse>builder()
+        BaseResponse<GetProductDetailResponse> response = BaseResponse.<GetProductDetailResponse>builder()
                 .success(true)
                 .message("Product detail success loaded")
                 .value(HttpStatus.OK.value())
@@ -64,13 +60,13 @@ public class ProductController {
     }
 
     @GetMapping("/category-list/{categoryId}")
-    ResponseEntity<WebResponse<Page<ProductCard>>> getProductByCategory(
+    ResponseEntity<BaseResponse<Page<ProductCard>>> getProductByCategory(
             @RequestParam(defaultValue = "0", name = "current-pages") int currPages,
             @RequestParam(defaultValue = "10", name = "size") int size,
             @PathVariable("categoryId") UUID categoryId
     ){
         Page<ProductCard> data = productService.GetProductByCategory(categoryId,currPages,size);
-        WebResponse<Page<ProductCard>> response = WebResponse.<Page<ProductCard>>builder()
+        BaseResponse<Page<ProductCard>> response = BaseResponse.<Page<ProductCard>>builder()
                 .value(HttpStatus.OK.value())
                 .success(true)
                 .message("product data success loaded")

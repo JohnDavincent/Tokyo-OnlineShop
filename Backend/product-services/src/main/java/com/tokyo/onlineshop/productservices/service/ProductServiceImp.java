@@ -1,5 +1,6 @@
 package com.tokyo.onlineshop.productservices.service;
 
+import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.onlineshop.productservices.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.*;
 import com.tokyo.onlineshop.productservices.entity.Brand;
@@ -11,12 +12,11 @@ import com.tokyo.onlineshop.productservices.repository.BrandRepository;
 import com.tokyo.onlineshop.productservices.repository.CategoryRepository;
 import com.tokyo.onlineshop.productservices.repository.ProductRepository;
 import com.tokyo.onlineshop.productservices.repository.ProductUnitRepository;
+import com.tokyo.onlineshop.productservices.specification.ProductFilterSpecification;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -96,7 +96,7 @@ public class ProductServiceImp implements ProductService {
     }
 
     @Override
-    public List<ProductCard> getProductList() {
+    public List<ProductCard> getProductListFeatured() {
         List<Product> productList = productRepository.listOfFeaturedPageProduct();
         if(productList.isEmpty()){
             throw new RuntimeException("There is no product that is featuredPage");
@@ -233,8 +233,28 @@ public class ProductServiceImp implements ProductService {
         return new PageImpl<>(productCards,pageable,productList.getTotalElements());
     }
 
+    @Override
 
+    public BaseResponse<ProductCard> GetProductList(RequestProductListDto request) {
+        Sort sort = Sort.by(Sort.Direction.fromString(request.getSortOrder()),request.getSortBy());
+        Specification<Product> spec = (root, query, cb) -> cb.conjunction();
 
+        if(request.getRequestDto().getCategoryParentId() != null){
+            spec = spec.and(ProductFilterSpecification.hasMainCategory(request.getRequestDto().getCategoryParentId()));
+        }
+
+        if(request.getRequestDto().getSubCategoryId() != null){
+            spec = spec.and(ProductFilterSpecification.hasSubCategory(request.getRequestDto().getSubCategoryId()));
+        }
+
+        if(request.getRequestDto().getSearch() != null){
+            spec = spec.and(ProductFilterSpecification.hasSearch(request.getRequestDto().getSearch()));
+        }
+
+        Page<Product> result = productRepository.findAll(spec,PageRequest.of(request.getCurrentPage(),request.getPageSize(),sort));
+        List<ProductCard>
+
+    }
 
 
 }

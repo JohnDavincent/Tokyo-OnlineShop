@@ -628,7 +628,7 @@ export default function HomePage() {
                 {/* ── Add button ── */}
                 <Link
                   id={`add-${product.productName.replace(/\s+/g, "-").toLowerCase()}`}
-                  href={`/product/${product.productId}`}
+                  href={`/product/${product.productId || product.id}`}
                   aria-label={`View ${product.productName} details`}
                   className="mt-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_8px_24px_rgba(0,105,65,0.28)] active:translate-y-0"
                 >
@@ -762,7 +762,7 @@ export default function HomePage() {
                             </div>
 
                             <Link
-                              href={`/product/${product.productId}`}
+                              href={`/product/${product.productId || product.id}`}
                               className="mt-auto inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90"
                             >
                               View Details

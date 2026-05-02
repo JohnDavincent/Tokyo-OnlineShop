@@ -1,7 +1,7 @@
 package com.tokyo.onlineshop.productservices.service;
 
+import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.onlineshop.productservices.ProductionStatus;
-import com.tokyo.onlineshop.productservices.dto.CreateProductRequest;
 import com.tokyo.onlineshop.productservices.dto.CreateUnitRequest;
 import com.tokyo.onlineshop.productservices.dto.CreateUnitResponse;
 import com.tokyo.onlineshop.productservices.entity.Product;
@@ -10,6 +10,7 @@ import com.tokyo.onlineshop.productservices.repository.ProductRepository;
 import com.tokyo.onlineshop.productservices.repository.ProductUnitRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -26,7 +27,7 @@ public class ProductUnitServiceImp implements ProductUnitService{
     private final ProductRepository productRepository;
 
     @Override
-    public List<CreateUnitResponse> createUnit(UUID productId, List<CreateUnitRequest> request) {
+    public BaseResponse createUnit(UUID productId, List<CreateUnitRequest> request) {
 
         if(request == null){
             throw new RuntimeException("Field must be fill");
@@ -57,7 +58,7 @@ public class ProductUnitServiceImp implements ProductUnitService{
             unitList.add(createUnit);
         }
 
-        return unitList.stream()
+        List<CreateUnitResponse> data = unitList.stream()
                 .map(unit -> {
                     return CreateUnitResponse.builder()
                             .convertUnit(unit.getConvertQuantity())
@@ -66,6 +67,13 @@ public class ProductUnitServiceImp implements ProductUnitService{
                             .unit(unit.getUnit())
                             .build();
                 }).collect(Collectors.toList());
+
+        return BaseResponse.builder()
+                .status(HttpStatus.CREATED.value())
+                .code(HttpStatus.CREATED)
+                .message("Product units created successfully")
+                .data(data)
+                .build();
 
 
 

@@ -1,11 +1,12 @@
 package com.tokyo.common.dto;
 
 import lombok.Builder;
+import org.springframework.http.HttpStatus;
 
 @Builder
 public record BaseResponse(
-        Boolean success,
+        Integer status,
+        HttpStatus code,
         String message,
-        Integer value,
         Object data
 ){}

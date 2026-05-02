@@ -47,7 +47,7 @@ export async function getProductDetail(productId: string): Promise<ApiProductDet
       const detailRes = await fetch(`${API_BASE_URL}/tokyo/gropup/product/${encodeURIComponent(realId)}`);
       if (detailRes.ok) {
         const detailJson = await detailRes.json();
-        if (detailJson.success && detailJson.data) {
+        if (detailJson.data) {
           finalProduct = detailJson.data;
         }
       }
@@ -59,7 +59,7 @@ export async function getProductDetail(productId: string): Promise<ApiProductDet
     const detailRes = await fetch(`${API_BASE_URL}/tokyo/gropup/product/${encodeURIComponent(productId)}`);
     if (detailRes.ok) {
       const detailJson = await detailRes.json();
-      if (detailJson.success && detailJson.data) {
+      if (detailJson.data) {
         finalProduct = detailJson.data;
       }
     }

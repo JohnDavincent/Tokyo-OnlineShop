@@ -1,5 +1,6 @@
 package com.tokyo.onlineshop.productservices.service;
 
+import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.onlineshop.productservices.dto.CreateImageRequest;
 import com.tokyo.onlineshop.productservices.dto.CreateImageResponse;
 import com.tokyo.onlineshop.productservices.entity.Product;
@@ -9,6 +10,7 @@ import com.tokyo.onlineshop.productservices.repository.ProductImageRepository;
 import com.tokyo.onlineshop.productservices.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,7 +35,7 @@ public class ProductImageServiceImp implements ProductImageService {
     private final ImageFileHelper fileHelper;
 
     @Override
-    public List<CreateImageResponse> uploadImage(String slug, List<MultipartFile> files, List<String> altTexts) {
+    public BaseResponse uploadImage(String slug, List<MultipartFile> files, List<String> altTexts) {
         if (files == null || files.isEmpty()) {
             throw new RuntimeException("Image is empty");
         }
@@ -76,13 +78,23 @@ public class ProductImageServiceImp implements ProductImageService {
             throw new RuntimeException("Failed to save the image", e);
         }
 
-        return imageList;
+        return BaseResponse.builder()
+                .status(HttpStatus.CREATED.value())
+                .code(HttpStatus.CREATED)
+                .message("Images uploaded successfully")
+                .data(imageList)
+                .build();
     }
 
     @Override
-    public List<CreateImageResponse> addImage(UUID productId, List<CreateImageRequest> request) {
+    public BaseResponse addImage(UUID productId, List<CreateImageRequest> request) {
         if (request == null || request.isEmpty()) {
-            return List.of();
+            return BaseResponse.builder()
+                    .status(HttpStatus.CREATED.value())
+                    .code(HttpStatus.CREATED)
+                    .message("No images to add")
+                    .data(List.of())
+                    .build();
         }
 
         Product existProduct = productRepository.findById(productId)
@@ -116,10 +128,11 @@ public class ProductImageServiceImp implements ProductImageService {
                     .build());
         }
 
-        return imageList;
+        return BaseResponse.builder()
+                .status(HttpStatus.CREATED.value())
+                .code(HttpStatus.CREATED)
+                .message("Images added successfully")
+                .data(imageList)
+                .build();
     }
-
-
-
-
 }

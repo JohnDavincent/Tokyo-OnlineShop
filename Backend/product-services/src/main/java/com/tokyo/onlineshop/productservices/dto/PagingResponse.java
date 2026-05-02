@@ -7,23 +7,16 @@ import lombok.Builder;
 import java.io.Serializable;
 
 @Builder
-
-@JsonPropertyOrder({"items","total_pages,","total_items","current_page","page_size"})
-public record PageResponse(
-
+@JsonPropertyOrder({"items","total_pages","total_items","current_page","page_size"})
+public record PagingResponse(
         Object items,
-
         @JsonProperty("total_pages")
         int totalPages,
-
+        @JsonProperty("total_items")
+        Long totalItems,
         @JsonProperty("current_page")
         int currentPage,
-
         @JsonProperty("page_size")
-        int pageSize,
-
-        @JsonProperty("total_items")
-        Long totalItems
-
+        int pageSize
 ) implements Serializable {
 }

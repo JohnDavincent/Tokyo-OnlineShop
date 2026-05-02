@@ -13,7 +13,8 @@ type UnitList = {
 };
 
 type ApiProduct = {
-  productId: string;
+  productId?: string;
+  id?: string;
   productName: string;
   status: string;
   url: string;
@@ -218,7 +219,7 @@ function CategoryPageContent() {
     ])
       .then(([productJson, categoryJson]) => {
         setAllProducts(extractProducts(productJson));
-        if (categoryJson.success && Array.isArray(categoryJson.data)) {
+        if (Array.isArray(categoryJson.data)) {
           setCategories(categoryJson.data);
         }
       })
@@ -241,7 +242,7 @@ function CategoryPageContent() {
     fetch(`${API_BASE_URL}/tokyo/gropup/category/list-subcategory/${activeCategoryId}`)
       .then((r) => r.json())
       .then((json) => {
-        if (json.success && Array.isArray(json.data)) {
+        if (Array.isArray(json.data)) {
           setSubCategories(json.data);
         } else {
           setSubCategories([]);
@@ -749,7 +750,7 @@ function CategoryPageContent() {
 
                   return (
                     <article
-                      key={product.productId}
+                      key={product.productId || product.id}
                       className="group flex flex-col rounded-[20px] border border-black/5 bg-white shadow-[0_8px_30px_rgba(0,39,25,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,39,25,0.1)] overflow-hidden"
                     >
                       {/* Image */}
@@ -818,7 +819,7 @@ function CategoryPageContent() {
 
                         {/* CTA */}
                         <Link
-                          href={`/product/${product.productId}`}
+                          href={`/product/${product.productId || product.id}`}
                           className="mt-auto pt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_8px_24px_rgba(0,105,65,0.28)] active:translate-y-0"
                         >
                           View Details

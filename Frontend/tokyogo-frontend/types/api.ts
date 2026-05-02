@@ -6,7 +6,8 @@ export type UnitList = {
 };
 
 export type ApiProduct = {
-  productId: string;
+  productId?: string;
+  id?: string;
   productName: string;
   status: string;
   url: string;

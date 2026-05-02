@@ -17,10 +17,10 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,7 +36,7 @@ public class ProductServiceImp implements ProductService {
 
     @Transactional
     @Override
-    public CreateProductResponse createProduct(CreateProductRequest request) {
+    public BaseResponse createProduct(CreateProductRequest request) {
         if(request == null){
             throw new RuntimeException("Field must be fill!!");
         }
@@ -77,12 +77,12 @@ public class ProductServiceImp implements ProductService {
         productRepository.save(createProduct);
 
         //product Unit
-        List<CreateUnitResponse> unitDto = productUnitService.createUnit(createProduct.getId(),request.getUnitList());
+        productUnitService.createUnit(createProduct.getId(),request.getUnitList());
 
         //product image
-        List<CreateImageResponse> imageDto = productImageService.addImage(createProduct.getId(),request.getImageList());
+        productImageService.addImage(createProduct.getId(),request.getImageList());
 
-        return CreateProductResponse.builder()
+        CreateProductResponse data = CreateProductResponse.builder()
                 .name(createProduct.getName())
                 .description(createProduct.getDescription())
                 .brand(existBrand.getName())
@@ -90,19 +90,24 @@ public class ProductServiceImp implements ProductService {
                 .subCategory(createProduct.getCategory().getName())
                 .baseWeight(createProduct.getBaseWeightUnit())
                 .stock(createProduct.getStock())
-                .imageList(imageDto)
-                .unitList(unitDto)
+                .build();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.CREATED.value())
+                .code(HttpStatus.CREATED)
+                .message("Product created successfully")
+                .data(data)
                 .build();
     }
 
     @Override
-    public List<ProductCard> getProductListFeatured() {
+    public BaseResponse getProductListFeatured() {
         List<Product> productList = productRepository.listOfFeaturedPageProduct();
         if(productList.isEmpty()){
             throw new RuntimeException("There is no product that is featuredPage");
         }
 
-        return productList.stream()
+        List<ProductCard> data = productList.stream()
                 .map(card -> {
                     return ProductCard.builder()
                             .productId(card.getId())
@@ -125,16 +130,23 @@ public class ProductServiceImp implements ProductService {
                             )
                             .build();
                 }).toList();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Featured products retrieved successfully")
+                .data(data)
+                .build();
     }
 
     @Override
-    public List<ProductCard> getLastArrivalProductList() {
+    public BaseResponse getLastArrivalProductList() {
         List<Product> productList = productRepository.listOfArrivalProduct();
         if(productList.isEmpty()){
             throw new RuntimeException("There is no product that is featuredPage");
         }
 
-        return productList.stream()
+        List<ProductCard> data = productList.stream()
                 .map(card -> {
                     return ProductCard.builder()
                             .productId(card.getId())
@@ -157,16 +169,23 @@ public class ProductServiceImp implements ProductService {
                             )
                             .build();
                 }).toList();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Arrival products retrieved successfully")
+                .data(data)
+                .build();
     }
 
     @Override
-    public GetProductDetailResponse getProductDetail(UUID id) {
+    public BaseResponse getProductDetail(UUID id) {
         Product existProduct = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product Not Found!!"));
         Brand productBrand = brandRepository.findById(existProduct.getBrand().getId()).orElseThrow(() -> new RuntimeException("Brand is not found"));
         Category productSubCategory = categoryRepository.findById(existProduct.getCategory().getId()).orElseThrow(() -> new RuntimeException("Category not found"));
         Category productCategory = categoryRepository.findByParentIdAndName(productSubCategory.getParentId(),productSubCategory.getName());
 
-        return GetProductDetailResponse.builder()
+        GetProductDetailResponse data = GetProductDetailResponse.builder()
                 .id(existProduct.getId())
                 .name(existProduct.getName())
                 .sku(existProduct.getSku())
@@ -191,10 +210,17 @@ public class ProductServiceImp implements ProductService {
                                 .build()
                 ).toList())
                 .build();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Product detail retrieved successfully")
+                .data(data)
+                .build();
     }
 
     @Override
-    public Page<ProductCard> GetProductByCategory(UUID categoryId, int page, int size) {
+    public BaseResponse GetProductByCategory(UUID categoryId, int page, int size) {
         if(!categoryRepository.existsById(categoryId)){
             throw new RuntimeException("Category not exists");
         }
@@ -229,31 +255,64 @@ public class ProductServiceImp implements ProductService {
                                     .build()
                             ).toList();
 
+        PagingResponse pagingData = new PagingResponse(productCards, productList.getTotalPages(), productList.getTotalElements(), productList.getNumber() + 1, productList.getSize());
 
-        return new PageImpl<>(productCards,pageable,productList.getTotalElements());
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Products retrieved successfully")
+                .data(pagingData)
+                .build();
     }
 
     @Override
-
-    public BaseResponse<ProductCard> GetProductList(RequestProductListDto request) {
+    public BaseResponse GetProductList(RequestProductListDto request) {
         Sort sort = Sort.by(Sort.Direction.fromString(request.getSortOrder()),request.getSortBy());
         Specification<Product> spec = (root, query, cb) -> cb.conjunction();
 
-        if(request.getRequestDto().getCategoryParentId() != null){
+        if(request.getRequestDto() != null && request.getRequestDto().getCategoryParentId() != null){
             spec = spec.and(ProductFilterSpecification.hasMainCategory(request.getRequestDto().getCategoryParentId()));
         }
 
-        if(request.getRequestDto().getSubCategoryId() != null){
+        if(request.getRequestDto() != null && request.getRequestDto().getSubCategoryId() != null){
             spec = spec.and(ProductFilterSpecification.hasSubCategory(request.getRequestDto().getSubCategoryId()));
         }
 
-        if(request.getRequestDto().getSearch() != null){
+        if(request.getRequestDto() != null && request.getRequestDto().getSearch() != null){
             spec = spec.and(ProductFilterSpecification.hasSearch(request.getRequestDto().getSearch()));
         }
 
         Page<Product> result = productRepository.findAll(spec,PageRequest.of(request.getCurrentPage(),request.getPageSize(),sort));
-        List<ProductCard>
 
+        List<ProductCard> productCards = result.getContent().stream()
+                .map(product -> ProductCard.builder()
+                        .productId(product.getId())
+                        .productName(product.getName())
+                        .url(product.getProductImageList().isEmpty() ? "" : product.getProductImageList().getFirst().getUrl())
+                        .altText(product.getProductImageList().isEmpty() ? "" : product.getProductImageList().getFirst().getUrl())
+                        .status(product.getStatus())
+                        .category(product.getCategory() != null ? product.getCategory().getName() : "")
+                        .unitList(
+                                product.getProductUnitList().stream()
+                                        .map(unit -> UnitCard.builder()
+                                                .unit(unit.getUnit())
+                                                .convertQuantity(unit.getConvertQuantity())
+                                                .sellPrice(unit.getUnitSellPrice())
+                                                .status(unit.getStatus())
+                                                .build()
+                                        ).toList()
+                        )
+                        .build()
+                ).toList();
+
+        PagingResponse pagingData = new PagingResponse(productCards, result.getTotalPages(), result.getTotalElements(), result.getNumber() + 1, result.getSize());
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Products retrieved successfully")
+                .data(pagingData)
+                .build();
     }
 
 

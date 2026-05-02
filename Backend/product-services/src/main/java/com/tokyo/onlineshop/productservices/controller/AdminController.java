@@ -31,41 +31,20 @@ public class AdminController {
 
     @PostMapping("/category")
     @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<BaseResponse<CreateCategoryResponse>> createCategory(@RequestBody CreateCategoryRequest request){
-        CreateCategoryResponse data = categoryService.CreateCategory(request);
-        BaseResponse<CreateCategoryResponse> response = BaseResponse.<CreateCategoryResponse>builder()
-                .value(HttpStatus.CREATED.value())
-                .message("success create Category")
-                .success(true)
-                .data(data)
-                .build();
-
+    ResponseEntity<BaseResponse> createCategory(@RequestBody CreateCategoryRequest request){
+        BaseResponse response = categoryService.CreateCategory(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/brand")
-    ResponseEntity<BaseResponse<CreateBrandResponse>> createBrand(@RequestBody CreateBrandRequest request){
-        CreateBrandResponse data = brandService.createBrand(request);
-        BaseResponse<CreateBrandResponse> response = BaseResponse.<CreateBrandResponse>builder()
-                .value(HttpStatus.CREATED.value())
-                .success(true)
-                .message("Success created Brand")
-                .data(data)
-                .build();
-
+    ResponseEntity<BaseResponse> createBrand(@RequestBody CreateBrandRequest request){
+        BaseResponse response = brandService.createBrand(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/product")
-    ResponseEntity<BaseResponse<CreateProductResponse>> createProduct(@Valid @RequestBody CreateProductRequest req){
-        CreateProductResponse data = productService.createProduct(req);
-        BaseResponse<CreateProductResponse> response = BaseResponse.<CreateProductResponse>builder()
-                .value(HttpStatus.CREATED.value())
-                .success(true)
-                .message("Successfully Created Product")
-                .data(data)
-                .build();
-
+    ResponseEntity<BaseResponse> createProduct(@Valid @RequestBody CreateProductRequest req){
+        BaseResponse response = productService.createProduct(req);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -73,35 +52,21 @@ public class AdminController {
             value = "/category/add-image/{id}",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    ResponseEntity<BaseResponse<CreateCategoryImageResponse>> addImage(
+    ResponseEntity<BaseResponse> addImage(
             @PathVariable UUID id,
             @RequestPart("images") MultipartFile file){
-        CreateCategoryImageResponse data = categoryService.createImage(id,file);
-        BaseResponse<CreateCategoryImageResponse> response = BaseResponse.<CreateCategoryImageResponse>builder()
-                .value(HttpStatus.CREATED.value())
-                .message("Add image Successfully")
-                .success(true)
-                .data(data)
-                .build();
-
+        BaseResponse response = categoryService.createImage(id,file);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
 
     @PostMapping(value = "/ad-min/product/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    ResponseEntity<BaseResponse<List<CreateImageResponse>>> uploadProductImage(
+    ResponseEntity<BaseResponse> uploadProductImage(
             @RequestParam("slug") String slug,
             @RequestPart("images") List<MultipartFile> images,
             @RequestParam(value = "altText", required = false) List<String> altText
     ) {
-        List<CreateImageResponse> data = productImageService.uploadImage(slug, images, altText);
-        BaseResponse<List<CreateImageResponse>> response = BaseResponse.<List<CreateImageResponse>>builder()
-                .value(HttpStatus.CREATED.value())
-                .success(true)
-                .message("Successfully uploaded image")
-                .data(data)
-                .build();
-
+        BaseResponse response = productImageService.uploadImage(slug, images, altText);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

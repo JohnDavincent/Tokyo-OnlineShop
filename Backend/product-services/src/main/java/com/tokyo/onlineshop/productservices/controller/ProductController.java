@@ -1,15 +1,11 @@
 package com.tokyo.onlineshop.productservices.controller;
 
 import com.tokyo.common.dto.BaseResponse;
-import com.tokyo.onlineshop.productservices.dto.*;
 import com.tokyo.onlineshop.productservices.service.ProductService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -21,58 +17,30 @@ public class ProductController {
 
 
     @GetMapping()
-    ResponseEntity<BaseResponse<List<ProductCard>>> getProductHomeList(){
-        List<ProductCard> data = productService.getProductListFeatured();
-        BaseResponse<List<ProductCard>> response = BaseResponse.<List<ProductCard>>builder()
-                .value(HttpStatus.OK.value())
-                .success(true)
-                .message("Product Success loaded")
-                .data(data)
-                .build();
-
+    ResponseEntity<BaseResponse> getProductHomeList(){
+        BaseResponse response = productService.getProductListFeatured();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("arrival")
-    ResponseEntity<BaseResponse<List<ProductCard>>> getProductArrivalList(){
-        List<ProductCard> data = productService.getLastArrivalProductList();
-        BaseResponse<List<ProductCard>> response = BaseResponse.<List<ProductCard>>builder()
-                .value(HttpStatus.OK.value())
-                .success(true)
-                .message("Product Success loaded")
-                .data(data)
-                .build();
-
+    ResponseEntity<BaseResponse> getProductArrivalList(){
+        BaseResponse response = productService.getLastArrivalProductList();
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    ResponseEntity<BaseResponse<GetProductDetailResponse>> getProductDetail(@PathVariable UUID id){
-        GetProductDetailResponse data = productService.getProductDetail(id);
-        BaseResponse<GetProductDetailResponse> response = BaseResponse.<GetProductDetailResponse>builder()
-                .success(true)
-                .message("Product detail success loaded")
-                .value(HttpStatus.OK.value())
-                .data(data)
-                .build();
-
+    ResponseEntity<BaseResponse> getProductDetail(@PathVariable UUID id){
+        BaseResponse response = productService.getProductDetail(id);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/category-list/{categoryId}")
-    ResponseEntity<BaseResponse<Page<ProductCard>>> getProductByCategory(
+    ResponseEntity<BaseResponse> getProductByCategory(
             @RequestParam(defaultValue = "0", name = "current-pages") int currPages,
             @RequestParam(defaultValue = "10", name = "size") int size,
             @PathVariable("categoryId") UUID categoryId
     ){
-        Page<ProductCard> data = productService.GetProductByCategory(categoryId,currPages,size);
-        BaseResponse<Page<ProductCard>> response = BaseResponse.<Page<ProductCard>>builder()
-                .value(HttpStatus.OK.value())
-                .success(true)
-                .message("product data success loaded")
-                .data(data)
-                .build();
-
+        BaseResponse response = productService.GetProductByCategory(categoryId,currPages,size);
         return ResponseEntity.ok(response);
     }
 

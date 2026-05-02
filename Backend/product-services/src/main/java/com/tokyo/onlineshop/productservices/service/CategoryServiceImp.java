@@ -1,5 +1,6 @@
 package com.tokyo.onlineshop.productservices.service;
 
+import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.onlineshop.productservices.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.*;
 import com.tokyo.onlineshop.productservices.entity.Category;
@@ -11,6 +12,7 @@ import com.tokyo.onlineshop.productservices.repository.ProductRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,7 +38,7 @@ public class CategoryServiceImp implements CategoryService{
 
     @Transactional
     @Override
-    public CreateCategoryResponse CreateCategory(CreateCategoryRequest request) {
+    public BaseResponse CreateCategory(CreateCategoryRequest request) {
         if(request == null || request.getName() == null || request.getName().isBlank()){
             throw new RuntimeException("Please fill the field!");
         }
@@ -65,17 +67,24 @@ public class CategoryServiceImp implements CategoryService{
         }
         categoryRepository.save(createCategory);
 
-        return CreateCategoryResponse.builder()
+        CreateCategoryResponse data = CreateCategoryResponse.builder()
                 .id(createCategory.getId())
                 .status(createCategory.getStatus())
                 .ParentCategory(request.getParent_id())
                 .slug(createCategory.getSlug())
                 .imageUrl(createCategory.getImageurl())
                 .build();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.CREATED.value())
+                .code(HttpStatus.CREATED)
+                .message("Category created successfully")
+                .data(data)
+                .build();
     }
 
     @Override
-    public CreateCategoryImageResponse createImage(UUID categoryId, MultipartFile file) {
+    public BaseResponse createImage(UUID categoryId, MultipartFile file) {
         Category existParentCategory = categoryRepository.findById(categoryId).orElseThrow(() -> new RuntimeException("Product Not Found"));
         try{
             Path uploadPath = Paths.get(uploadDir);
@@ -92,20 +101,27 @@ public class CategoryServiceImp implements CategoryService{
             throw new RuntimeException("Failed to save the image", e);
         }
 
-        return CreateCategoryImageResponse.builder()
+        CreateCategoryImageResponse data = CreateCategoryImageResponse.builder()
                 .categoryName(existParentCategory.getName())
                 .imageUrl(existParentCategory.getImageurl())
+                .build();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.CREATED.value())
+                .code(HttpStatus.CREATED)
+                .message("Category image added successfully")
+                .data(data)
                 .build();
     }
 
     @Override
-    public List<CategoryListResponse> getCategoryList() {
+    public BaseResponse getCategoryList() {
        List<Category> mainCategory = categoryRepository.getCategoryList();
        if(mainCategory == null || mainCategory.isEmpty()){
            throw new RuntimeException("Category is not found");
        }
 
-       return mainCategory.stream()
+       List<CategoryListResponse> data = mainCategory.stream()
                .map(category ->
                        {
                            return  CategoryListResponse.builder()
@@ -116,20 +132,34 @@ public class CategoryServiceImp implements CategoryService{
                                    .build();
                        }
                  ).toList();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Categories retrieved successfully")
+                .data(data)
+                .build();
     }
 
     @Override
-    public List<GetSubCategoryListResponse> getSubCategoryList(UUID parentId) {
+    public BaseResponse getSubCategoryList(UUID parentId) {
         List<SubCategoryProjection> subCategoryList = categoryRepository.getSubCategoryBasedOnTheParent(parentId);
         if(subCategoryList == null || subCategoryList.isEmpty()){
             throw new RuntimeException("Sub category is empty");
         }
-        return subCategoryList.stream()
+        List<GetSubCategoryListResponse> data = subCategoryList.stream()
                 .map(subcategory -> GetSubCategoryListResponse.builder()
                         .subCategory(subcategory.getSubCategory())
                         .id(subcategory.getId())
                         .build()
                 ).toList();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Subcategories retrieved successfully")
+                .data(data)
+                .build();
     }
 
 }

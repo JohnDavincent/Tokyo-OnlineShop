@@ -1,6 +1,7 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.common.dto.PagingResponse;
 import com.tokyo.onlineshop.productservices.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.*;
 import com.tokyo.onlineshop.productservices.entity.Brand;
@@ -220,7 +221,7 @@ public class ProductServiceImp implements ProductService {
     }
 
     @Override
-    public BaseResponse GetProductByCategory(UUID categoryId, int page, int size) {
+    public BaseResponse getProductByCategory(UUID categoryId, int page, int size) {
         if(!categoryRepository.existsById(categoryId)){
             throw new RuntimeException("Category not exists");
         }
@@ -266,7 +267,7 @@ public class ProductServiceImp implements ProductService {
     }
 
     @Override
-    public BaseResponse GetProductList(RequestProductListDto request) {
+    public BaseResponse getProductList(RequestProductListDto request) {
         Sort sort = Sort.by(Sort.Direction.fromString(request.getSortOrder()),request.getSortBy());
         Specification<Product> spec = (root, query, cb) -> cb.conjunction();
 

@@ -1,6 +1,7 @@
 package com.tokyo.onlineshop.productservices.controller;
 
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.onlineshop.productservices.dto.RequestProductListDto;
 import com.tokyo.onlineshop.productservices.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -40,7 +41,13 @@ public class ProductController {
             @RequestParam(defaultValue = "10", name = "size") int size,
             @PathVariable("categoryId") UUID categoryId
     ){
-        BaseResponse response = productService.GetProductByCategory(categoryId,currPages,size);
+        BaseResponse response = productService.getProductByCategory(categoryId,currPages,size);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/list")
+    public ResponseEntity<BaseResponse> getProductList(@RequestBody RequestProductListDto requestDto){
+        BaseResponse response = productService.getProductList(requestDto);
         return ResponseEntity.ok(response);
     }
 

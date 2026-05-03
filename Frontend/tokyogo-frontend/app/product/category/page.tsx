@@ -76,24 +76,6 @@ function getPriceRange(unitList?: UnitList[]) {
   return min === max ? `Rp ${min.toLocaleString("id-ID")}` : `Rp ${min.toLocaleString("id-ID")} - ${max.toLocaleString("id-ID")}`;
 }
 
-function extractProducts(payload: unknown): ApiProduct[] {
-  if (Array.isArray(payload)) return payload as ApiProduct[];
-  if (payload && typeof payload === "object") {
-    if ("data" in payload && Array.isArray((payload as any).data)) {
-      return (payload as any).data;
-    }
-    if ("data" in payload && (payload as any).data && typeof (payload as any).data === "object") {
-      if ("content" in (payload as any).data && Array.isArray((payload as any).data.content)) {
-        return (payload as any).data.content;
-      }
-    }
-    if ("content" in payload && Array.isArray((payload as any).content)) {
-      return (payload as any).content;
-    }
-  }
-  return [];
-}
-
 /* ─── Icons ─────────────────────────────────────────────── */
 function SearchIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -191,9 +173,9 @@ function CategoryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeCategoryId = searchParams.get("categoryId") || "";
-  const activeSubCategoryFromUrl = searchParams.get("subcategory") || "";
+  const activeSubCategoryId = searchParams.get("subcategoryId") || "";
 
-  const [allProducts, setAllProducts] = useState<ApiProduct[]>([]);
+  const [products, setProducts] = useState<ApiProduct[]>([]);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [subCategories, setSubCategories] = useState<{ id: string; subCategory: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -202,6 +184,10 @@ function CategoryPageContent() {
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarHovered, setSidebarHovered] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(12);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const activeCategoryBtnRef = useRef<HTMLButtonElement>(null);
 
   const activeCategoryObj = useMemo(() => {
@@ -210,28 +196,23 @@ function CategoryPageContent() {
 
   const activeCategoryName = activeCategoryObj ? activeCategoryObj.categoryName : "";
 
-  /* ── Fetch all products & categories once ── */
+  const activeSubCategoryName = useMemo(() => {
+    if (!activeSubCategoryId) return "";
+    const sub = subCategories.find((s) => s.id === activeSubCategoryId);
+    return sub ? sub.subCategory : "";
+  }, [activeSubCategoryId, subCategories]);
+
+  /* ── Fetch categories on mount ── */
   useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      fetch(`${API_BASE_URL}/tokyo/gropup/product`).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/tokyo/gropup/category/list-category`).then((r) => r.json()),
-    ])
-      .then(([productJson, categoryJson]) => {
-        setAllProducts(extractProducts(productJson));
-        if (Array.isArray(categoryJson.data)) {
-          setCategories(categoryJson.data);
+    fetch(`${API_BASE_URL}/tokyo/gropup/category/list-category`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (Array.isArray(json.data)) {
+          setCategories(json.data);
         }
       })
-      .catch((e) => console.error("Failed to load data:", e))
-      .finally(() => setLoading(false));
+      .catch((e) => console.error("Failed to load categories:", e));
   }, []);
-
-  useEffect(() => {
-    if (activeCategoryBtnRef.current) {
-      activeCategoryBtnRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [activeCategoryId]);
 
   /* ── Fetch subcategories when category changes ── */
   useEffect(() => {
@@ -254,44 +235,70 @@ function CategoryPageContent() {
       });
   }, [activeCategoryId]);
 
-  /* ── Active subcategory from URL ── */
-  const activeSubCategory = useMemo(() => {
-    if (!activeSubCategoryFromUrl) return "";
-    const exists = subCategories.some((s) => s.subCategory === activeSubCategoryFromUrl);
-    return exists ? activeSubCategoryFromUrl : "";
-  }, [activeSubCategoryFromUrl, subCategories]);
+  /* ── Fetch products when filters change ── */
+  useEffect(() => {
+    const sortMap: Record<string, { sortBy: string; sortOrder: string }> = {
+      default: { sortBy: "name", sortOrder: "ASC" },
+      name: { sortBy: "name", sortOrder: "ASC" },
+      "price-low": { sortBy: "name", sortOrder: "ASC" },
+      "price-high": { sortBy: "name", sortOrder: "ASC" },
+    };
+    const { sortBy: backendSortBy, sortOrder } = sortMap[sortBy] || sortMap.default;
 
-  /* ── Filtered products ── */
-  const filteredProducts = useMemo(() => {
-    let result = [...allProducts];
+    const body = {
+      currentPage: currentPage - 1,
+      pageSize: pageSize,
+      sortBy: backendSortBy,
+      sortOrder: sortOrder,
+      requestDto: {
+        categoryParentId: activeCategoryId || null,
+        subCategoryId: activeSubCategoryId || null,
+        search: searchQuery.trim() || null,
+      },
+    };
 
-    // Category filter
-    if (activeCategoryId && activeCategoryName) {
-      result = result.filter((p) => p.category === activeCategoryName);
+    setLoading(true);
+    fetch(`${API_BASE_URL}/tokyo/gropup/product/list`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+      .then((r) => r.json())
+      .then((json) => {
+        const pagingData = json?.data;
+        let items: ApiProduct[] = pagingData?.items || [];
+
+        // Client-side price sort for current page
+        if (sortBy === "price-low") {
+          items = [...items].sort((a, b) => getLowestPrice(a.unitList) - getLowestPrice(b.unitList));
+        } else if (sortBy === "price-high") {
+          items = [...items].sort((a, b) => getLowestPrice(b.unitList) - getLowestPrice(a.unitList));
+        }
+
+        setProducts(items);
+        setTotalPages(pagingData?.total_pages || 1);
+        setTotalItems(pagingData?.total_items || 0);
+      })
+      .catch((e) => {
+        console.error("Failed to load products:", e);
+        setProducts([]);
+        setTotalPages(1);
+        setTotalItems(0);
+      })
+      .finally(() => setLoading(false));
+  }, [activeCategoryId, activeSubCategoryId, searchQuery, sortBy, currentPage, pageSize]);
+
+  /* ── Scroll active category into view ── */
+  useEffect(() => {
+    if (activeCategoryBtnRef.current) {
+      activeCategoryBtnRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
+  }, [activeCategoryId]);
 
-    // Subcategory filter
-    if (activeSubCategory) {
-      result = result.filter((p) => p.subCategory === activeSubCategory);
-    }
-
-    // Search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter((p) => p.productName.toLowerCase().includes(q));
-    }
-
-    // Sort
-    if (sortBy === "price-low") {
-      result.sort((a, b) => getLowestPrice(a.unitList) - getLowestPrice(b.unitList));
-    } else if (sortBy === "price-high") {
-      result.sort((a, b) => getLowestPrice(b.unitList) - getLowestPrice(a.unitList));
-    } else if (sortBy === "name") {
-      result.sort((a, b) => a.productName.localeCompare(b.productName));
-    }
-
-    return result;
-  }, [allProducts, activeCategoryId, activeCategoryName, activeSubCategory, searchQuery, sortBy]);
+  /* ── Reset page when filters change ── */
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategoryId, activeSubCategoryId, searchQuery, sortBy]);
 
   /* ── URL helpers ── */
   function setCategory(catId: string) {
@@ -301,18 +308,24 @@ function CategoryPageContent() {
     } else {
       params.delete("categoryId");
     }
-    params.delete("subcategory");
+    params.delete("subcategoryId");
     router.replace(`/product/category?${params.toString()}`);
   }
 
-  function setSubCategory(sub: string) {
+  function setSubCategory(subId: string) {
     const params = new URLSearchParams(searchParams.toString());
-    if (sub) {
-      params.set("subcategory", sub);
+    if (subId) {
+      params.set("subcategoryId", subId);
     } else {
-      params.delete("subcategory");
+      params.delete("subcategoryId");
     }
     router.replace(`/product/category?${params.toString()}`);
+  }
+
+  function goToPage(page: number) {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   const sidebarExpanded = !(sidebarCollapsed && !sidebarHovered);
@@ -355,18 +368,18 @@ function CategoryPageContent() {
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
             <ArrowRightIcon className="h-3 w-3" />
             <span className="text-black/70">{activeCategoryName || "All Products"}</span>
-            {activeSubCategory && (
+            {activeSubCategoryName && (
               <>
                 <ArrowRightIcon className="h-3 w-3" />
-                <span className="text-black/70">{activeSubCategory}</span>
+                <span className="text-black/70">{activeSubCategoryName}</span>
               </>
             )}
           </nav>
           <h1 className="mt-3 font-headline text-[2.4rem] font-extrabold tracking-[-0.04em] text-[#101210]">
-            {activeSubCategory || activeCategoryName || "All Products"}
+            {activeSubCategoryName || activeCategoryName || "All Products"}
           </h1>
           <p className="mt-1 text-base text-on-surface/60">
-            {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""} available
+            {totalItems} product{totalItems !== 1 ? "s" : ""} available
           </p>
         </div>
       </section>
@@ -459,7 +472,7 @@ function CategoryPageContent() {
                                 {activeCategoryName}
                               </div>
                               <div className="mt-0.5 text-xs font-bold text-primary">
-                                {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""}
+                                {totalItems} product{totalItems !== 1 ? "s" : ""}
                               </div>
                             </div>
                           </div>
@@ -473,7 +486,7 @@ function CategoryPageContent() {
                         <div>
                           <div className="font-headline text-[1.05rem] font-bold text-[#101210]">All Products</div>
                           <div className="mt-0.5 text-xs font-bold text-primary">
-                            {allProducts.length} product{allProducts.length !== 1 ? "s" : ""}
+                            {totalItems} product{totalItems !== 1 ? "s" : ""}
                           </div>
                         </div>
                       </div>
@@ -636,7 +649,7 @@ function CategoryPageContent() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => setSubCategory("")}
-                        className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${!activeSubCategory ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
+                        className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${!activeSubCategoryId ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
                           }`}
                       >
                         All
@@ -644,8 +657,8 @@ function CategoryPageContent() {
                       {subCategories.map((sub) => (
                         <button
                           key={sub.id}
-                          onClick={() => setSubCategory(sub.subCategory)}
-                          className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${activeSubCategory === sub.subCategory ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
+                          onClick={() => setSubCategory(sub.id)}
+                          className={`rounded-full px-4 py-2 text-xs font-bold transition-all ${activeSubCategoryId === sub.id ? "bg-primary text-white" : "bg-[#f6f8f5] text-black/60 border border-black/[0.06]"
                             }`}
                         >
                           {sub.subCategory}
@@ -663,7 +676,7 @@ function CategoryPageContent() {
             {/* Toolbar */}
             <div className="flex items-center justify-between mb-5">
               <p className="text-sm text-black/50 hidden sm:block">
-                Showing <span className="font-bold text-[#101210]">{filteredProducts.length}</span> products
+                Showing <span className="font-bold text-[#101210]">{products.length}</span> of <span className="font-bold text-[#101210]">{totalItems}</span> products
               </p>
               <div className="flex items-center gap-3 ml-auto">
                 <span className="text-sm text-black/50 hidden sm:inline">Sort by:</span>
@@ -686,7 +699,7 @@ function CategoryPageContent() {
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   <button
                     onClick={() => setSubCategory("")}
-                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all duration-200 ${!activeSubCategory
+                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all duration-200 ${!activeSubCategoryId
                       ? "bg-primary text-white shadow-[0_4px_12px_rgba(0,105,65,0.25)]"
                       : "bg-white text-black/60 border border-black/[0.06] hover:border-primary/30 hover:text-primary"
                       }`}
@@ -697,8 +710,8 @@ function CategoryPageContent() {
                   {subCategories.map((sub) => (
                     <button
                       key={sub.id}
-                      onClick={() => setSubCategory(sub.subCategory)}
-                      className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all duration-200 ${activeSubCategory === sub.subCategory
+                      onClick={() => setSubCategory(sub.id)}
+                      className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all duration-200 ${activeSubCategoryId === sub.id
                         ? "bg-primary text-white shadow-[0_4px_12px_rgba(0,105,65,0.25)]"
                         : "bg-white text-black/60 border border-black/[0.06] hover:border-primary/30 hover:text-primary"
                         }`}
@@ -722,7 +735,7 @@ function CategoryPageContent() {
                   </div>
                 ))}
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : products.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="w-20 h-20 bg-black/[0.03] rounded-full flex items-center justify-center mb-5">
                   <PackageIcon className="h-8 w-8 text-black/20" />
@@ -736,6 +749,7 @@ function CategoryPageContent() {
                     setSearchQuery("");
                     setCategory("");
                     setSubCategory("");
+                    setCurrentPage(1);
                   }}
                   className="mt-5 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-primary/90 transition-colors"
                 >
@@ -744,7 +758,7 @@ function CategoryPageContent() {
               </div>
             ) : (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredProducts.map((product) => {
+                {products.map((product) => {
                   const priceRange = getPriceRange(product.unitList);
                   const isAvail = product.status === "AVAILABLE";
 
@@ -829,6 +843,38 @@ function CategoryPageContent() {
                     </article>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {!loading && totalPages > 1 && (
+              <div className="mt-10 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-black/[0.06] text-black/60 hover:text-primary hover:border-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeftIcon className="h-4 w-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold transition-all ${page === currentPage
+                      ? "bg-primary text-white shadow-[0_4px_12px_rgba(0,105,65,0.25)]"
+                      : "bg-white border border-black/[0.06] text-black/60 hover:text-primary hover:border-primary/30"
+                      }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-black/[0.06] text-black/60 hover:text-primary hover:border-primary/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronRightIcon className="h-4 w-4" />
+                </button>
               </div>
             )}
           </div>

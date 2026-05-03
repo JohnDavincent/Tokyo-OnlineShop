@@ -1,4 +1,4 @@
-package com.tokyo.onlineshop.productservices.config;
+package com.tokyo.common.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

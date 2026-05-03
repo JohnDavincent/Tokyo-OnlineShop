@@ -1,4 +1,4 @@
-package com.tokyo.onlineshop.productservices.config;
+package com.tokyo.common.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

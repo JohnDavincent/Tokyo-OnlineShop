@@ -4,6 +4,7 @@ import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.onlineshop.productservices.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.CreateUnitRequest;
 import com.tokyo.onlineshop.productservices.dto.CreateUnitResponse;
+import com.tokyo.onlineshop.productservices.dto.GetProductUnitResponse;
 import com.tokyo.onlineshop.productservices.entity.Product;
 import com.tokyo.onlineshop.productservices.entity.ProductUnit;
 import com.tokyo.onlineshop.productservices.repository.ProductRepository;
@@ -77,5 +78,10 @@ public class ProductUnitServiceImp implements ProductUnitService{
 
 
 
+    }
+
+    @Override
+    public GetProductUnitResponse getUnit(UUID unitId) {
+        ProductUnit unit = productUnitRepository.
     }
 }

@@ -316,5 +316,14 @@ public class ProductServiceImp implements ProductService {
                 .build();
     }
 
+    @Override
+    public GetProductClientResponse getProduct(UUID id) {
+        Product product = productRepository.findById(id).orElseThrow(() ->  new RuntimeException("product with id : " + id +  " not found"));
+        return GetProductClientResponse.builder()
+                .productName(product.getName())
+                .status(product.getStatus())
+                .build();
+    }
+
 
 }

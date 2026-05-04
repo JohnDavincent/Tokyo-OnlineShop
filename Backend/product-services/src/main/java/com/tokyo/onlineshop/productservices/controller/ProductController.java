@@ -1,6 +1,8 @@
 package com.tokyo.onlineshop.productservices.controller;
 
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.onlineshop.productservices.dto.GetProductClientResponse;
+import com.tokyo.onlineshop.productservices.dto.GetProductUnitResponse;
 import com.tokyo.onlineshop.productservices.dto.RequestProductListDto;
 import com.tokyo.onlineshop.productservices.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +52,19 @@ public class ProductController {
         BaseResponse response = productService.getProductList(requestDto);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{id}")
+    public GetProductClientResponse getProduct(@PathVariable("id") UUID productId){
+        return productService.getProduct(productId);
+    }
+
+    @GetMapping("/unit/{id}")
+    public GetProductUnitResponse getUnit(@PathVariable("id") UUID unitId){
+
+    }
+
+
+
 
 
 }

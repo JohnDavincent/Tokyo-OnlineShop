@@ -3,16 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { requestOtp } from "../../services/authService";
-
-function UserIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
+import { loginUser } from "../../services/authService";
 
 function PhoneIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -59,46 +50,38 @@ function ArrowRightIcon({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
-function CheckIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className={className}>
-      <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export default function RegisterPage() {
+export default function LoginPage() {
   const [showPin, setShowPin] = useState(false);
-  const [agreed, setAgreed] = useState(false);
-  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!agreed) {
-      setError("Please agree to the Terms of Service and Privacy Policy.");
-      return;
-    }
-
-    if (!name || !phone || !pin) {
-      setError("Please fill in all fields.");
+    if (!phone || !pin) {
+      setError("Please fill in both phone number and password.");
       return;
     }
 
     setLoading(true);
     try {
-      await requestOtp(phone);
-      // Redirect to verify page with registration details
-      const params = new URLSearchParams({ name, phone, pin });
-      router.push(`/verify?${params.toString()}`);
+      const data = await loginUser(phone, pin);
+      // Store token (e.g. localStorage or cookie)
+      if (data && data.accessToken) {
+        localStorage.setItem("token", data.accessToken);
+        if (data.refreshToken) {
+          localStorage.setItem("refreshToken", data.refreshToken);
+        }
+      }
+      
+      // Redirect to home page
+      router.push("/");
     } catch (err: any) {
-      setError(err.message || "Failed to request OTP.");
+      setError(err.message || "An error occurred during login.");
     } finally {
       setLoading(false);
     }
@@ -106,9 +89,11 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-[#f6f8f5] flex flex-col">
+      {/* Subtle top accent */}
       <div className="h-1 w-full bg-gradient-to-r from-primary via-[#4d816d] to-primary" />
 
       <main className="flex-grow flex items-center justify-center px-6 py-12 relative">
+        {/* Soft background decoration */}
         <div className="absolute top-20 left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-20 right-10 w-64 h-64 bg-[#7bfeb8]/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -120,13 +105,13 @@ export default function RegisterPage() {
                 Tokyo GO
               </h1>
             </Link>
-            <p className="mt-2 text-sm text-black/50">Create your account in seconds</p>
+            <p className="mt-2 text-sm text-black/50">Sign in to start shopping</p>
           </div>
 
           {/* Card */}
           <div className="bg-white rounded-[28px] p-8 shadow-[0_8px_40px_rgba(0,39,25,0.08)] border border-black/[0.04]">
             <h2 className="font-headline text-xl font-bold text-[#101210] mb-6">
-              Create Account
+              Welcome Back
             </h2>
 
             {error && (
@@ -135,28 +120,8 @@ export default function RegisterPage() {
               </div>
             )}
 
-            <form className="space-y-5" onSubmit={handleRegister}>
-              {/* Name */}
-              <div>
-                <label htmlFor="name" className="block text-[0.7rem] font-bold uppercase tracking-[0.14em] text-black/50 mb-2">
-                  Your Name
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-black/30">
-                    <UserIcon className="h-5 w-5" />
-                  </div>
-                  <input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="John Doe"
-                    className="w-full rounded-2xl bg-[#f6f8f5] border border-black/[0.06] py-4 pl-12 pr-4 text-base font-medium text-[#101210] placeholder:text-black/25 outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/8 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Phone */}
+            <form className="space-y-5" onSubmit={handleLogin}>
+              {/* Phone Number */}
               <div>
                 <label htmlFor="phone" className="block text-[0.7rem] font-bold uppercase tracking-[0.14em] text-black/50 mb-2">
                   Phone Number
@@ -179,7 +144,7 @@ export default function RegisterPage() {
               {/* Password */}
               <div>
                 <label htmlFor="pin" className="block text-[0.7rem] font-bold uppercase tracking-[0.14em] text-black/50 mb-2">
-                  Create PIN
+                  Password
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-black/30">
@@ -190,8 +155,7 @@ export default function RegisterPage() {
                     type={showPin ? "text" : "password"}
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
-                    placeholder="At least 6 characters"
-                    minLength={6}
+                    placeholder="Enter your password"
                     className="w-full rounded-2xl bg-[#f6f8f5] border border-black/[0.06] py-4 pl-12 pr-12 text-base font-medium text-[#101210] placeholder:text-black/25 outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/8 transition-all"
                   />
                   <button
@@ -205,22 +169,12 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Terms checkbox */}
-              <button
-                type="button"
-                onClick={() => setAgreed(!agreed)}
-                className="flex items-start gap-3 w-full text-left"
-              >
-                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg border-2 transition-all ${agreed ? "bg-primary border-primary" : "border-black/20"}`}>
-                  {agreed && <CheckIcon className="h-3 w-3 text-white" />}
-                </span>
-                <span className="text-xs text-black/60 leading-relaxed">
-                  I agree to the{" "}
-                  <Link href="/" className="font-bold text-primary hover:underline">Terms of Service</Link>
-                  {" "}and{" "}
-                  <Link href="/" className="font-bold text-primary hover:underline">Privacy Policy</Link>
-                </span>
-              </button>
+              {/* Forgot password */}
+              <div className="text-right">
+                <Link href="/" className="text-xs font-bold text-primary hover:text-primary-dim transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
 
               {/* Submit */}
               <button
@@ -228,7 +182,7 @@ export default function RegisterPage() {
                 disabled={loading}
                 className="w-full rounded-2xl bg-primary py-4 text-base font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] hover:-translate-y-0.5 hover:bg-primary-dim active:translate-y-0 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:translate-y-0"
               >
-                {loading ? "Creating Account..." : "Create Account"}
+                {loading ? "Signing In..." : "Sign In"}
                 {!loading && <ArrowRightIcon className="h-4 w-4" />}
               </button>
             </form>
@@ -240,11 +194,11 @@ export default function RegisterPage() {
               <div className="flex-1 h-px bg-black/[0.06]" />
             </div>
 
-            {/* Login link */}
+            {/* Register link */}
             <p className="text-center text-sm text-black/60">
-              Already have an account?{" "}
-              <Link href="/login" className="font-bold text-primary hover:text-primary-dim transition-colors">
-                Sign in
+              Don&apos;t have an account?{" "}
+              <Link href="/register" className="font-bold text-primary hover:text-primary-dim transition-colors">
+                Create one
               </Link>
             </p>
           </div>

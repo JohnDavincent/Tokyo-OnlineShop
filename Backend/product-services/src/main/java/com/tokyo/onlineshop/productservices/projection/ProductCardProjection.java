@@ -1,9 +1,7 @@
 package com.tokyo.onlineshop.productservices.projection;
 
-import com.tokyo.onlineshop.productservices.ProductionStatus;
-import com.tokyo.onlineshop.productservices.entity.ProductUnit;
+import com.tokyo.common.ProductionStatus;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface ProductCardProjection {

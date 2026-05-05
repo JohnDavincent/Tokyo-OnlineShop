@@ -1,6 +1,7 @@
 import { ApiProduct } from "../types/api";
 
 export const API_BASE_URL = "http://localhost:5001";
+export const AUTH_API_BASE_URL = "http://localhost:5000";
 
 export function extractProducts(payload: unknown): ApiProduct[] {
   if (Array.isArray(payload)) return payload as ApiProduct[];

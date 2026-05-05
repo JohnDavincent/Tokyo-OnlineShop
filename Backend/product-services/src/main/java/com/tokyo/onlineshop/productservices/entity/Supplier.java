@@ -1,15 +1,13 @@
 package com.tokyo.onlineshop.productservices.entity;
 
 import com.tokyo.common.entity.BaseEntity;
-import com.tokyo.onlineshop.productservices.ProductionStatus;
+import com.tokyo.common.ProductionStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Data

@@ -1,7 +1,7 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
-import com.tokyo.onlineshop.productservices.ProductionStatus;
+import com.tokyo.common.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.CreateUnitRequest;
 import com.tokyo.onlineshop.productservices.dto.CreateUnitResponse;
 import com.tokyo.onlineshop.productservices.dto.GetProductUnitResponse;
@@ -76,12 +76,23 @@ public class ProductUnitServiceImp implements ProductUnitService{
                 .data(data)
                 .build();
 
-
-
     }
 
+
     @Override
-    public GetProductUnitResponse getUnit(UUID unitId) {
-        ProductUnit unit = productUnitRepository.
+    public List<GetProductUnitResponse> getUnit(List<UUID> id, UUID productId) {
+        List<GetProductUnitResponse> unitListResponse = new ArrayList<>();
+        for(UUID unitId : id){
+            ProductUnit unit  = productUnitRepository.findByIdAndProductId(unitId,productId).orElseThrow(() -> new RuntimeException("Product unit not found"));
+            GetProductUnitResponse dto = GetProductUnitResponse.builder()
+                    .unit(unit.getUnit())
+                    .status(unit.getStatus())
+                    .price(unit.getUnitSellPrice())
+                    .build();
+
+            unitListResponse.add(dto);
+        }
+
+        return unitListResponse;
     }
 }

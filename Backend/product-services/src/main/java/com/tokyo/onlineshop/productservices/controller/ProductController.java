@@ -5,10 +5,12 @@ import com.tokyo.onlineshop.productservices.dto.GetProductClientResponse;
 import com.tokyo.onlineshop.productservices.dto.GetProductUnitResponse;
 import com.tokyo.onlineshop.productservices.dto.RequestProductListDto;
 import com.tokyo.onlineshop.productservices.service.ProductService;
+import com.tokyo.onlineshop.productservices.service.ProductUnitService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -17,6 +19,7 @@ import java.util.UUID;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductUnitService productUnitService;
 
 
     @GetMapping()
@@ -31,7 +34,7 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/detail/{id}")
     ResponseEntity<BaseResponse> getProductDetail(@PathVariable UUID id){
         BaseResponse response = productService.getProductDetail(id);
         return ResponseEntity.ok(response);
@@ -58,9 +61,9 @@ public class ProductController {
         return productService.getProduct(productId);
     }
 
-    @GetMapping("/unit/{id}")
-    public GetProductUnitResponse getUnit(@PathVariable("id") UUID unitId){
-
+    @GetMapping("/unit/{productId}")
+    public List<GetProductUnitResponse> getUnit(@RequestBody List<UUID> unitId, @PathVariable("productId") UUID productId){
+        return productUnitService.getUnit(unitId,productId);
     }
 
 

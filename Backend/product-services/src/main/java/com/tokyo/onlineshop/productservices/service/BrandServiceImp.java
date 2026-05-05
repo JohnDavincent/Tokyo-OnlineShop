@@ -1,7 +1,7 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
-import com.tokyo.onlineshop.productservices.ProductionStatus;
+import com.tokyo.common.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.CreateBrandRequest;
 import com.tokyo.onlineshop.productservices.dto.CreateBrandResponse;
 import com.tokyo.onlineshop.productservices.entity.Brand;

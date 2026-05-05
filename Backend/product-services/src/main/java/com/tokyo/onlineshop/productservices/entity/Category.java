@@ -1,7 +1,7 @@
 package com.tokyo.onlineshop.productservices.entity;
 
 import com.tokyo.common.entity.BaseEntity;
-import com.tokyo.onlineshop.productservices.ProductionStatus;
+import com.tokyo.common.ProductionStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

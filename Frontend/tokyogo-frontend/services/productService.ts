@@ -25,6 +25,32 @@ export async function getProductsByCategory(categoryId: string): Promise<ApiProd
   return extractProducts(json);
 }
 
+export async function getProductList(body: {
+  currentPage: number;
+  pageSize: number;
+  sortBy: string;
+  sortOrder: string;
+  requestDto: {
+    categoryParentId: string | null;
+    subCategoryId: string | null;
+    search: string | null;
+  };
+}): Promise<{ items: ApiProduct[]; total_pages: number; total_items: number }> {
+  const res = await fetch(`${API_BASE_URL}/tokyo/gropup/product/list`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error("Failed to fetch product list");
+  const json = await res.json();
+  const pagingData = json?.data;
+  return {
+    items: pagingData?.items || [],
+    total_pages: pagingData?.total_pages || 1,
+    total_items: pagingData?.total_items || 0,
+  };
+}
+
 export async function getProductDetail(productId: string): Promise<ApiProductDetail | null> {
   let finalProduct: ApiProductDetail | null = null;
   let listUnits: any[] = [];
@@ -34,7 +60,7 @@ export async function getProductDetail(productId: string): Promise<ApiProductDet
   if (listRes.ok) {
     const listJson = await listRes.json();
     const listData = Array.isArray(listJson) ? listJson : (listJson.data || []);
-    
+
     const decodedName = decodeURIComponent(productId).toLowerCase();
     const matched = listData.find((p: any) =>
       p.productId === productId || p.id === productId || p._id === productId ||
@@ -44,7 +70,7 @@ export async function getProductDetail(productId: string): Promise<ApiProductDet
     if (matched) {
       listUnits = matched.unitList || [];
       const realId = matched.productId || matched.id || matched._id || productId;
-      const detailRes = await fetch(`${API_BASE_URL}/tokyo/gropup/product/${encodeURIComponent(realId)}`);
+      const detailRes = await fetch(`${API_BASE_URL}/tokyo/gropup/product/detail/${encodeURIComponent(realId)}`);
       if (detailRes.ok) {
         const detailJson = await detailRes.json();
         if (detailJson.data) {
@@ -56,7 +82,7 @@ export async function getProductDetail(productId: string): Promise<ApiProductDet
 
   // Fallback: If it wasn't matched in the list, just hit the detail endpoint directly
   if (!finalProduct) {
-    const detailRes = await fetch(`${API_BASE_URL}/tokyo/gropup/product/${encodeURIComponent(productId)}`);
+    const detailRes = await fetch(`${API_BASE_URL}/tokyo/gropup/product/detail/${encodeURIComponent(productId)}`);
     if (detailRes.ok) {
       const detailJson = await detailRes.json();
       if (detailJson.data) {

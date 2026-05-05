@@ -10,5 +10,5 @@ import java.util.UUID;
 public interface ProductUnitService {
 
     BaseResponse createUnit(UUID productId, List<CreateUnitRequest> request);
-    GetProductUnitResponse getUnit(UUID unitId);
+    List<GetProductUnitResponse> getUnit(List<UUID> unitId, UUID productId);
 }

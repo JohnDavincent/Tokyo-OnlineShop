@@ -404,7 +404,7 @@ export default function HomePage() {
 
           <div className="flex items-center gap-4 text-primary">
             <button aria-label="Search" className="transition-transform duration-200 hover:scale-110"><SearchIcon /></button>
-            <button aria-label="Account" className="transition-transform duration-200 hover:scale-110"><UserIcon /></button>
+            <Link href="/register" aria-label="Account" className="transition-transform duration-200 hover:scale-110"><UserIcon /></Link>
             <button aria-label="Cart" className="transition-transform duration-200 hover:scale-110"><CartIcon /></button>
           </div>
         </div>

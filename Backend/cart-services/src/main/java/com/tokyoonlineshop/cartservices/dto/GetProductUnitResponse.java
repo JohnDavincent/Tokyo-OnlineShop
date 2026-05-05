@@ -1,21 +1,24 @@
-package com.tokyo.onlineshop.productservices.dto;
+package com.tokyoonlineshop.cartservices.dto;
 
-import com.tokyo.common.ProductionStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import com.tokyo.common.ProductionStatus;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
+@Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
-
-public class UnitCard {
+public class GetProductUnitResponse {
+    private UUID unitId;
     private String unit;
-    private Integer convertQuantity;
-    private BigDecimal sellPrice;
+    private BigDecimal price;
     private ProductionStatus status;
+
+
+
 }

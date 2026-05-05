@@ -1,10 +1,9 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
-import com.tokyo.onlineshop.productservices.ProductionStatus;
+import com.tokyo.common.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.*;
 import com.tokyo.onlineshop.productservices.entity.Category;
-import com.tokyo.onlineshop.productservices.entity.Product;
 import com.tokyo.onlineshop.productservices.helper.ImageFileHelper;
 import com.tokyo.onlineshop.productservices.projection.SubCategoryProjection;
 import com.tokyo.onlineshop.productservices.repository.CategoryRepository;

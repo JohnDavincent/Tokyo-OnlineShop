@@ -1,4 +1,4 @@
-package com.tokyo.onlineshop.productservices;
+package com.tokyo.common;
 
 public enum ProductionStatus {
     AVAILABLE,

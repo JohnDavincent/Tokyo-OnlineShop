@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -16,5 +17,5 @@ public class AddProductRequest {
     private UUID productId;
     private UUID userId;
     private int quantity;
-    private BigDecimal unit_price;
+    private List<UUID> unit;
 }

@@ -1,6 +1,6 @@
 package com.tokyo.onlineshop.productservices.dto;
 
-import com.tokyo.onlineshop.productservices.ProductionStatus;
+import com.tokyo.common.ProductionStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

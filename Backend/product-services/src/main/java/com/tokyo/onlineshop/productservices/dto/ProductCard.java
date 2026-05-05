@@ -1,13 +1,8 @@
 package com.tokyo.onlineshop.productservices.dto;
 
-import com.tokyo.onlineshop.productservices.ProductionStatus;
-import com.tokyo.onlineshop.productservices.entity.ProductUnit;
-import lombok.AllArgsConstructor;
+import com.tokyo.common.ProductionStatus;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 

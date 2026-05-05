@@ -13,6 +13,7 @@ export type ApiProduct = {
   url: string;
   altText: string;
   category: string;
+  subCategory?: string;
   unitList: UnitList[];
 };
 

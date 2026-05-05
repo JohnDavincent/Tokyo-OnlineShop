@@ -1,6 +1,7 @@
 package com.tokyoonlineshop.cartservices.entity;
 
 import com.tokyo.common.entity.BaseEntity;
+import com.tokyoonlineshop.cartservices.CartStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,5 +38,11 @@ public class Cart extends BaseEntity {
     @Column(name = "status", nullable = false)
     @Builder.Default
     private CartStatus status = CartStatus.ACTIVE;
+
+
+    public void addCartDetails(CartDetail cartDetail){
+        this.cartDetails.add(cartDetail);
+    }
+
 
 }

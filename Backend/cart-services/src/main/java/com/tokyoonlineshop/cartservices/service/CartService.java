@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface CartService {
 
     public BaseResponse addProduct(AddProductRequest request);
+    public BaseResponse getCartList();
 }

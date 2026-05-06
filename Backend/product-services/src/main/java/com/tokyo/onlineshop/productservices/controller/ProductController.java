@@ -61,7 +61,7 @@ public class ProductController {
         return productService.getProduct(productId);
     }
 
-    @GetMapping("/unit/{productId}")
+    @PostMapping("/unit/{productId}")
     public List<GetProductUnitResponse> getUnit(@RequestBody List<UUID> unitId, @PathVariable("productId") UUID productId){
         return productUnitService.getUnit(unitId,productId);
     }

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -21,6 +22,7 @@ import static java.util.Objects.hash;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class RefreshTokenServiceImp implements RefreshTokenService{
 
     ZoneId zone = ZoneId.of("Asia/Jakarta");

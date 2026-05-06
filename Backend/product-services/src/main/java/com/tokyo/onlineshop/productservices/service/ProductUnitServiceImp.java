@@ -83,8 +83,9 @@ public class ProductUnitServiceImp implements ProductUnitService{
     public List<GetProductUnitResponse> getUnit(List<UUID> id, UUID productId) {
         List<GetProductUnitResponse> unitListResponse = new ArrayList<>();
         for(UUID unitId : id){
-            ProductUnit unit  = productUnitRepository.findByIdAndProductId(unitId,productId).orElseThrow(() -> new RuntimeException("Product unit not found"));
+            ProductUnit unit  = productUnitRepository.findByIdAndProduct_Id(unitId,productId).orElseThrow(() -> new RuntimeException("Product unit not found"));
             GetProductUnitResponse dto = GetProductUnitResponse.builder()
+                    .unitId(unit.getId())
                     .unit(unit.getUnit())
                     .status(unit.getStatus())
                     .price(unit.getUnitSellPrice())

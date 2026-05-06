@@ -25,5 +25,5 @@ public interface ProductUnitRepository extends JpaRepository<ProductUnit, UUID> 
     )
     public boolean existsByUnitAndQuantity(@Param("existUnit") String existUnit, @Param("quantity") Integer quantity, @Param("productId") UUID productId);
     public List<ProductUnit> findByProductIdIn(List<UUID> productId);
-    public Optional<ProductUnit> findByIdAndProductId(UUID unitId, UUID productId);
+    public Optional<ProductUnit> findByIdAndProduct_Id(UUID unitId, UUID productId);
 }

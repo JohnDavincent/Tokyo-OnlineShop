@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
-@SpringBootApplication(scanBasePackages = {"com.tokyoonlineshop.cartservices", "com.tokyo.common"})
+@SpringBootApplication(scanBasePackages = {"com.tokyoonlineshop.cartservices", "com.tokyo.common","com.tokyo.onlineshop.productservices"})
 @EnableDiscoveryClient
 @EnableFeignClients
 public class CartServicesApplication {

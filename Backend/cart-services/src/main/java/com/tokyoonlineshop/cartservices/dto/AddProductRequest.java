@@ -15,7 +15,6 @@ import java.util.UUID;
 @NoArgsConstructor
 public class AddProductRequest {
     private UUID productId;
-    private UUID userId;
     private int quantity;
     private List<UUID> unit;
 }

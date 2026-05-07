@@ -198,6 +198,7 @@ public class ProductServiceImp implements ProductService {
                 .brand(productBrand.getName())
                 .unitList(existProduct.getProductUnitList().stream().map(
                         unit -> CreateUnitResponse.builder()
+                                .id(unit.getId())
                                 .unit(unit.getUnit())
                                 .sellPrice(unit.getUnitSellPrice())
                                 .convertUnit(unit.getQuantityUnit())
@@ -320,9 +321,21 @@ public class ProductServiceImp implements ProductService {
     public GetProductClientResponse getProduct(UUID id) {
         Product product = productRepository.findById(id).orElseThrow(() ->  new RuntimeException("product with id : " + id +  " not found"));
         return GetProductClientResponse.builder()
+                .productId(product.getId())
                 .productName(product.getName())
                 .status(product.getStatus())
                 .build();
+    }
+
+    @Override
+    public List<GetProductClientResponse> getProductListByIds(List<UUID> ids) {
+        return productRepository.findAllById(ids).stream()
+                .map(product -> GetProductClientResponse.builder()
+                        .productId(product.getId())
+                        .productName(product.getName())
+                        .status(product.getStatus())
+                        .build())
+                .toList();
     }
 
 

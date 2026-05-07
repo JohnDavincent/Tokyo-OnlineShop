@@ -5,6 +5,7 @@ import com.tokyo.onlineshop.productservices.dto.CreateProductRequest;
 import com.tokyo.onlineshop.productservices.dto.GetProductClientResponse;
 import com.tokyo.onlineshop.productservices.dto.RequestProductListDto;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface ProductService {
@@ -16,4 +17,5 @@ public interface ProductService {
     BaseResponse getProductByCategory(UUID categoryId, int page, int size);
     BaseResponse getProductList(RequestProductListDto request);
     GetProductClientResponse getProduct(UUID id);
+    List<GetProductClientResponse> getProductListByIds(List<UUID> ids);
 }

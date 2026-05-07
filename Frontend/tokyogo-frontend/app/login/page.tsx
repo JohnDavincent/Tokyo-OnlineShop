@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginUser } from "../../services/authService";
+import { loginUser, getCurrentUser } from "../../services/authService";
 
 function PhoneIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -75,6 +75,14 @@ export default function LoginPage() {
         localStorage.setItem("token", data.accessToken);
         if (data.refreshToken) {
           localStorage.setItem("refreshToken", data.refreshToken);
+        }
+
+        // Fetch and store user profile
+        try {
+          const user = await getCurrentUser(data.accessToken);
+          sessionStorage.setItem("user", JSON.stringify(user));
+        } catch (profileErr) {
+          console.error("Failed to fetch user profile:", profileErr);
         }
       }
       

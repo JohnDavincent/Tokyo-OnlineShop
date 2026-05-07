@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const topNav = ["Categories", "Wholesale", "Deals", "Rewards"];
 
@@ -36,6 +36,8 @@ import { ApiProduct, ApiCategory, UnitList } from "../types/api";
 import { normalizeUnit } from "../services/config";
 import { getProducts, getArrivalProducts } from "../services/productService";
 import { getCategories } from "../services/categoryService";
+import { addToCart } from "../services/cartservice";
+import { useAuth } from "../hooks/useAuth";
 
 function resolveProductImage(url?: string) {
   if (!url) {
@@ -156,10 +158,12 @@ function PriceBadge({ unit, price }: { unit: string; price: number | string }) {
 type ModalProps = {
   product: ApiProduct;
   onClose: () => void;
+  onAdded?: () => void;
 };
 
-function AddToCartModal({ product, onClose }: ModalProps) {
+function AddToCartModal({ product, onClose, onAdded }: ModalProps) {
   const [quantities, setQuantities] = useState<Record<string, number | string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   function change(unit: string, delta: number) {
     setQuantities((prev) => {
@@ -191,6 +195,32 @@ function AddToCartModal({ product, onClose }: ModalProps) {
     const q = typeof qRaw === 'number' ? qRaw : (parseInt(qRaw as string || "0", 10) || 0);
     return q > 0;
   });
+
+  async function handleSubmit() {
+    if (!hasItems || submitting) return;
+    setSubmitting(true);
+    try {
+      const entries = Object.entries(quantities);
+      for (const [unit, qRaw] of entries) {
+        const q = typeof qRaw === 'number' ? qRaw : (parseInt(qRaw as string || "0", 10) || 0);
+        if (q > 0) {
+          const unitItem = product.unitList?.find((u) => normalizeUnit(u.unit) === unit);
+          await addToCart({
+            productId: product.productId || product.id || "",
+            quantity: q,
+            unit: [unitItem?.unit || unit],
+          });
+        }
+      }
+      onAdded?.();
+      onClose();
+    } catch (e) {
+      console.error("Failed to add to cart:", e);
+      alert("Failed to add items to cart. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div
@@ -294,8 +324,12 @@ function AddToCartModal({ product, onClose }: ModalProps) {
                 Rp {total.toLocaleString("id-ID")}
               </p>
             </div>
-            <button className="rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-[0_6px_20px_rgba(0,105,65,0.28)] transition hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0">
-              tambahkan ke keranjang
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-[0_6px_20px_rgba(0,105,65,0.28)] transition hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0 disabled:opacity-60"
+            >
+              {submitting ? "Adding…" : "tambahkan ke keranjang"}
             </button>
           </div>
         )}
@@ -318,6 +352,67 @@ function AddToCartModal({ product, onClose }: ModalProps) {
 }
 
 /* ─── Page ────────────────────────────────────────────────── */
+function UserMenu() {
+  const { user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  if (!user) {
+    return (
+      <Link href="/login" aria-label="Account" className="transition-transform duration-200 hover:scale-110">
+        <UserIcon />
+      </Link>
+    );
+  }
+
+  const initials = user.name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white text-xs font-bold shadow-sm transition hover:bg-primary-dim"
+        aria-label="Account menu"
+      >
+        {initials}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-black/5 bg-white p-2 shadow-[0_16px_40px_rgba(0,0,0,0.12)] z-50">
+          <div className="px-3 py-2.5">
+            <p className="text-sm font-bold text-[#101210]">{user.name}</p>
+            <p className="text-xs text-black/40">{user.phoneNumber}</p>
+            <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-primary">
+              {user.membership}
+            </span>
+          </div>
+          <div className="my-1 h-px bg-black/[0.06]" />
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-red-500 transition hover:bg-red-50"
+          >
+            Log Out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [activeProduct, setActiveProduct] = useState<ApiProduct | null>(null);
   const [products, setProducts] = useState<ApiProduct[]>([]);
@@ -404,8 +499,8 @@ export default function HomePage() {
 
           <div className="flex items-center gap-4 text-primary">
             <button aria-label="Search" className="transition-transform duration-200 hover:scale-110"><SearchIcon /></button>
-            <Link href="/register" aria-label="Account" className="transition-transform duration-200 hover:scale-110"><UserIcon /></Link>
-            <button aria-label="Cart" className="transition-transform duration-200 hover:scale-110"><CartIcon /></button>
+            <UserMenu />
+            <Link href="/cart" aria-label="Cart" className="transition-transform duration-200 hover:scale-110"><CartIcon /></Link>
           </div>
         </div>
       </header>
@@ -833,7 +928,11 @@ export default function HomePage() {
 
       {/* ── Modal ── */}
       {activeProduct && (
-        <AddToCartModal product={activeProduct} onClose={() => setActiveProduct(null)} />
+        <AddToCartModal
+          product={activeProduct}
+          onClose={() => setActiveProduct(null)}
+          onAdded={() => { /* optionally show a toast here */ }}
+        />
       )}
     </main>
   );

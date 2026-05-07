@@ -66,6 +66,11 @@ public class ProductController {
         return productUnitService.getUnit(unitId,productId);
     }
 
+    @PostMapping("/list-by-ids")
+    public List<GetProductClientResponse> getProductListByIds(@RequestBody List<UUID> productIds){
+        return productService.getProductListByIds(productIds);
+    }
+
 
 
 

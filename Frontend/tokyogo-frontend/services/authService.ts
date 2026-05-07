@@ -73,6 +73,13 @@ export async function verifyOtp(phoneNumber: string, code: string) {
   return response.text();
 }
 
+export interface UserProfile {
+  id: string;
+  membership: string;
+  name: string;
+  phoneNumber: string;
+}
+
 export async function loginUser(phoneNumber: string, pin: string) {
   const response = await fetch(`${AUTH_API_BASE_URL}/tokyo/api-auth/login`, {
     method: "POST",
@@ -87,6 +94,29 @@ export async function loginUser(phoneNumber: string, pin: string) {
 
   if (!response.ok) {
     let errorMsg = "Login failed";
+    try {
+      const errorData = await response.json();
+      if (errorData.message) errorMsg = errorData.message;
+    } catch (e) {
+      // Ignored
+    }
+    throw new Error(errorMsg);
+  }
+
+  return response.json();
+}
+
+export async function getCurrentUser(token: string): Promise<UserProfile> {
+  const response = await fetch(`${AUTH_API_BASE_URL}/tokyo/api-auth/me`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    let errorMsg = "Failed to fetch user profile";
     try {
       const errorData = await response.json();
       if (errorData.message) errorMsg = errorData.message;

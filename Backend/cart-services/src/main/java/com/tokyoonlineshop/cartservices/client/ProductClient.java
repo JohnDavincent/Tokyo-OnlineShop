@@ -17,6 +17,9 @@ public interface ProductClient {
     @GetMapping("/{id}")
     public GetProductClientResponse getProduct(@PathVariable("id") UUID productId);
 
+    @PostMapping("/list-by-ids")
+    public List<GetProductClientResponse> getProductListByIds(@RequestBody List<UUID> productIds);
+
     @PostMapping("/unit/{productId}")
     public List<GetProductUnitResponse> getUnit(@RequestBody List<UUID> unitId, @PathVariable("productId") UUID productId);
 }

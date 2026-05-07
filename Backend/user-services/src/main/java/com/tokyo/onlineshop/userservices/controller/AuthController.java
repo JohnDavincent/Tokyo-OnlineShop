@@ -1,5 +1,6 @@
 package com.tokyo.onlineshop.userservices.controller;
 
+import com.tokyo.onlineshop.userservices.dto.GetProfileResponse;
 import com.tokyo.onlineshop.userservices.dto.LoginRequest;
 import com.tokyo.onlineshop.userservices.dto.RefreshTokenRequest;
 import com.tokyo.onlineshop.userservices.dto.TokenResponse;
@@ -12,10 +13,12 @@ import com.tokyo.onlineshop.userservices.service.Role;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -60,5 +63,20 @@ public class AuthController {
         refreshTokenService.revokeToken(request.getRefreshToken());
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/me")
+    ResponseEntity<GetProfileResponse> profile(){
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        UserEntity user = userRepository.findById(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("User not found!!"));
+        GetProfileResponse response = GetProfileResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .phoneNumber(user.getPhoneNumber())
+                .membership(user.getMembership())
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
 
 }

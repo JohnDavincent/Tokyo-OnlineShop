@@ -6,7 +6,6 @@ import com.tokyoonlineshop.cartservices.client.ProductClient;
 import com.tokyoonlineshop.cartservices.dto.*;
 import com.tokyoonlineshop.cartservices.entity.Cart;
 import com.tokyoonlineshop.cartservices.entity.CartDetail;
-import com.tokyoonlineshop.cartservices.projection.CartDetailProjection;
 import com.tokyoonlineshop.cartservices.repository.CartDetailRepository;
 import com.tokyoonlineshop.cartservices.repository.CartRepository;
 import feign.FeignException;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -50,7 +50,7 @@ public class CartServiceImp implements CartService {
             List<GetProductUnitResponse> unitList = productClient.getUnit(request.getUnit(),request.getProductId());
 
             if(unitList == null || unitList.isEmpty()){
-                throw new RuntimeException("Please select the unit price");
+                throw new RuntimeException("Please select the unit");
             }
 
             if(product.getStatus() == ProductionStatus.OUT_OF_STOCK){
@@ -121,7 +121,7 @@ public class CartServiceImp implements CartService {
             throw new RuntimeException("Login first!!");
         }
         Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("add a product first"));
-        List<CartDetailProjection> cartList = cartDetailRepository.getCartList(cart.getId());
+        List<CartDetail> cartList = cartDetailRepository.findByCartId(cart.getId());
         if(cartList == null || cartList.isEmpty()){
             return BaseResponse.builder()
                     .status(HttpStatus.OK.value())
@@ -130,30 +130,55 @@ public class CartServiceImp implements CartService {
                     .build();
         }
 
-        List<UUID> unitList = cartList.stream().map(CartDetailProjection::getProductUnitId).toList();
+        List<UUID> productIds = cartList.stream()
+                .map(CartDetail::getProductId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        log.info("Cart list size: {}, productIds: {}", cartList.size(), productIds);
+        Map<UUID, GetProductClientResponse> productMap = productClient.getProductListByIds(productIds).stream()
+                .filter(Objects::nonNull)
+                .filter(p -> p.getProductId() != null)
+                .collect(Collectors.toMap(GetProductClientResponse::getProductId, p -> p));
+
+        Map<UUID, List<UUID>> unitsByProduct = cartList.stream()
+                .filter(item -> item.getProductId() != null)
+                .collect(Collectors.groupingBy(
+                        CartDetail::getProductId,
+                        Collectors.mapping(CartDetail::getProductUnitId, Collectors.toList())
+                ));
 
         BigDecimal grandTotal = cartList.stream()
-                .map(CartDetailProjection::getSubTotal)
-                .reduce(BigDecimal.ZERO,BigDecimal::add);
+                .map(price -> price.getSubTotal() != null ? price.getSubTotal() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         List<CartListItemResponse> cartItems = cartList.stream()
                 .map(item -> {
-                    GetProductClientResponse product = productClient.getProduct(item.getProductId());
-                    List<GetProductUnitResponse> unit = productClient.getUnit(unitList,item.getProductId());
+                    GetProductClientResponse product = productMap.get(item.getProductId());
+                    if (product == null) {
+                        log.warn("Product not found for id: {}", item.getProductId());
+                        return null;
+                    }
+                    List<GetProductUnitResponse> unit = productClient.getUnit(
+                            unitsByProduct.get(item.getProductId()),
+                            item.getProductId()
+                    );
 
-                        return CartListItemResponse.builder()
-                                .productName(product.getProductName())
-                                .price(item.getPrice())
-                                .productUnit(
-                                        unit.stream()
-                                                .filter(u -> u.getUnitId().equals(item.getProductUnitId()))
-                                                .findFirst()
-                                                .map(GetProductUnitResponse::getUnit)
-                                                .orElse(null))
-                                .quantity(item.getQuantity())
-                                .subTotal(item.getSubTotal())
-                                .build();
-                            })
+                    return CartListItemResponse.builder()
+                            .productName(product.getProductName())
+                            .price(item.getUnitPrice())
+                            .productUnit(
+                                    unit.stream()
+                                            .filter(u -> u.getUnitId().equals(item.getProductUnitId()))
+                                            .findFirst()
+                                            .map(GetProductUnitResponse::getUnit)
+                                            .orElse(null))
+                            .quantity(item.getQuantity())
+                            .subTotal(item.getSubTotal())
+                            .build();
+                })
+                .filter(Objects::nonNull)
                 .toList();
 
         CartListResponse response = CartListResponse.builder()
@@ -167,8 +192,6 @@ public class CartServiceImp implements CartService {
                 .code(HttpStatus.CREATED)
                 .data(response)
                 .build();
-
-
     }
 
     private AddProductResponse convertToAddProductResponse(CartDetail detail, String productName){

@@ -166,6 +166,8 @@ public class CartServiceImp implements CartService {
                     );
 
                     return CartListItemResponse.builder()
+                            .cartId(cart.getId())
+                            .productId(product.getProductId())
                             .productName(product.getProductName())
                             .price(item.getUnitPrice())
                             .productUnit(
@@ -191,6 +193,68 @@ public class CartServiceImp implements CartService {
                 .message("CartList successfully loaded")
                 .code(HttpStatus.CREATED)
                 .data(response)
+                .build();
+    }
+
+    @Override
+    public BaseResponse updateCartQuantity(UUID productId, int quantity ) {
+        if(quantity < 0){
+            throw new RuntimeException("value cannot be less than 0");
+        }
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        if(userId == null){
+            throw new RuntimeException("User id not found");
+        }
+
+        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("No cart found"));
+        Optional<CartDetail> existItems =  cart.getCartDetails().stream()
+                .filter(c -> c.getProductId().equals(productId))
+                .findFirst();
+
+        if(existItems.isPresent()){
+            CartDetail updateItem = existItems.get();
+            updateItem.setQuantity(quantity);
+            cartDetailRepository.save(updateItem);
+        }
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("success update the quantity")
+                .data(null)
+                .build();
+
+
+    }
+
+    @Override
+    public BaseResponse deleteCartDetail(UUID productId) {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        if(userId == null){
+            throw new RuntimeException("User is not valid");
+        }
+        Optional<Cart> cart = cartRepository.findByUserId(UUID.fromString(userId));
+        if(cart.isEmpty()){
+            throw new RuntimeException("No cart Found");
+        }
+
+        List<CartDetail> listItem = cart.get().getCartDetails();
+        Optional<CartDetail> items = listItem.stream()
+                .filter(c -> c.getProductId().equals(productId))
+                .findFirst();
+
+        if(items.isEmpty()){
+            throw new RuntimeException("Product not found in the cart List");
+        }
+
+        CartDetail deleteItem = items.get();
+        cartDetailRepository.delete(deleteItem);
+
+        return BaseResponse.builder()
+                .status(HttpStatus.NO_CONTENT.value())
+                .message("Successfully delete item from cart")
+                .code(HttpStatus.NO_CONTENT)
+                .data(null)
                 .build();
     }
 

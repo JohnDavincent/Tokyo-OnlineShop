@@ -62,5 +62,9 @@ public class UserEntity {
     @OneToMany(mappedBy = "user", cascade = {CascadeType.MERGE,CascadeType.PERSIST}, fetch = FetchType.LAZY)
     private List<RefreshToken> refreshTokenList = new ArrayList<>();
 
+    public void addAddress(Address address){
+        this.addressList.add(address);
+    }
+
 
 }

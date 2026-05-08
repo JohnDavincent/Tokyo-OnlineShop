@@ -1,19 +1,17 @@
 package com.tokyo.onlineshop.userservices.dto;
 
 import com.tokyo.onlineshop.userservices.Membership;
-import com.tokyo.onlineshop.userservices.entity.Address;
 import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
-import java.util.UUID;
 
 @Data
 @Builder
-public class GetProfileResponse {
-    private UUID id;
-    private String name;
+public class UserDataResponse {
+    private String username;
     private String phoneNumber;
     private Membership membership;
-    private List<Address> addressList;
+    private String password;
+    private List<String> address;
 }

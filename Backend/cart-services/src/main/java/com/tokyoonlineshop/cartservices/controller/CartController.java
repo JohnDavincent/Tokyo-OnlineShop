@@ -30,4 +30,16 @@ public class CartController {
     }
 
 
+    @PatchMapping("/{productId}/quantity/")
+    public ResponseEntity<BaseResponse> updateQuantityCartDetail(@PathVariable("productId") UUID productId, @RequestBody int quantity){
+        BaseResponse response = cartService.updateCartQuantity(productId,quantity);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<BaseResponse> deleteCartDetail(@PathVariable("productId")UUID productId){
+        BaseResponse response = cartService.deleteCartDetail(productId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(response);
+    }
+
 }

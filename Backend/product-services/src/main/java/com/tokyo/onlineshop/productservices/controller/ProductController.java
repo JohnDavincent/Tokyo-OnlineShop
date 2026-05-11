@@ -4,6 +4,7 @@ import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.onlineshop.productservices.dto.GetProductClientResponse;
 import com.tokyo.onlineshop.productservices.dto.GetProductUnitResponse;
 import com.tokyo.onlineshop.productservices.dto.RequestProductListDto;
+import com.tokyo.onlineshop.productservices.service.ProductImageService;
 import com.tokyo.onlineshop.productservices.service.ProductService;
 import com.tokyo.onlineshop.productservices.service.ProductUnitService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +30,7 @@ public class ProductController {
 
     private final ProductService productService;
     private final ProductUnitService productUnitService;
+    private final ProductImageService productImageService;
 
     @Operation(
             summary = "Get featured products",

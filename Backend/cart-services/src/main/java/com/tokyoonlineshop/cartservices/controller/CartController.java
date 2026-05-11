@@ -96,11 +96,11 @@ public class CartController {
             @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
             @ApiResponse(responseCode = "404", description = "Cart or product not found")
     })
-    @DeleteMapping("/{productId}")
+    @DeleteMapping("/{cartDetailId}")
     public ResponseEntity<BaseResponse> deleteCartDetail(
             @Parameter(description = "Product ID to remove from cart", required = true)
-            @PathVariable("productId") UUID productId) {
-        BaseResponse response = cartService.deleteCartDetail(productId);
+            @PathVariable("cartDetailId") UUID cartDetailId) {
+        BaseResponse response = cartService.deleteCartDetail(cartDetailId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).body(response);
     }
 

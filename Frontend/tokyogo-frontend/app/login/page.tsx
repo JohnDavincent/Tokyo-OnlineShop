@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginUser, getCurrentUser } from "../../services/authService";
+import { toast } from "sonner";
 
 function PhoneIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -81,6 +82,7 @@ export default function LoginPage() {
         try {
           const user = await getCurrentUser(data.accessToken);
           sessionStorage.setItem("user", JSON.stringify(user));
+          toast.success(`Selamat datang kembali, ${user.name}`);
         } catch (profileErr) {
           console.error("Failed to fetch user profile:", profileErr);
         }
@@ -89,7 +91,9 @@ export default function LoginPage() {
       // Redirect to home page
       router.push("/");
     } catch (err: any) {
-      setError(err.message || "An error occurred during login.");
+      const msg = "login gagal, silahkan cek nomor telepon dan pin anda";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

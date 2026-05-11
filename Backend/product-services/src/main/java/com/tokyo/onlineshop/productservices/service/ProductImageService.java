@@ -13,4 +13,5 @@ public interface ProductImageService {
 
     BaseResponse addImage(UUID productId, List<CreateImageRequest> request);
 
+
 }

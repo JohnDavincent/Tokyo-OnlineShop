@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import {
   CartListItem,
@@ -12,6 +13,15 @@ import {
 } from "../../services/cartservice";
 import { normalizeUnit } from "../../services/config";
 import { useAuth } from "../../hooks/useAuth";
+
+function resolveProductImage(url?: string) {
+  if (!url) {
+    return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><rect width='400' height='400' fill='%23f1f5f9'/><text x='200' y='200' fill='%23cbd5e1' font-size='32' font-family='Arial' font-weight='bold' text-anchor='middle'>NO IMAGE</text></svg>";
+  }
+  if (url.startsWith("data:")) return url;
+  const filename = url.split("/").pop();
+  return `/${filename}`;
+}
 
 /* ─── Icons ─────────────────────────────────────────────── */
 function ArrowLeftIcon({ className = "h-5 w-5" }: { className?: string }) {
@@ -182,8 +192,13 @@ export default function CartPage() {
     setError("");
     try {
       const res = await getCartList();
-      setItems(res.data.itemList || []);
-      setGrandTotal(res.data.grandTotal || 0);
+      if (res.data) {
+        setItems(res.data.itemList || []);
+        setGrandTotal(res.data.grandTotal || 0);
+      } else {
+        setItems([]);
+        setGrandTotal(0);
+      }
     } catch (e) {
       console.error("Failed to load cart:", e);
       setError("Failed to load your cart. Please try again.");
@@ -198,7 +213,7 @@ export default function CartPage() {
 
   async function handleQuantityChange(item: CartListItem, delta: number) {
     const newQty = Math.max(0, item.quantity + delta);
-    const key = `${item.productName}-${item.productUnit}`;
+    const key = `${item.productId}-${item.productUnit}`;
 
     if (newQty === 0) {
       await handleRemove(item);
@@ -207,11 +222,7 @@ export default function CartPage() {
 
     setUpdating((prev) => ({ ...prev, [key]: true }));
     try {
-      await updateCartItem({
-        productName: item.productName,
-        productUnit: item.productUnit,
-        quantity: newQty,
-      });
+      await updateCartItem(item.productId, newQty);
       await loadCart();
     } catch (e) {
       console.error("Failed to update quantity:", e);
@@ -221,14 +232,14 @@ export default function CartPage() {
   }
 
   async function handleRemove(item: CartListItem) {
-    const key = `${item.productName}-${item.productUnit}`;
+    const key = `${item.productId}-${item.productUnit}`;
     setRemoving((prev) => ({ ...prev, [key]: true }));
     try {
-      await removeFromCart(item.productName, item.productUnit);
-      await loadCart();
+      await removeFromCart(item.cartDetailId);
+      toast.success("Success deleted");
+      setTimeout(() => window.location.reload(), 1000);
     } catch (e) {
       console.error("Failed to remove item:", e);
-    } finally {
       setRemoving((prev) => ({ ...prev, [key]: false }));
     }
   }
@@ -291,7 +302,7 @@ export default function CartPage() {
               <CartEmptyIcon className="h-10 w-10" />
             </div>
             <h2 className="mt-6 font-headline text-[1.6rem] font-extrabold tracking-[-0.03em] text-[#101210]">
-              Your cart is empty
+              Keranjang anda kosong
             </h2>
             <p className="mt-2 text-sm text-black/45">
               Looks like you haven&apos;t added anything yet. Explore our fresh products and fill it up!
@@ -308,7 +319,7 @@ export default function CartPage() {
             {/* ── Cart Items ── */}
             <div className="flex flex-col gap-4">
               {items.map((item) => {
-                const key = `${item.productName}-${item.productUnit}`;
+                const key = `${item.productId}-${item.productUnit}`;
                 const isUpdating = updating[key];
                 const isRemoving = removing[key];
                 const normUnit = normalizeUnit(item.productUnit);
@@ -318,11 +329,20 @@ export default function CartPage() {
                     key={key}
                     className={`flex gap-4 rounded-[24px] border border-black/5 bg-white p-4 shadow-[0_8px_30px_rgba(0,39,25,0.06)] transition-all sm:gap-5 sm:p-5 ${isRemoving ? "opacity-40" : ""}`}
                   >
-                    {/* Product Image Placeholder */}
-                    <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-2xl bg-[#f6f8f5] text-primary/40 sm:h-[100px] sm:w-[100px]">
-                      <span className="font-headline text-2xl font-extrabold tracking-[-0.04em]">
-                        {getInitials(item.productName)}
-                      </span>
+                    {/* Product Image */}
+                    <div className="relative flex h-[88px] w-[88px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#f6f8f5] text-primary/40 sm:h-[100px] sm:w-[100px]">
+                      {item.productUrl ? (
+                        <img 
+                          src={resolveProductImage(item.productUrl)} 
+                          alt={item.productName} 
+                          className="h-full w-full object-cover" 
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = resolveProductImage(); }} 
+                        />
+                      ) : (
+                        <span className="font-headline text-2xl font-extrabold tracking-[-0.04em]">
+                          {getInitials(item.productName)}
+                        </span>
+                      )}
                     </div>
 
                     {/* Details */}

@@ -121,7 +121,7 @@ public class CartServiceImp implements CartService {
             throw new RuntimeException("Login first!!");
         }
         Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("add a product first"));
-        List<CartDetail> cartList = cartDetailRepository.findByCartId(cart.getId());
+        List<CartDetail> cartList = cartDetailRepository.findByCart_Id(cart.getId());
         if(cartList == null || cartList.isEmpty()){
             return BaseResponse.builder()
                     .status(HttpStatus.OK.value())
@@ -167,8 +167,10 @@ public class CartServiceImp implements CartService {
 
                     return CartListItemResponse.builder()
                             .cartId(cart.getId())
+                            .cartDetailId(item.getId())
                             .productId(product.getProductId())
                             .productName(product.getProductName())
+                            .productUrl(product.getUrl())
                             .price(item.getUnitPrice())
                             .productUnit(
                                     unit.stream()
@@ -228,26 +230,27 @@ public class CartServiceImp implements CartService {
     }
 
     @Override
-    public BaseResponse deleteCartDetail(UUID productId) {
+    public BaseResponse deleteCartDetail(UUID cartDetailId) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         if(userId == null){
             throw new RuntimeException("User is not valid");
         }
-        Optional<Cart> cart = cartRepository.findByUserId(UUID.fromString(userId));
-        if(cart.isEmpty()){
-            throw new RuntimeException("No cart Found");
-        }
+        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("No cart found"));
+        List<CartDetail> cartDetailList = cartDetailRepository.findByCart_Id(cart.getId());
 
-        List<CartDetail> listItem = cart.get().getCartDetails();
-        Optional<CartDetail> items = listItem.stream()
-                .filter(c -> c.getProductId().equals(productId))
-                .findFirst();
-
-        if(items.isEmpty()){
+        if(cartDetailList.isEmpty()){
             throw new RuntimeException("Product not found in the cart List");
         }
 
-        CartDetail deleteItem = items.get();
+        Optional<CartDetail> item = cartDetailList.stream()
+                .filter(i -> i.getId().equals(cartDetailId))
+                .findFirst();
+
+        if(item.isEmpty()){
+           throw new RuntimeException("cartdetail id not exist");
+        }
+
+        CartDetail deleteItem = item.get();
         cartDetailRepository.delete(deleteItem);
 
         return BaseResponse.builder()

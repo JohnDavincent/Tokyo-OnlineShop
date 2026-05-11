@@ -38,6 +38,7 @@ import { getProducts, getArrivalProducts } from "../services/productService";
 import { getCategories } from "../services/categoryService";
 import { addToCart } from "../services/cartservice";
 import { useAuth } from "../hooks/useAuth";
+import { toast } from "sonner";
 
 function resolveProductImage(url?: string) {
   if (!url) {
@@ -162,6 +163,7 @@ type ModalProps = {
 };
 
 function AddToCartModal({ product, onClose, onAdded }: ModalProps) {
+  const { user } = useAuth();
   const [quantities, setQuantities] = useState<Record<string, number | string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -197,6 +199,11 @@ function AddToCartModal({ product, onClose, onAdded }: ModalProps) {
   });
 
   async function handleSubmit() {
+    if (!user) {
+      toast.error("Silahkan login terlebih dahulu");
+      setTimeout(() => { window.location.href = "/login"; }, 1000);
+      return;
+    }
     if (!hasItems || submitting) return;
     setSubmitting(true);
     try {

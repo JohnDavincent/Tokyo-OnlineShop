@@ -4,15 +4,9 @@ import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.common.dto.PagingResponse;
 import com.tokyo.common.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.*;
-import com.tokyo.onlineshop.productservices.entity.Brand;
-import com.tokyo.onlineshop.productservices.entity.Category;
-import com.tokyo.onlineshop.productservices.entity.Product;
-import com.tokyo.onlineshop.productservices.entity.ProductUnit;
+import com.tokyo.onlineshop.productservices.entity.*;
 import com.tokyo.onlineshop.productservices.projection.ProductCardProjection;
-import com.tokyo.onlineshop.productservices.repository.BrandRepository;
-import com.tokyo.onlineshop.productservices.repository.CategoryRepository;
-import com.tokyo.onlineshop.productservices.repository.ProductRepository;
-import com.tokyo.onlineshop.productservices.repository.ProductUnitRepository;
+import com.tokyo.onlineshop.productservices.repository.*;
 import com.tokyo.onlineshop.productservices.specification.ProductFilterSpecification;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +26,7 @@ public class ProductServiceImp implements ProductService {
     private final BrandRepository brandRepository;
     private final CategoryRepository categoryRepository;
     private final ProductUnitRepository productUnitRepository;
+    private final ProductImageRepository productImageRepository;
     private final ProductUnitService productUnitService;
     private final ProductImageService productImageService;
 
@@ -320,20 +315,23 @@ public class ProductServiceImp implements ProductService {
     @Override
     public GetProductClientResponse getProduct(UUID id) {
         Product product = productRepository.findById(id).orElseThrow(() ->  new RuntimeException("product with id : " + id +  " not found"));
+        String image = productImageRepository.getUrl(product.getId());
         return GetProductClientResponse.builder()
                 .productId(product.getId())
                 .productName(product.getName())
                 .status(product.getStatus())
+                .url(image)
                 .build();
     }
 
     @Override
     public List<GetProductClientResponse> getProductListByIds(List<UUID> ids) {
-        return productRepository.findAllById(ids).stream()
+        return productRepository.findAllByIdWithImages(ids).stream()
                 .map(product -> GetProductClientResponse.builder()
                         .productId(product.getId())
                         .productName(product.getName())
                         .status(product.getStatus())
+                        .url(product.getProductImageList().isEmpty() ? "" : product.getProductImageList().getFirst().getUrl())
                         .build())
                 .toList();
     }

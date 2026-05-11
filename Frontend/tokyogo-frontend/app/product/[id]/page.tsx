@@ -10,6 +10,7 @@ import { getProductDetail } from "../../../services/productService";
 import { getProducts } from "../../../services/productService";
 import { addToCart } from "../../../services/cartservice";
 import { useAuth } from "../../../hooks/useAuth";
+import { toast } from "sonner";
 
 const UNIT_OPTIONS = [
   { norm: "Pcs", label: "Piece", matches: ["pcs", "piece"] },
@@ -211,6 +212,7 @@ function getSavingsBadge(normUnit: string): string | null {
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const productId = (params?.id as string) || "";
 
   const [product, setProduct] = useState<ApiProductDetail | null>(null);
@@ -292,6 +294,11 @@ export default function ProductDetailPage() {
   }
 
   async function handleAddToCart() {
+    if (!user) {
+      toast.error("Silahkan login terlebih dahulu");
+      setTimeout(() => router.push("/login"), 1000);
+      return;
+    }
     if (!product || selectedUnits.size === 0) return;
     setAddingToCart(true);
     setCartSuccess("");

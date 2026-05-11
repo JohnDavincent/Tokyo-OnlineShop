@@ -12,4 +12,5 @@ public class GetProductClientResponse {
     private UUID productId;
     private String productName;
     private ProductionStatus status;
+    private String url;
 }

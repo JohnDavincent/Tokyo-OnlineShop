@@ -18,9 +18,8 @@ export interface AddCartItemRequest {
 }
 
 export interface UpdateCartItemRequest {
-    productName: string;
+    productId: string;
     quantity: number;
-    productUnit: string;
 }
 
 export interface CartItemResponse {
@@ -43,6 +42,9 @@ export interface CartListItem {
     productUnit: string;
     quantity: number;
     subTotal: number;
+    productId: string;
+    cartDetailId: string;
+    productUrl?: string;
 }
 
 export interface CartListResponse {
@@ -76,11 +78,11 @@ export async function addToCart(payload: AddCartItemRequest): Promise<AddCartRes
     return response.json();
 }
 
-export async function updateCartItem(payload: UpdateCartItemRequest): Promise<AddCartResponse> {
-    const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/update`, {
-        method: "PUT",
+export async function updateCartItem(productId: string, quantity: number): Promise<any> {
+    const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/${productId}/quantity/`, {
+        method: "PATCH",
         headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify(quantity),
     });
 
     if (!response.ok) {
@@ -97,8 +99,8 @@ export async function updateCartItem(payload: UpdateCartItemRequest): Promise<Ad
     return response.json();
 }
 
-export async function removeFromCart(productName: string, productUnit: string): Promise<AddCartResponse> {
-    const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart?productName=${encodeURIComponent(productName)}&productUnit=${encodeURIComponent(productUnit)}`, {
+export async function removeFromCart(cartDetailId: string): Promise<any> {
+    const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/${cartDetailId}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
     });
@@ -114,6 +116,9 @@ export async function removeFromCart(productName: string, productUnit: string): 
         throw new Error(errorMsg);
     }
 
+    if (response.status === 204) {
+        return;
+    }
     return response.json();
 }
 
@@ -124,6 +129,17 @@ export async function getCartList(): Promise<CartListResponse> {
     });
 
     if (!response.ok) {
+        if (response.status === 404) {
+            return {
+                status: 404,
+                code: "NOT_FOUND",
+                message: "Cart is empty",
+                data: {
+                    grandTotal: 0,
+                    itemList: [],
+                },
+            };
+        }
         let errorMsg = "Failed to fetch cart list";
         try {
             const errorData = await response.json();

@@ -2,6 +2,7 @@ package com.tokyoonlineshop.cartservices.controller;
 
 import com.tokyo.common.dto.BaseResponse;
 import com.tokyoonlineshop.cartservices.dto.AddProductRequest;
+import com.tokyoonlineshop.cartservices.service.CartDetailService;
 import com.tokyoonlineshop.cartservices.service.CartService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +28,7 @@ import java.util.UUID;
 public class CartController {
 
     private final CartService cartService;
+    private final CartDetailService cartDetailService;
 
     @Operation(
             summary = "Add item to cart",
@@ -48,14 +51,14 @@ public class CartController {
     @Operation(
             summary = "Get cart list",
             description = "### Section: Cart\n" +
-                    "**Request:** Retrieve the authenticated user's current shopping cart with all items, product details, and grand total.\n" +
-                    "**Response:** Returns a BaseResponse containing CartListResponse with cart items and grand total."
+                    "**Request:** Retrieve the current shopping cart. Works for both guests (returns empty cart message) and logged-in users.\n" +
+                    "**Response:** Returns a BaseResponse containing CartListResponse with cart items and grand total, or a guest message."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Cart retrieved successfully",
-                    content = @Content(schema = @Schema(implementation = BaseResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid")
+                    content = @Content(schema = @Schema(implementation = BaseResponse.class)))
     })
+    @SecurityRequirements({})
     @GetMapping("/list")
     public ResponseEntity<BaseResponse> getCartList() {
         BaseResponse response = cartService.getCartList();
@@ -102,6 +105,12 @@ public class CartController {
             @PathVariable("cartDetailId") UUID cartDetailId) {
         BaseResponse response = cartService.deleteCartDetail(cartDetailId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).body(response);
+    }
+
+    @GetMapping("/cartDetail")
+    public ResponseEntity<BaseResponse> getCartDetail(){
+        BaseResponse response = cartDetailService.getCartDetail();
+        return ResponseEntity.ok(response);
     }
 
 }

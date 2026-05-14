@@ -1,7 +1,27 @@
 import { CART_API_BASE_URL } from "./config";
 
+export class AuthRequiredError extends Error {
+    constructor() {
+        super("AUTH_REQUIRED");
+        this.name = "AuthRequiredError";
+    }
+}
+
+function getToken(): string | null {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("token");
+}
+
+function ensureAuth(): string {
+    const token = getToken();
+    if (!token) {
+        throw new AuthRequiredError();
+    }
+    return token;
+}
+
 function getAuthHeaders(): Record<string, string> {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = getToken();
     const headers: Record<string, string> = {
         "Content-Type": "application/json",
     };
@@ -9,6 +29,16 @@ function getAuthHeaders(): Record<string, string> {
         headers["Authorization"] = `Bearer ${token}`;
     }
     return headers;
+}
+
+export function isLoggedIn(): boolean {
+    return !!getToken();
+}
+
+export function redirectToLogin() {
+    if (typeof window !== "undefined") {
+        window.location.href = "/login";
+    }
 }
 
 export interface AddCartItemRequest {
@@ -58,6 +88,7 @@ export interface CartListResponse {
 }
 
 export async function addToCart(payload: AddCartItemRequest): Promise<AddCartResponse> {
+    ensureAuth();
     const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart`, {
         method: "POST",
         headers: getAuthHeaders(),
@@ -79,6 +110,7 @@ export async function addToCart(payload: AddCartItemRequest): Promise<AddCartRes
 }
 
 export async function updateCartItem(productId: string, quantity: number): Promise<any> {
+    ensureAuth();
     const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/${productId}/quantity/`, {
         method: "PATCH",
         headers: getAuthHeaders(),
@@ -100,6 +132,7 @@ export async function updateCartItem(productId: string, quantity: number): Promi
 }
 
 export async function removeFromCart(cartDetailId: string): Promise<any> {
+    ensureAuth();
     const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/${cartDetailId}`, {
         method: "DELETE",
         headers: getAuthHeaders(),
@@ -123,6 +156,7 @@ export async function removeFromCart(cartDetailId: string): Promise<any> {
 }
 
 export async function getCartList(): Promise<CartListResponse> {
+    // GET /cart/list is permitAll on backend — no auth required to view
     const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/list`, {
         method: "GET",
         headers: getAuthHeaders(),

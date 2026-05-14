@@ -36,7 +36,8 @@ import { ApiProduct, ApiCategory, UnitList } from "../types/api";
 import { normalizeUnit } from "../services/config";
 import { getProducts, getArrivalProducts } from "../services/productService";
 import { getCategories } from "../services/categoryService";
-import { addToCart } from "../services/cartservice";
+import { addToCart, AuthRequiredError } from "../services/cartservice";
+import LoginPromptModal from "./components/LoginPromptModal";
 import { useAuth } from "../hooks/useAuth";
 import { toast } from "sonner";
 
@@ -166,6 +167,7 @@ function AddToCartModal({ product, onClose, onAdded }: ModalProps) {
   const { user } = useAuth();
   const [quantities, setQuantities] = useState<Record<string, number | string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   function change(unit: string, delta: number) {
     setQuantities((prev) => {
@@ -200,8 +202,7 @@ function AddToCartModal({ product, onClose, onAdded }: ModalProps) {
 
   async function handleSubmit() {
     if (!user) {
-      toast.error("Silahkan login terlebih dahulu");
-      setTimeout(() => { window.location.href = "/login"; }, 1000);
+      setShowLoginPrompt(true);
       return;
     }
     if (!hasItems || submitting) return;
@@ -222,6 +223,10 @@ function AddToCartModal({ product, onClose, onAdded }: ModalProps) {
       onAdded?.();
       onClose();
     } catch (e) {
+      if (e instanceof AuthRequiredError) {
+        setShowLoginPrompt(true);
+        return;
+      }
       console.error("Failed to add to cart:", e);
       alert("Failed to add items to cart. Please try again.");
     } finally {
@@ -354,6 +359,8 @@ function AddToCartModal({ product, onClose, onAdded }: ModalProps) {
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
+      <LoginPromptModal isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
     </div>
   );
 }
@@ -408,6 +415,13 @@ function UserMenu() {
             </span>
           </div>
           <div className="my-1 h-px bg-black/[0.06]" />
+          <Link
+            href="/profile"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-[#101210] transition hover:bg-black/[0.04]"
+          >
+            My Profile
+          </Link>
           <button
             onClick={logout}
             className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-red-500 transition hover:bg-red-50"

@@ -16,7 +16,7 @@ public interface ProductImageRepository extends JpaRepository<ProductImage, UUID
             """
             SELECT pi.url
             FROM ProductImage pi
-            WHERE pi.product.id = :listProduct
+            WHERE pi.product.id = :productId
             """
     )
     String getUrl(UUID productId);

@@ -10,7 +10,9 @@ import {
   getCartList,
   updateCartItem,
   removeFromCart,
+  AuthRequiredError,
 } from "../../services/cartservice";
+import LoginPromptModal from "../components/LoginPromptModal";
 import { normalizeUnit } from "../../services/config";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -146,6 +148,13 @@ function UserMenu() {
             </span>
           </div>
           <div className="my-1 h-px bg-black/[0.06]" />
+          <Link
+            href="/profile"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-[#101210] transition hover:bg-black/[0.04]"
+          >
+            My Profile
+          </Link>
           <button
             onClick={logout}
             className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-red-500 transition hover:bg-red-50"
@@ -180,12 +189,14 @@ function getInitials(name: string) {
 /* ─── Components ────────────────────────────────────────── */
 export default function CartPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [items, setItems] = useState<CartListItem[]>([]);
   const [grandTotal, setGrandTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState<Record<string, boolean>>({});
   const [removing, setRemoving] = useState<Record<string, boolean>>({});
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const loadCart = useCallback(async () => {
     setLoading(true);
@@ -225,6 +236,10 @@ export default function CartPage() {
       await updateCartItem(item.productId, newQty);
       await loadCart();
     } catch (e) {
+      if (e instanceof AuthRequiredError) {
+        setShowLoginPrompt(true);
+        return;
+      }
       console.error("Failed to update quantity:", e);
     } finally {
       setUpdating((prev) => ({ ...prev, [key]: false }));
@@ -309,15 +324,38 @@ export default function CartPage() {
             </p>
             <Link
               href="/"
-              className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-primary px-7 py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all hover:-translate-y-0.5 hover:bg-primary-dim"
+              className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-primary px-7 py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all hover:-translate-y-0.5 hover:bg-primary-dim"
             >
               Start Shopping <span aria-hidden>→</span>
             </Link>
+            {!user && (
+              <p className="mt-4 text-sm text-black/40">
+                Already have items?{" "}
+                <Link href="/login" className="font-bold text-primary hover:text-primary-dim transition-colors">
+                  Log in
+                </Link>{" "}
+                to view your saved cart.
+              </p>
+            )}
           </div>
         ) : (
           <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
             {/* ── Cart Items ── */}
             <div className="flex flex-col gap-4">
+              {!user && (
+                <div className="rounded-2xl border border-primary/15 bg-primary/[0.03] p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-bold text-[#101210]">Log in to save your cart</p>
+                    <p className="text-xs text-black/50 mt-0.5">Your items will be saved for checkout.</p>
+                  </div>
+                  <Link
+                    href="/login"
+                    className="shrink-0 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(0,105,65,0.2)] transition hover:bg-primary-dim"
+                  >
+                    Log In
+                  </Link>
+                </div>
+              )}
               {items.map((item) => {
                 const key = `${item.productId}-${item.productUnit}`;
                 const isUpdating = updating[key];
@@ -332,11 +370,11 @@ export default function CartPage() {
                     {/* Product Image */}
                     <div className="relative flex h-[88px] w-[88px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#f6f8f5] text-primary/40 sm:h-[100px] sm:w-[100px]">
                       {item.productUrl ? (
-                        <img 
-                          src={resolveProductImage(item.productUrl)} 
-                          alt={item.productName} 
-                          className="h-full w-full object-cover" 
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = resolveProductImage(); }} 
+                        <img
+                          src={resolveProductImage(item.productUrl)}
+                          alt={item.productName}
+                          className="h-full w-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = resolveProductImage(); }}
                         />
                       ) : (
                         <span className="font-headline text-2xl font-extrabold tracking-[-0.04em]">
@@ -451,11 +489,18 @@ export default function CartPage() {
                 </span>
               </div>
 
-              <button
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0"
-              >
-                Checkout Now
-              </button>
+              {user ? (
+                <button className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0">
+                  Checkout Now
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0"
+                >
+                  Login to Checkout
+                </Link>
+              )}
 
               <Link
                 href="/"
@@ -480,6 +525,9 @@ export default function CartPage() {
           </div>
         )}
       </div>
+
+      {/* ── Login Prompt Modal ── */}
+      <LoginPromptModal isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
 
       {/* ── Footer ── */}
       <footer className="border-t border-black/5 bg-white/65">

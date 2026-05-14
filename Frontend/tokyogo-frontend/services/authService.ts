@@ -128,3 +128,34 @@ export async function getCurrentUser(token: string): Promise<UserProfile> {
 
   return response.json();
 }
+
+export interface UserDataResponse {
+  username: string;
+  phoneNumber: string;
+  membership: string;
+  password: string;
+  address: string[];
+}
+
+export async function getUserProfile(token: string): Promise<UserDataResponse> {
+  const response = await fetch(`${AUTH_API_BASE_URL}/tokyogo/user/profile`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    let errorMsg = "Failed to fetch user profile";
+    try {
+      const errorData = await response.json();
+      if (errorData.message) errorMsg = errorData.message;
+    } catch (e) {
+      // Ignored
+    }
+    throw new Error(errorMsg);
+  }
+
+  return response.json();
+}

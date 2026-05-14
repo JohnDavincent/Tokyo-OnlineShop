@@ -1,6 +1,7 @@
 package com.tokyo.onlineshop.userservices.config;
 
 import com.tokyo.onlineshop.userservices.filter.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,9 +55,12 @@ public class SecurityConfiguration {
                                 "/tokyo/group/ad-min/login",
                                 "/error"
                         ).permitAll()
+                        .requestMatchers("/tokyogo/user/**").authenticated()
                         .requestMatchers("/tokyo/group/ad-min/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
-                )
+                ).exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "UNAUTHORIZED");
+                }))
                 .addFilterBefore(jwtAuthenticationFilter,UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

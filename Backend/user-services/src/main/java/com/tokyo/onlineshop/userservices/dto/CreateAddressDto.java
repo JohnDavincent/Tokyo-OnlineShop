@@ -1,10 +1,11 @@
 package com.tokyo.onlineshop.userservices.dto;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class CreateAddressDto {
     private String fullAddress;
     private String Province;

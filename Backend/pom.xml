@@ -23,6 +23,7 @@
         <module>product-services</module>
         <module>cart-services</module>
         <module>common</module>
+        <module>transaction-services</module>
     </modules>
 
     <properties>

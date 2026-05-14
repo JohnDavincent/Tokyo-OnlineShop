@@ -12,6 +12,7 @@ import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -31,9 +32,6 @@ public class CartServiceImp implements CartService {
     @Override
     public BaseResponse addProduct(AddProductRequest request) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        if(userId == null){
-            throw new RuntimeException("Please login first!!");
-        }
 
         Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseGet(() -> {
             return Cart.builder()
@@ -116,10 +114,16 @@ public class CartServiceImp implements CartService {
 
     @Override
     public BaseResponse getCartList() {
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        if(userId == null){
-            throw new RuntimeException("Login first!!");
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null ||auth instanceof AnonymousAuthenticationToken){
+            return BaseResponse.builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Please login first")
+                    .data(null)
+                    .build();
         }
+
+        String userId = auth.getName();
         Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("add a product first"));
         List<CartDetail> cartList = cartDetailRepository.findByCart_Id(cart.getId());
         if(cartList == null || cartList.isEmpty()){
@@ -204,9 +208,6 @@ public class CartServiceImp implements CartService {
             throw new RuntimeException("value cannot be less than 0");
         }
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        if(userId == null){
-            throw new RuntimeException("User id not found");
-        }
 
         Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("No cart found"));
         Optional<CartDetail> existItems =  cart.getCartDetails().stream()
@@ -232,9 +233,7 @@ public class CartServiceImp implements CartService {
     @Override
     public BaseResponse deleteCartDetail(UUID cartDetailId) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        if(userId == null){
-            throw new RuntimeException("User is not valid");
-        }
+
         Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("No cart found"));
         List<CartDetail> cartDetailList = cartDetailRepository.findByCart_Id(cart.getId());
 

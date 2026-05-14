@@ -8,7 +8,8 @@ import { ApiProductDetail, ApiUnit, ApiProduct } from "../../../types/api";
 import { normalizeUnit } from "../../../services/config";
 import { getProductDetail } from "../../../services/productService";
 import { getProducts } from "../../../services/productService";
-import { addToCart } from "../../../services/cartservice";
+import { addToCart, AuthRequiredError } from "../../../services/cartservice";
+import LoginPromptModal from "../../components/LoginPromptModal";
 import { useAuth } from "../../../hooks/useAuth";
 import { toast } from "sonner";
 
@@ -189,6 +190,13 @@ function UserMenu() {
             </span>
           </div>
           <div className="my-1 h-px bg-black/[0.06]" />
+          <Link
+            href="/profile"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-[#101210] transition hover:bg-black/[0.04]"
+          >
+            My Profile
+          </Link>
           <button
             onClick={logout}
             className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-red-500 transition hover:bg-red-50"
@@ -224,6 +232,7 @@ export default function ProductDetailPage() {
   const [unitQuantities, setUnitQuantities] = useState<Record<string, number>>({});
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartSuccess, setCartSuccess] = useState("");
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [activeTab, setActiveTab] = useState<"description" | "ingredients" | "shipping">("description");
 
@@ -295,8 +304,7 @@ export default function ProductDetailPage() {
 
   async function handleAddToCart() {
     if (!user) {
-      toast.error("Silahkan login terlebih dahulu");
-      setTimeout(() => router.push("/login"), 1000);
+      setShowLoginPrompt(true);
       return;
     }
     if (!product || selectedUnits.size === 0) return;
@@ -318,6 +326,10 @@ export default function ProductDetailPage() {
       setCartSuccess("Added to cart successfully!");
       setTimeout(() => setCartSuccess(""), 3000);
     } catch (e) {
+      if (e instanceof AuthRequiredError) {
+        setShowLoginPrompt(true);
+        return;
+      }
       console.error("Failed to add to cart:", e);
       setCartSuccess("Failed to add to cart.");
       setTimeout(() => setCartSuccess(""), 3000);
@@ -821,6 +833,9 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Login Prompt Modal ── */}
+      <LoginPromptModal isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
 
       {/* ── Footer ── */}
       <footer className="border-t border-black/5 bg-white">

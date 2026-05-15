@@ -18,5 +18,14 @@ public interface AddressRepository extends JpaRepository<Address,UUID> {
             """
     )
     List<String> listAllUserAddress(@Param("userId") UUID userId);
+
+    @Query(
+            """
+            SELECT a
+            FROM Address a
+            WHERE a.user.id = :userId
+            """
+    )
+    List<Address> listAllUserAddressData(@Param("userId") UUID userId);
 }
 

@@ -2,6 +2,7 @@ package com.tokyo.onlineshop.userservices.controller;
 
 import com.tokyo.onlineshop.userservices.dto.CreateAddressDto;
 import com.tokyo.onlineshop.userservices.dto.CreateAddressRequest;
+import com.tokyo.onlineshop.userservices.dto.GetUserAddressDto;
 import com.tokyo.onlineshop.userservices.dto.UserDataResponse;
 import com.tokyo.onlineshop.userservices.service.AddressService;
 import com.tokyo.onlineshop.userservices.service.UserEntityService;
@@ -16,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("tokyogo/user")
@@ -61,6 +64,11 @@ public class UserController {
     public ResponseEntity<CreateAddressDto> addAddress(@RequestBody CreateAddressRequest request) {
         CreateAddressDto response = addressService.addAddress(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/address/list")
+    public List<GetUserAddressDto> getUserAddressList(){
+        return addressService.getUserAddressList();
     }
 
 }

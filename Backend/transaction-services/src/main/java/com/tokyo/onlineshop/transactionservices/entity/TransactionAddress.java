@@ -39,4 +39,7 @@ public class TransactionAddress {
     @Column(name = "delivery_notes", length = 50)
     private String deliveryNotes;
 
+    @Column(name = "is_default_address")
+    private Boolean isDefaultAddress;
+
 }

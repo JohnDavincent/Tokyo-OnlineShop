@@ -26,3 +26,6 @@ app:
     dir-mac: /Users/appfuxion/Documents/GitHub/Tokyo-OnlineShop/Frontend/tokyogo-frontend/public
     dir-pc: C:/Users/ROG/Documents/Dream/Toko/Tokyo-OnlineShop/Frontend/tokyogo-frontend/public/image/category/
 
+logging:
+  level:
+    com.tokyo.common.security: DEBUG

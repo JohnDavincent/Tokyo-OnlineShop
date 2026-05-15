@@ -2,18 +2,22 @@ package com.tokyo.onlineshop.userservices.service;
 
 import com.tokyo.onlineshop.userservices.dto.CreateAddressDto;
 import com.tokyo.onlineshop.userservices.dto.CreateAddressRequest;
+import com.tokyo.onlineshop.userservices.dto.GetUserAddressDto;
 import com.tokyo.onlineshop.userservices.entity.Address;
 import com.tokyo.onlineshop.userservices.entity.UserEntity;
 import com.tokyo.onlineshop.userservices.repository.AddressRepository;
 import com.tokyo.onlineshop.userservices.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AddressServiceImp implements AddressService{
 
     private final AddressRepository addressRepository;
@@ -48,5 +52,26 @@ public class AddressServiceImp implements AddressService{
                 .postalCode(address.getPostalCode())
                 .notes(address.getNotes())
                 .build();
+    }
+
+    @Override
+    public List<GetUserAddressDto> getUserAddressList() {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<Address> addressList = addressRepository.listAllUserAddressData(UUID.fromString(userId));
+        log.info("Loaded {} addresses for user {}", addressList.size(), userId);
+        return addressList.stream()
+                .map(address -> GetUserAddressDto.builder()
+                        .addressId(address.getId())
+                        .recipientName(address.getRecipientName())
+                        .recipientPhoneNumber(address.getRecipientPhoneNumber())
+                        .address(address.getAddress())
+                        .label(address.getLabel())
+                        .province(address.getProvince())
+                        .city(address.getCity())
+                        .postalCode(address.getPostalCode())
+                        .notes(address.getNotes())
+                        .isDefaultShipping(address.isDefaultShipping())
+                        .build()
+                ).toList();
     }
 }

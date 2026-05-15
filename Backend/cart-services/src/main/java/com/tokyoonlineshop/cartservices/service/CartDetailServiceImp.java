@@ -29,18 +29,13 @@ public class CartDetailServiceImp implements CartDetailService{
     private final ProductClient productClient;
 
     @Override
-    public BaseResponse getCartDetail() {
+    public List<CartDetailDto> getCartDetail() {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("Cart for user " + userId + "not found"));
         List<CartDetail> cartDetailList = cartDetailRepository.findByCart_Id(cart.getId());
 
         if(cartDetailList == null || cartDetailList.isEmpty()){
-            return BaseResponse.builder()
-                    .status(HttpStatus.OK.value())
-                    .code(HttpStatus.OK)
-                    .message("Cart is empty")
-                    .data(List.of())
-                    .build();
+            return List.of();
         }
 
         List<UUID> productIds = cartDetailList.stream()
@@ -89,12 +84,7 @@ public class CartDetailServiceImp implements CartDetailService{
                         .build())
                 .toList();
 
-        return BaseResponse.builder()
-                .status(HttpStatus.OK.value())
-                .code(HttpStatus.OK)
-                .message("Cart detail successfully loaded")
-                .data(cartDetailDto)
-                .build();
+        return cartDetailDto;
     }
 }
 

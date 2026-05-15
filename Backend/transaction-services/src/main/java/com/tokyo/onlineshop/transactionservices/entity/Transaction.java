@@ -22,6 +22,7 @@ import java.util.UUID;
 @Table(name = "transactions")
 public class Transaction extends BaseEntity {
 
+    @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
@@ -50,12 +51,14 @@ public class Transaction extends BaseEntity {
     @Column(name = "status", nullable = false, length = 30)
     private TransactionStatus status;
 
-
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
     @Column(name = "cancelled_by", length = 100)
     private String cancelledBy;
+
+    @Column(name = "daily_transaction_number")
+    private Integer dailyTransactionNumber;
 
 
 }

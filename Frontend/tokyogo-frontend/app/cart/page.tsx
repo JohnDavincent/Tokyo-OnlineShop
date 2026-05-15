@@ -15,6 +15,7 @@ import {
 import LoginPromptModal from "../components/LoginPromptModal";
 import { normalizeUnit } from "../../services/config";
 import { useAuth } from "../../hooks/useAuth";
+import { UserAddress, getUserAddressList } from "../../services/authService";
 
 function resolveProductImage(url?: string) {
   if (!url) {
@@ -176,6 +177,39 @@ function ShieldCheckIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+function MapPinIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={className}>
+      <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ChevronUpIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={className}>
+      <path d="M6 15l6-6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={className}>
+      <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /* ─── Helpers ───────────────────────────────────────────── */
 function getInitials(name: string) {
   return name
@@ -184,6 +218,144 @@ function getInitials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+}
+
+/* ─── Address Dropdown ──────────────────────────────────── */
+function AddressDropdown({
+  addresses,
+  selectedAddress,
+  onSelect,
+}: {
+  addresses: UserAddress[];
+  selectedAddress: UserAddress | null;
+  onSelect: (addr: UserAddress) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [open]);
+
+  if (addresses.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-black/10 bg-[#f6f8f5] p-5 text-center">
+        <MapPinIcon className="mx-auto h-6 w-6 text-black/25" />
+        <p className="mt-2 text-sm font-bold text-black/50">No saved address</p>
+        <p className="text-xs text-black/35 mt-1">Add an address to proceed with checkout.</p>
+        <button className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-primary-dim">
+          <PlusIcon className="h-3.5 w-3.5" />
+          Add Address
+        </button>
+      </div>
+    );
+  }
+
+  const current = selectedAddress || addresses[0];
+
+  return (
+    <div ref={ref} className="relative">
+      {/* Collapsed header — the "button" */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-3 rounded-2xl border border-black/6 bg-[#f6f8f5] p-4 text-left transition hover:border-primary/20 hover:bg-primary/[0.03]"
+      >
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <MapPinIcon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-[#101210]">{current.label}</span>
+            {current.isDefaultShipping && (
+              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-emerald-600">
+                Default
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 truncate text-xs text-black/45">
+            {current.address}, {current.city}
+          </p>
+        </div>
+        <div className="shrink-0 text-black/30 transition-transform duration-200" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <ChevronDownIcon className="h-5 w-5" />
+        </div>
+      </button>
+
+      {/* Expanded dropdown */}
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-20 mt-2 rounded-2xl border border-black/6 bg-white p-2 shadow-[0_16px_50px_rgba(0,0,0,0.12)]">
+          <p className="px-3 py-2 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-black/40">
+            Choose delivery address
+          </p>
+
+          <div className="flex flex-col gap-1">
+            {addresses.map((addr) => {
+              const isSelected = addr.addressId === current.addressId;
+              return (
+                <button
+                  key={addr.addressId}
+                  onClick={() => {
+                    onSelect(addr);
+                    setOpen(false);
+                  }}
+                  className={`flex items-start gap-3 rounded-xl px-3 py-3 text-left transition ${
+                    isSelected
+                      ? "bg-primary/[0.05] ring-1 ring-primary/15"
+                      : "hover:bg-black/[0.02]"
+                  }`}
+                >
+                  {/* Radio indicator */}
+                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors">
+                    {isSelected ? (
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary">
+                        <CheckIcon className="h-3 w-3 text-white" />
+                      </div>
+                    ) : (
+                      <div className="h-5 w-5 rounded-full border-2 border-black/15" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-[#101210]">{addr.label}</span>
+                      {addr.isDefaultShipping && (
+                        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-emerald-600">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs font-bold text-black/70">{addr.recipientName}</p>
+                    <p className="text-xs text-black/45">{addr.recipientPhoneNumber}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-black/50">
+                      {addr.address}, {addr.city}, {addr.province} {addr.postalCode}
+                    </p>
+                    {addr.notes && (
+                      <p className="mt-1 text-xs italic text-black/35">Note: {addr.notes}</p>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="my-2 h-px bg-black/[0.06]" />
+
+          <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold text-primary transition hover:bg-primary/[0.05]">
+            <PlusIcon className="h-4 w-4" />
+            Add More Address
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ─── Components ────────────────────────────────────────── */
@@ -197,6 +369,9 @@ export default function CartPage() {
   const [updating, setUpdating] = useState<Record<string, boolean>>({});
   const [removing, setRemoving] = useState<Record<string, boolean>>({});
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(null);
+  const [addressLoading, setAddressLoading] = useState(false);
 
   const loadCart = useCallback(async () => {
     setLoading(true);
@@ -221,6 +396,28 @@ export default function CartPage() {
   useEffect(() => {
     loadCart();
   }, [loadCart]);
+
+  useEffect(() => {
+    async function loadAddresses() {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      setAddressLoading(true);
+      try {
+        const list = await getUserAddressList(token);
+        setAddresses(list);
+        if (list.length > 0) {
+          // Prefer default shipping, otherwise first address
+          const def = list.find((a) => a.isDefaultShipping);
+          setSelectedAddress(def || list[0]);
+        }
+      } catch (e) {
+        console.error("Failed to load addresses:", e);
+      } finally {
+        setAddressLoading(false);
+      }
+    }
+    loadAddresses();
+  }, []);
 
   async function handleQuantityChange(item: CartListItem, delta: number) {
     const newQty = Math.max(0, item.quantity + delta);
@@ -458,6 +655,28 @@ export default function CartPage() {
               <h2 className="font-headline text-[1.25rem] font-bold tracking-[-0.03em] text-[#101210]">
                 Order Summary
               </h2>
+
+              {/* ── Delivery Address ── */}
+              <div className="mt-5">
+                <label className="mb-2 block text-[0.65rem] font-bold uppercase tracking-[0.14em] text-black/40">
+                  Deliver to
+                </label>
+                {addressLoading ? (
+                  <div className="flex items-center gap-3 rounded-2xl border border-black/6 bg-[#f6f8f5] p-4">
+                    <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-black/5" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-24 animate-pulse rounded bg-black/5" />
+                      <div className="h-3 w-40 animate-pulse rounded bg-black/5" />
+                    </div>
+                  </div>
+                ) : (
+                  <AddressDropdown
+                    addresses={addresses}
+                    selectedAddress={selectedAddress}
+                    onSelect={setSelectedAddress}
+                  />
+                )}
+              </div>
 
               <div className="mt-6 space-y-3">
                 <div className="flex items-center justify-between text-sm">

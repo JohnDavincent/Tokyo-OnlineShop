@@ -159,3 +159,39 @@ export async function getUserProfile(token: string): Promise<UserDataResponse> {
 
   return response.json();
 }
+
+export interface UserAddress {
+  addressId: string;
+  recipientName: string;
+  recipientPhoneNumber: string;
+  notes: string;
+  address: string;
+  city: string;
+  province: string;
+  label: string;
+  postalCode: string;
+  isDefaultShipping: boolean;
+}
+
+export async function getUserAddressList(token: string): Promise<UserAddress[]> {
+  const response = await fetch(`${AUTH_API_BASE_URL}/tokyogo/user/address/list`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    let errorMsg = "Failed to fetch addresses";
+    try {
+      const errorData = await response.json();
+      if (errorData.message) errorMsg = errorData.message;
+    } catch (e) {
+      // Ignored
+    }
+    throw new Error(errorMsg);
+  }
+
+  return response.json();
+}

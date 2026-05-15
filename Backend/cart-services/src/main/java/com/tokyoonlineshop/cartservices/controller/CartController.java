@@ -2,6 +2,7 @@ package com.tokyoonlineshop.cartservices.controller;
 
 import com.tokyo.common.dto.BaseResponse;
 import com.tokyoonlineshop.cartservices.dto.AddProductRequest;
+import com.tokyoonlineshop.cartservices.dto.CartDetailDto;
 import com.tokyoonlineshop.cartservices.service.CartDetailService;
 import com.tokyoonlineshop.cartservices.service.CartService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RequestMapping("/tokyo/gropup/cart")
@@ -108,9 +110,9 @@ public class CartController {
     }
 
     @GetMapping("/cartDetail")
-    public ResponseEntity<BaseResponse> getCartDetail(){
-        BaseResponse response = cartDetailService.getCartDetail();
-        return ResponseEntity.ok(response);
+    public List<CartDetailDto> getCartDetail(){
+        return cartDetailService.getCartDetail();
+
     }
 
 }

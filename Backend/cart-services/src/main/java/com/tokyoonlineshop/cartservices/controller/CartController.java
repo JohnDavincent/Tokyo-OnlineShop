@@ -115,4 +115,9 @@ public class CartController {
 
     }
 
+    @DeleteMapping()
+    public BaseResponse deleteUserCart(){
+        return cartService.deleteAllCartDetail();
+    }
+
 }

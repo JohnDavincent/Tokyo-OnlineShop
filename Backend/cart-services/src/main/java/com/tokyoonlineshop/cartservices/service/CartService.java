@@ -11,5 +11,6 @@ public interface CartService {
     public BaseResponse getCartList();
     public BaseResponse updateCartQuantity(UUID productId, int quantity);
     public BaseResponse deleteCartDetail(UUID cartDetailId);
+    public BaseResponse deleteAllCartDetail();
 
 }

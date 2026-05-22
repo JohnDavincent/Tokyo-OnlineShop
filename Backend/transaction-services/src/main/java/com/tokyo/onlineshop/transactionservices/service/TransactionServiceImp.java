@@ -1,6 +1,7 @@
 package com.tokyo.onlineshop.transactionservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.onlineshop.transactionservices.client.CartClient;
 import com.tokyo.onlineshop.transactionservices.dto.AddTransactionAddressResponseDto;
 import com.tokyo.onlineshop.transactionservices.dto.AddTransactionDetailResponseDto;
 import com.tokyo.onlineshop.transactionservices.dto.AddTransactionResponseDto;
@@ -9,9 +10,12 @@ import com.tokyo.onlineshop.transactionservices.enums.TransactionStatus;
 import com.tokyo.onlineshop.transactionservices.repository.TransactionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -25,6 +29,7 @@ public class TransactionServiceImp implements TransactionService{
     private final TransactionRepository repository;
     private final TransactionDetailService transactionDetailService;
     private final TransactionAddressService transactionAddressService;
+    private final CartClient client;
 
     @Transactional
     @Override
@@ -56,6 +61,8 @@ public class TransactionServiceImp implements TransactionService{
                 .transactionDetail(transactionDetailList)
                 .build();
 
+        client.deleteUserCart(getAuthorizationHeader());
+
         return BaseResponse.builder()
                 .code(HttpStatus.CREATED)
                 .status(HttpStatus.CREATED.value())
@@ -69,5 +76,19 @@ public class TransactionServiceImp implements TransactionService{
         String dateText = date.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String sequence = String.format("%05d",number);
         return prefix + "-" + dateText + "-" + sequence;
+    }
+
+    private String getAuthorizationHeader() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            throw new RuntimeException("Authorization header is not available");
+        }
+
+        String authorizationHeader = attributes.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            throw new RuntimeException("Authorization header is required");
+        }
+
+        return authorizationHeader;
     }
 }

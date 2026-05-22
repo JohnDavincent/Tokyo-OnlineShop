@@ -16,6 +16,7 @@ import LoginPromptModal from "../components/LoginPromptModal";
 import { normalizeUnit } from "../../services/config";
 import { useAuth } from "../../hooks/useAuth";
 import { UserAddress, getUserAddressList } from "../../services/authService";
+import { checkoutTransaction, TransactionResponse } from "../../services/transactionService";
 
 function resolveProductImage(url?: string) {
   if (!url) {
@@ -358,6 +359,121 @@ function AddressDropdown({
   );
 }
 
+/* ─── Checkout Confirmation Modal ───────────────────────── */
+function CheckoutConfirmationModal({
+  result,
+  onClose,
+}: {
+  result: TransactionResponse;
+  onClose: () => void;
+}) {
+  const data = result.data;
+  const addr = data.userAddress;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[28px] border border-black/5 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.18)]">
+        {/* Header */}
+        <div className="border-b border-black/[0.06] bg-primary/[0.03] px-7 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-primary">Order Confirmed</p>
+              <h2 className="mt-1 font-headline text-xl font-extrabold tracking-[-0.03em] text-[#101210]">
+                {result.message}
+              </h2>
+            </div>
+            <button
+              onClick={onClose}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/5 text-black/40 transition hover:bg-black/10 hover:text-black/70"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
+                <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
+          <p className="mt-2 text-sm font-bold text-black/50">
+            Transaction ID: <span className="text-primary">{data.transactionId}</span>
+          </p>
+        </div>
+
+        {/* Items list */}
+        <div className="px-7 py-5">
+          <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-black/40 mb-3">Items Ordered</p>
+          <div className="flex flex-col gap-3">
+            {data.transactionDetail.map((item, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between rounded-2xl border border-black/[0.05] bg-[#f6f8f5] px-4 py-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-[#101210]">{item.productName}</p>
+                  <p className="text-xs text-black/45 mt-0.5">
+                    {item.quantity} × {item.productUnit} @ Rp {item.price.toLocaleString("id-ID")}
+                  </p>
+                </div>
+                <p className="text-sm font-extrabold text-[#101210] shrink-0">
+                  Rp {item.subTotal.toLocaleString("id-ID")}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Delivery Address */}
+        <div className="px-7 pb-5">
+          <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-black/40 mb-3">Deliver To</p>
+          <div className="rounded-2xl border border-black/[0.06] bg-[#f6f8f5] p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary mt-0.5">
+                <MapPinIcon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-[#101210]">
+                  {addr.recipientName}
+                </p>
+                <p className="text-xs text-black/45 mt-0.5">{addr.recipientPhoneNumber}</p>
+                <p className="mt-2 text-sm leading-relaxed text-black/60">
+                  {addr.address}, {addr.city}
+                  {addr.province ? `, ${addr.province}` : ""} {addr.postalCode}
+                </p>
+                {addr.notes && (
+                  <p className="mt-1.5 text-xs italic text-black/40">Note: {addr.notes}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Total */}
+        <div className="border-t border-black/[0.06] px-7 py-5">
+          <div className="flex items-center justify-between">
+            <span className="text-[0.8rem] font-bold uppercase tracking-[0.12em] text-black/40">Grand Total</span>
+            <span className="font-headline text-[1.65rem] font-extrabold tracking-[-0.04em] text-primary">
+              Rp {data.GrandTotal.toLocaleString("id-ID")}
+            </span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="px-7 pb-7">
+          <button
+            onClick={onClose}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0"
+          >
+            Done
+          </button>
+          <button
+            onClick={onClose}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-black/[0.08] bg-white py-3.5 text-sm font-bold text-[#101210] transition-all hover:bg-[#f6f8f5]"
+          >
+            Continue Shopping
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Components ────────────────────────────────────────── */
 export default function CartPage() {
   const router = useRouter();
@@ -372,6 +488,8 @@ export default function CartPage() {
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(null);
   const [addressLoading, setAddressLoading] = useState(false);
+  const [checkoutResult, setCheckoutResult] = useState<TransactionResponse | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const loadCart = useCallback(async () => {
     setLoading(true);
@@ -453,6 +571,28 @@ export default function CartPage() {
     } catch (e) {
       console.error("Failed to remove item:", e);
       setRemoving((prev) => ({ ...prev, [key]: false }));
+    }
+  }
+
+  async function handleCheckout() {
+    if (!selectedAddress) {
+      toast.error("Please select a delivery address first.");
+      return;
+    }
+    setCheckoutLoading(true);
+    try {
+      const result = await checkoutTransaction(selectedAddress.addressId);
+      setCheckoutResult(result);
+      toast.success(result.message || "Order placed successfully!");
+    } catch (e: any) {
+      if (e.message === "AUTH_REQUIRED") {
+        setShowLoginPrompt(true);
+        return;
+      }
+      console.error("Checkout failed:", e);
+      toast.error(e.message || "Checkout failed. Please try again.");
+    } finally {
+      setCheckoutLoading(false);
     }
   }
 
@@ -709,8 +849,19 @@ export default function CartPage() {
               </div>
 
               {user ? (
-                <button className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0">
-                  Checkout Now
+                <button
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading}
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0 disabled:opacity-60 disabled:hover:translate-y-0"
+                >
+                  {checkoutLoading ? (
+                    <>
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      Processing…
+                    </>
+                  ) : (
+                    "Checkout Now"
+                  )}
                 </button>
               ) : (
                 <Link
@@ -747,6 +898,17 @@ export default function CartPage() {
 
       {/* ── Login Prompt Modal ── */}
       <LoginPromptModal isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
+
+      {/* ── Checkout Confirmation Modal ── */}
+      {checkoutResult && (
+        <CheckoutConfirmationModal
+          result={checkoutResult}
+          onClose={() => {
+            setCheckoutResult(null);
+            loadCart();
+          }}
+        />
+      )}
 
       {/* ── Footer ── */}
       <footer className="border-t border-black/5 bg-white/65">

@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -256,6 +257,21 @@ public class CartServiceImp implements CartService {
                 .status(HttpStatus.NO_CONTENT.value())
                 .message("Successfully delete item from cart")
                 .code(HttpStatus.NO_CONTENT)
+                .data(null)
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public BaseResponse deleteAllCartDetail() {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("No cart found"));
+        cartDetailRepository.deleteAllByCart_userId(UUID.fromString(userId));
+        return BaseResponse.builder()
+                .message("Successfully delete All item from user cart")
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
                 .data(null)
                 .build();
     }

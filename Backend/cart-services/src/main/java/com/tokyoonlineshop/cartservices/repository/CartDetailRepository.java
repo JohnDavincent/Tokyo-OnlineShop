@@ -11,4 +11,5 @@ public interface CartDetailRepository extends JpaRepository<CartDetail, UUID> {
     boolean existsByProductId(UUID productId);
 
     List<CartDetail> findByCart_Id(UUID cartId);
+    void deleteAllByCart_userId(UUID userId);
 }

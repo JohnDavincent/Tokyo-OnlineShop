@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getUserProfile, UserDataResponse } from "../../services/authService";
-import { useAuth } from "../../hooks/useAuth";
 
 /* ─── Icons ─────────────────────────────────────────────── */
 function ArrowLeftIcon({ className = "h-5 w-5" }: { className?: string }) {
@@ -114,7 +113,6 @@ function getMembershipColor(membership: string): string {
 /* ─── Components ────────────────────────────────────────── */
 export default function ProfilePage() {
   const router = useRouter();
-  const { user } = useAuth();
   const [profile, setProfile] = useState<UserDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -128,10 +126,10 @@ export default function ProfilePage() {
 
     async function loadProfile() {
       try {
-        const data = await getUserProfile(token!);
+        const data = await getUserProfile();
         setProfile(data);
-      } catch (e: any) {
-        if (e.message?.includes("401") || e.message?.includes("Unauthorized")) {
+      } catch (e: unknown) {
+        if (e instanceof Error && (e.message.includes("401") || e.message.includes("Unauthorized") || e.message.includes("AUTH_REQUIRED"))) {
           router.push("/login");
           return;
         }

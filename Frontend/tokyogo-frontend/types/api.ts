@@ -48,6 +48,7 @@ export type ApiUnit = {
 };
 
 export type ApiProductDetail = {
+  id: string;
   baseWeight: number;
   brand: string;
   category: string;

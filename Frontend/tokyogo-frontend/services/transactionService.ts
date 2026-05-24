@@ -1,4 +1,5 @@
 import { TRANSACTION_API_BASE_URL } from "./config";
+import { AuthRequiredError, authFetch } from "./authFetch";
 
 export interface TransactionRequest {
   addressId: string;
@@ -39,32 +40,28 @@ export interface TransactionResponse {
   data: TransactionData;
 }
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
-}
-
 export async function checkoutTransaction(addressId: string): Promise<TransactionResponse> {
-  const token = getToken();
-  if (!token) {
-    throw new Error("AUTH_REQUIRED");
-  }
+  let response: Response;
 
-  const response = await fetch(`${TRANSACTION_API_BASE_URL}/tokyo/gropup/transaction`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ addressId }),
-  });
+  try {
+    response = await authFetch(`${TRANSACTION_API_BASE_URL}/tokyo/gropup/transaction`, {
+      method: "POST",
+      body: JSON.stringify({ addressId }),
+    });
+  } catch (error) {
+    if (error instanceof AuthRequiredError) {
+      throw new Error("AUTH_REQUIRED");
+    }
+
+    throw error;
+  }
 
   if (!response.ok) {
     let errorMsg = "Checkout failed";
     try {
       const errorData = await response.json();
       if (errorData.message) errorMsg = errorData.message;
-    } catch (e) {
+    } catch {
       // Ignored
     }
     throw new Error(errorMsg);

@@ -12,53 +12,60 @@ export default function LoginPromptModal({ isOpen, onClose }: LoginPromptModalPr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
-      style={{ background: "rgba(0,0,0,0.42)", backdropFilter: "blur(4px)" }}
+      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center"
+      style={{ background: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(8px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="relative w-full max-w-sm rounded-t-[32px] bg-white px-6 pb-8 pt-6 shadow-[0_-24px_80px_rgba(0,0,0,0.18)] sm:rounded-[28px] sm:pb-8"
-        style={{ animation: "slideUp 0.32s cubic-bezier(0.22,1,0.36,1) both" }}
+        className="relative w-full max-w-[400px] overflow-hidden rounded-t-[36px] bg-white shadow-[0_-20px_80px_rgba(0,0,0,0.2)] sm:rounded-[36px] border border-white/40"
+        style={{ animation: "scaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both" }}
       >
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-black/12 sm:hidden" />
+        {/* Decorative background element */}
+        <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/10 blur-[40px] pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-emerald-500/10 blur-[40px] pointer-events-none" />
 
-        <div className="flex flex-col items-center text-center">
-          {/* Icon */}
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary mb-5">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-8 w-8">
-              <circle cx="12" cy="8" r="4" />
-              <path d="M5 20c1.4-3.5 4.2-5.5 7-5.5s5.6 2 7 5.5" strokeLinecap="round" />
-            </svg>
+        <div className="relative px-8 pb-8 pt-8 text-center flex flex-col items-center">
+          <div className="mx-auto mb-6 h-1.5 w-12 rounded-full bg-black/10 sm:hidden" />
+
+          {/* Icon with pulse effect */}
+          <div className="relative mb-6 flex h-20 w-20 items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-75" style={{ animationDuration: '2s' }}></div>
+            <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-tr from-primary to-emerald-400 text-white shadow-[0_8px_24px_rgba(0,105,65,0.3)]">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-9 w-9 drop-shadow-sm">
+                <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
           </div>
 
-          <h3 className="font-headline text-xl font-extrabold tracking-[-0.03em] text-[#101210]">
+          <h3 className="font-headline text-[1.4rem] font-extrabold tracking-tight text-[#0f2118]">
             Login Diperlukan
           </h3>
-          <p className="mt-2 text-sm text-black/50 leading-relaxed">
-            Anda harus login terlebih dahulu untuk menambahkan produk ke keranjang.
+          <p className="mt-3 text-[0.95rem] font-medium text-black/60 leading-[1.6]">
+            Silahkan melakukan Login terlebih dahulu untuk menambahkan barang
           </p>
 
-          <div className="mt-6 flex w-full flex-col gap-3">
+          <div className="mt-8 flex w-full flex-col gap-3">
             <Link
               href="/login"
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all hover:-translate-y-0.5 hover:bg-primary-dim"
+              className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,105,65,0.35)]"
             >
-              Login Sekarang
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
+              Login sekarang
             </Link>
             <button
               onClick={onClose}
-              className="flex w-full items-center justify-center rounded-2xl border border-black/[0.08] bg-white py-3.5 text-sm font-bold text-[#101210] transition-all hover:bg-[#f6f8f5]"
+              className="flex w-full items-center justify-center rounded-2xl border border-black/5 bg-black/[0.03] py-4 text-sm font-bold text-black/60 transition-all hover:bg-black/[0.06] hover:text-[#101210]"
             >
-              Nanti Saja
+              nanti dulu
             </button>
           </div>
         </div>
       </div>
 
       <style>{`
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(40px); }
-          to   { opacity: 1; transform: translateY(0); }
+        @keyframes scaleUp {
+          from { opacity: 0; transform: scale(0.95) translateY(20px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
     </div>

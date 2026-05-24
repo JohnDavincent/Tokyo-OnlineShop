@@ -104,9 +104,11 @@ function UserIcon({ className = "h-5 w-5" }: { className?: string }) {
 function UserMenu() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMounted(true);
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
@@ -116,7 +118,7 @@ function UserMenu() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (!user) {
+  if (!mounted || !user) {
     return (
       <Link href="/login" aria-label="Account" className="transition-transform duration-200 hover:scale-110 text-primary">
         <UserIcon />
@@ -521,7 +523,7 @@ export default function CartPage() {
       if (!token) return;
       setAddressLoading(true);
       try {
-        const list = await getUserAddressList(token);
+        const list = await getUserAddressList();
         setAddresses(list);
         if (list.length > 0) {
           // Prefer default shipping, otherwise first address

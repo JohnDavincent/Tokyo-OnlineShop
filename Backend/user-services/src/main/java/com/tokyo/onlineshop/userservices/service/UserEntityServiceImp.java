@@ -3,14 +3,15 @@ package com.tokyo.onlineshop.userservices.service;
 import com.tokyo.onlineshop.userservices.Membership;
 import com.tokyo.onlineshop.userservices.Purpose;
 import com.tokyo.onlineshop.userservices.Status;
-import com.tokyo.onlineshop.userservices.dto.RequestOtpDto;
 import com.tokyo.onlineshop.userservices.dto.RegisterRequest;
 import com.tokyo.onlineshop.userservices.dto.UserDataResponse;
 import com.tokyo.onlineshop.userservices.entity.Address;
+import com.tokyo.onlineshop.userservices.entity.OtpVerification;
 import com.tokyo.onlineshop.userservices.entity.UserEntity;
 import com.tokyo.onlineshop.userservices.repository.AddressRepository;
 import com.tokyo.onlineshop.userservices.repository.OtpVerificationRepository;
 import com.tokyo.onlineshop.userservices.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,32 +32,41 @@ public class UserEntityServiceImp implements UserEntityService{
     private final OtpVerificationRepository otpVerificationRepo;
     private final AddressRepository addressRepository;
 
+    @Transactional
     @Override
     public void register(RegisterRequest request) {
-        if(userRepository.existsByPhoneNumber(request.getPhoneNumber())){
+        Optional<UserEntity> existingUser = userRepository.findByPhoneNumber(request.getPhoneNumber());
+
+        if(existingUser.isPresent() && existingUser.get().getStatus() == Status.VERIFIED && existingUser.get().getPhoneVerifiedAt() != null){
             throw new RuntimeException("Nomor ini sudah terdaftar");
         }
 
-        boolean otpVerified = otpVerificationRepo.existsByPhoneNumberAndPurposeAndUsedAtIsNotNull(
+        OtpVerification latestOtp = otpVerificationRepo.findTopByPhoneNumberAndPurposeOrderByCreatedAtDesc(
                 request.getPhoneNumber(),
                 Purpose.REGISTER
-        );
+        ).orElseThrow(() -> new RuntimeException("OTP belum diverifikasi"));
 
-        if (!otpVerified) {
+        if (latestOtp.getUsedAt() == null) {
             throw new RuntimeException("OTP belum diverifikasi");
         }
 
-        UserEntity newUser = UserEntity.builder()
-                .name(request.getName())
-                .phoneNumber(request.getPhoneNumber())
-                .addressList(new ArrayList<>())
-                .createdAt(LocalDateTime.now())
-                .pinHash(passwordEncoder.encode(request.getPin()))
-                .membership(Membership.REGULAR)
-                .phoneVerifiedAt(LocalDateTime.now())
-                .status(Status.VERIFIED)
-                .refreshTokenList(new ArrayList<>())
-                .build();
+        LocalDateTime now = LocalDateTime.now();
+        UserEntity newUser = existingUser.orElseGet(UserEntity::new);
+        newUser.setName(request.getName());
+        newUser.setPhoneNumber(request.getPhoneNumber());
+        newUser.setCreatedAt(newUser.getCreatedAt() == null ? now : newUser.getCreatedAt());
+        newUser.setPinHash(passwordEncoder.encode(request.getPin()));
+        newUser.setMembership(Membership.REGULAR);
+        newUser.setPhoneVerifiedAt(now);
+        newUser.setStatus(Status.VERIFIED);
+
+        if (newUser.getAddressList() == null) {
+            newUser.setAddressList(new ArrayList<>());
+        }
+
+        if (newUser.getRefreshTokenList() == null) {
+            newUser.setRefreshTokenList(new ArrayList<>());
+        }
 
         userRepository.save(newUser);
 

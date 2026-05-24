@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { loginUser, getCurrentUser } from "../../services/authService";
 import { toast } from "sonner";
 
@@ -51,13 +51,111 @@ function ArrowRightIcon({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
-export default function LoginPage() {
+function CheckCircleIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={className}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" strokeLinecap="round" />
+      <polyline points="22 4 12 14.01 9 11.01" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CelebrationIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 8h3m14 0h3M6 2l1.5 1.5M16.5 3.5 18 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SuccessModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => setVisible(true), 10);
+      return () => clearTimeout(timer);
+    } else {
+      setVisible(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className={`fixed inset-0 z-50 flex items-end justify-center sm:items-center transition-all duration-300 ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
+      style={{ background: "rgba(0,0,0,0.42)", backdropFilter: "blur(4px)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className={`relative w-full max-w-sm rounded-t-[32px] bg-white px-6 pb-8 pt-6 shadow-[0_-24px_80px_rgba(0,0,0,0.18)] sm:rounded-[28px] sm:pb-8 transition-all duration-500 ${
+          visible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+        }`}
+        style={{ transitionTimingFunction: "cubic-bezier(0.22,1,0.36,1)" }}
+      >
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-black/12 sm:hidden" />
+
+        <div className="flex flex-col items-center text-center">
+          {/* Animated success icon */}
+          <div className="relative mb-5">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dim shadow-[0_8px_32px_rgba(0,105,65,0.28)]">
+              <CheckCircleIcon className="h-10 w-10 text-white" />
+            </div>
+            {/* Celebration particles */}
+            <div className="absolute -top-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-[#7bfeb8] shadow-lg animate-[bounce_2s_infinite]">
+              <CelebrationIcon className="h-4 w-4 text-primary" />
+            </div>
+          </div>
+
+          <h3 className="font-headline text-xl font-extrabold tracking-[-0.03em] text-[#101210]">
+            Registration Successful!
+          </h3>
+          <p className="mt-2 text-sm text-black/50 leading-relaxed max-w-[260px]">
+            Your account has been created successfully. Please login to continue shopping.
+          </p>
+
+          <div className="mt-6 flex w-full flex-col gap-3">
+            <button
+              onClick={onClose}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all hover:-translate-y-0.5 hover:bg-primary-dim"
+            >
+              Continue to Login
+              <ArrowRightIcon className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginPageContent() {
   const [showPin, setShowPin] = useState(false);
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const registered = searchParams.get("registered");
+    if (registered === "true") {
+      setShowSuccessModal(true);
+    }
+  }, [searchParams]);
+
+  const handleCloseModal = () => {
+    setShowSuccessModal(false);
+    // Clean up the URL by removing the query param
+    router.replace("/login");
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +178,7 @@ export default function LoginPage() {
 
         // Fetch and store user profile
         try {
-          const user = await getCurrentUser(data.accessToken);
+      const user = await getCurrentUser();
           sessionStorage.setItem("user", JSON.stringify(user));
           toast.success(`Selamat datang kembali, ${user.name}`);
         } catch (profileErr) {
@@ -224,6 +322,23 @@ export default function LoginPage() {
           <p className="text-xs text-black/40">&copy; 2024 Tokyo GO. Precision Freshness.</p>
         </div>
       </footer>
+
+      {/* Success Modal */}
+      <SuccessModal isOpen={showSuccessModal} onClose={handleCloseModal} />
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#f6f8f5]">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }

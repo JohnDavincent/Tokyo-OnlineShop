@@ -369,9 +369,11 @@ function AddToCartModal({ product, onClose, onAdded }: ModalProps) {
 function UserMenu() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMounted(true);
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
@@ -381,7 +383,7 @@ function UserMenu() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (!user) {
+  if (!mounted || !user) {
     return (
       <Link href="/login" aria-label="Account" className="transition-transform duration-200 hover:scale-110">
         <UserIcon />

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { clearAuthStorage, revokeRefreshToken } from "../services/authFetch";
 
 export interface UserProfile {
   id: string;
@@ -8,37 +9,33 @@ export interface UserProfile {
 }
 
 export function useAuth() {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [user, setUser] = useState<UserProfile | null>(() => readStoredUser());
+  const [isReady] = useState(true);
 
   const loadUser = useCallback(() => {
-    if (typeof window === "undefined") {
-      setIsReady(true);
-      return;
-    }
-    const raw = sessionStorage.getItem("user");
-    if (raw) {
-      try {
-        setUser(JSON.parse(raw));
-      } catch {
-        setUser(null);
-      }
-    }
-    setIsReady(true);
+    setUser(readStoredUser());
   }, []);
 
-  useEffect(() => {
-    loadUser();
-  }, [loadUser]);
-
-  function logout() {
+  async function logout() {
     if (typeof window === "undefined") return;
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    sessionStorage.removeItem("user");
+    await revokeRefreshToken().catch(() => clearAuthStorage());
     setUser(null);
     window.location.href = "/login";
   }
 
   return { user, isReady, logout, reloadUser: loadUser };
+}
+
+function readStoredUser(): UserProfile | null {
+  if (typeof window === "undefined") return null;
+
+  const raw = sessionStorage.getItem("user");
+
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as UserProfile;
+  } catch {
+    return null;
+  }
 }

@@ -25,8 +25,12 @@ public class OtpVerificationServiceImp implements OtpVerificationService {
     private static final int MAX_ATTEMPTS = 5;
     private final OtpSender otpSender;
 
+    @Transactional
     @Override
     public void requestOtp(RequestOtpDto otpVerifiedRequest) {
+        LocalDateTime now = LocalDateTime.now();
+        otpVerificationRepo.expireUnusedOtps(otpVerifiedRequest.getPhoneNumber(), Purpose.REGISTER, now);
+
         String code = generateOtp();
         OtpVerification otpVerification = OtpVerification.builder()
                 .codeHash(passwordEncoder.encode(code))
@@ -34,8 +38,8 @@ public class OtpVerificationServiceImp implements OtpVerificationService {
                 .purpose(Purpose.REGISTER)
                 .resendCount(0)
                 .attemptCount(0)
-                .createdAt(LocalDateTime.now())
-                .expiresAt(LocalDateTime.now().plusMinutes(3))
+                .createdAt(now)
+                .expiresAt(now.plusMinutes(3))
                 .build();
 
         otpVerificationRepo.save(otpVerification);
@@ -45,7 +49,7 @@ public class OtpVerificationServiceImp implements OtpVerificationService {
     @Transactional
     @Override
     public void verifiedUserOtpCode(VerifyOtpRequest response) {
-        OtpVerification otp = otpVerificationRepo.findTopByPhoneNumberAndUsedAtIsNullAndPurposeOrderByIdDesc (response.getPhoneNumber(),Purpose.REGISTER)
+        OtpVerification otp = otpVerificationRepo.findTopByPhoneNumberAndUsedAtIsNullAndPurposeOrderByCreatedAtDesc(response.getPhoneNumber(),Purpose.REGISTER)
                 .orElseThrow(() -> new RuntimeException("No Otp Found"));
 
         if(otp.getExpiresAt().isBefore(LocalDateTime.now())){

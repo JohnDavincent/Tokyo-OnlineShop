@@ -99,7 +99,7 @@ function VerifyPageContent() {
       // 2. Register user if OTP is correct
       if (name && pin) {
         await registerUser(name, phone, pin);
-        router.push("/login");
+        router.push("/login?registered=true");
       } else {
         throw new Error("Missing registration details.");
       }

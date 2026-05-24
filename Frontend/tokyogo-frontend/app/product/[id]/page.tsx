@@ -8,10 +8,9 @@ import { ApiProductDetail, ApiUnit, ApiProduct } from "../../../types/api";
 import { normalizeUnit } from "../../../services/config";
 import { getProductDetail } from "../../../services/productService";
 import { getProducts } from "../../../services/productService";
-import { addToCart, AuthRequiredError } from "../../../services/cartservice";
+import { addToCart, AuthRequiredError, getCartCount, isLoggedIn } from "../../../services/cartservice";
 import LoginPromptModal from "../../components/LoginPromptModal";
 import { useAuth } from "../../../hooks/useAuth";
-import { toast } from "sonner";
 
 const UNIT_OPTIONS = [
   { norm: "Pcs", label: "Piece", matches: ["pcs", "piece"] },
@@ -141,9 +140,11 @@ function SearchIcon({ className = "h-5 w-5" }: { className?: string }) {
 function UserMenu() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMounted(true);
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
@@ -153,7 +154,7 @@ function UserMenu() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (!user) {
+  if (!mounted || !user) {
     return (
       <Link href="/login" aria-label="Account" className="text-black/50 hover:text-primary transition-colors">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
@@ -220,7 +221,6 @@ function getSavingsBadge(normUnit: string): string | null {
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
   const productId = (params?.id as string) || "";
 
   const [product, setProduct] = useState<ApiProductDetail | null>(null);
@@ -228,11 +228,19 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [selectedUnits, setSelectedUnits] = useState<Set<string>>(new Set());
-  const [unitQuantities, setUnitQuantities] = useState<Record<string, number>>({});
+  const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
+  const [quantityInput, setQuantityInput] = useState("1");
+  const [unitError, setUnitError] = useState("");
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartSuccess, setCartSuccess] = useState("");
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [cartConfirmation, setCartConfirmation] = useState<{
+    show: boolean;
+    quantity: number;
+    unitLabel: string;
+    productName: string;
+  } | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [activeTab, setActiveTab] = useState<"description" | "ingredients" | "shipping">("description");
 
@@ -265,6 +273,9 @@ export default function ProductDetailPage() {
 
     loadProduct();
 
+    // Load cart count
+    getCartCount().then(setCartCount).catch(() => setCartCount(0));
+
     // Load related products
     getProducts()
       .then((all) => {
@@ -274,65 +285,86 @@ export default function ProductDetailPage() {
       .catch(() => setRelated([]));
   }, [productId]);
 
-  function toggleUnit(unitKey: string) {
-    setSelectedUnits((prev) => {
-      const next = new Set(prev);
-      if (next.has(unitKey)) {
-        next.delete(unitKey);
-      } else {
-        next.add(unitKey);
-        setUnitQuantities((qPrev) => ({ ...qPrev, [unitKey]: qPrev[unitKey] || 1 }));
-      }
-      return next;
-    });
+  function selectUnit(unitKey: string) {
+    setSelectedUnit(unitKey);
+    setUnitError("");
   }
 
-  function changeUnitQuantity(unitKey: string, delta: number) {
-    setUnitQuantities((prev) => ({
-      ...prev,
-      [unitKey]: Math.max(1, (prev[unitKey] || 1) + delta),
-    }));
+  function getQuantityValue() {
+    const parsed = parseInt(quantityInput, 10);
+    return Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
   }
 
-  function handleUnitInput(unitKey: string, raw: string) {
-    const val = parseInt(raw, 10);
-    setUnitQuantities((prev) => ({
-      ...prev,
-      [unitKey]: isNaN(val) || val < 1 ? 1 : val,
-    }));
+  function changeQuantity(delta: number) {
+    const next = Math.max(1, getQuantityValue() + delta);
+    setQuantityInput(String(next));
+  }
+
+  function handleQuantityInput(raw: string) {
+    const digitsOnly = raw.replace(/[^0-9]/g, "");
+    setQuantityInput(digitsOnly);
+
+    if (digitsOnly !== "") {
+      setQuantityInput(String(Math.max(1, parseInt(digitsOnly, 10))));
+    }
+  }
+
+  function commitQuantityInput() {
+    const next = getQuantityValue();
+    setQuantityInput(String(next));
   }
 
   async function handleAddToCart() {
-    if (!user) {
+    if (!isLoggedIn()) {
       setShowLoginPrompt(true);
       return;
     }
-    if (!product || selectedUnits.size === 0) return;
+    if (!product || !selectedUnit) {
+      setUnitError("Pilih satuan terlebih dahulu");
+      return;
+    }
     setAddingToCart(true);
     setCartSuccess("");
+    setCartConfirmation(null);
     try {
-      const selected = Array.from(selectedUnits);
-      for (const unitKey of selected) {
-        const matchedUnit = product.unitList?.find((u) => u.unit === unitKey);
-        if (matchedUnit && isUnitAvailable(matchedUnit)) {
-          const qty = unitQuantities[unitKey] || 1;
-          await addToCart({
-            productId: productId,
-            quantity: qty,
-            unit: [matchedUnit.id || matchedUnit.unit],
-          });
+      const matchedUnit = product.unitList?.find((u) => u.unit === selectedUnit);
+      if (matchedUnit && isUnitAvailable(matchedUnit)) {
+        const unitId = matchedUnit.id;
+        if (!unitId) {
+          setCartSuccess("Satuan produk belum siap. Silakan pilih satuan lain atau coba lagi.");
+          setAddingToCart(false);
+          return;
         }
+        const orderQuantity = getQuantityValue();
+        setQuantityInput(String(orderQuantity));
+        await addToCart({
+          productId: product.id,
+          quantity: orderQuantity,
+          unit: [unitId],
+        });
+        // Update cart count
+        const newCount = await getCartCount();
+        setCartCount(newCount);
+        // Show persistent confirmation
+        const option = UNIT_OPTIONS.find((o) => normalizeUnit(matchedUnit.unit) === o.norm);
+        setCartConfirmation({
+          show: true,
+          quantity: orderQuantity,
+          unitLabel: option?.label || matchedUnit.unit,
+          productName: product.name,
+        });
+      } else {
+        setUnitError("Satuan ini belum tersedia. Pilih satuan lain terlebih dahulu.");
       }
-      setCartSuccess("Added to cart successfully!");
-      setTimeout(() => setCartSuccess(""), 3000);
-    } catch (e) {
+    } catch (e: unknown) {
       if (e instanceof AuthRequiredError) {
         setShowLoginPrompt(true);
         return;
       }
       console.error("Failed to add to cart:", e);
-      setCartSuccess("Failed to add to cart.");
-      setTimeout(() => setCartSuccess(""), 3000);
+      const msg = e instanceof Error ? e.message : "Gagal menambahkan barang ke keranjang.";
+      setCartSuccess(msg);
+      setTimeout(() => setCartSuccess(""), 5000);
     } finally {
       setAddingToCart(false);
     }
@@ -401,6 +433,11 @@ export default function ProductDetailPage() {
             <UserMenu />
             <Link href="/cart" aria-label="Cart" className="hover:text-primary transition-colors relative">
               <CartIcon />
+              {cartCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[0.6rem] font-bold text-white shadow-sm">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
             </Link>
           </div>
         </div>
@@ -519,14 +556,14 @@ export default function ProductDetailPage() {
                   const matchedUnit = findUnitForOption(product, option.norm);
                   const avail = isUnitAvailable(matchedUnit);
                   const unitKey = matchedUnit?.unit || option.norm;
-                  const isSelected = matchedUnit ? selectedUnits.has(unitKey) : false;
+                  const isSelected = matchedUnit ? selectedUnit === unitKey : false;
 
                   return (
                     <button
                       key={option.norm}
                       disabled={!avail}
                       onClick={() => {
-                        if (matchedUnit) toggleUnit(unitKey);
+                        if (matchedUnit) selectUnit(unitKey);
                       }}
                       className={`relative flex flex-col items-center rounded-2xl border-2 px-3 py-4 transition-all duration-200 ${
                         isSelected
@@ -536,6 +573,17 @@ export default function ProductDetailPage() {
                             : "border-black/[0.04] bg-black/[0.02] cursor-not-allowed opacity-50"
                       }`}
                     >
+                      {/* Radio indicator */}
+                      <span
+                        className={`mb-2 flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all ${
+                          isSelected
+                            ? "border-primary bg-primary"
+                            : "border-black/20 bg-white"
+                        }`}
+                      >
+                        {isSelected && <span className="h-2 w-2 rounded-full bg-white" />}
+                      </span>
+
                       <span className={`text-sm font-bold ${avail ? "text-[#101210]" : "text-black/30"}`}>
                         {option.label}
                       </span>
@@ -557,94 +605,125 @@ export default function ProductDetailPage() {
                       )}
 
                       {isSelected && (
-                        <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white shadow-sm">
+                        <span className="mt-2 inline-flex items-center gap-1 text-[0.65rem] font-bold text-primary">
                           <CheckIcon className="h-3 w-3" />
+                          Selected
                         </span>
                       )}
                     </button>
                   );
                 })}
               </div>
+
+              {unitError && (
+                <div className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-600 text-center">
+                  {unitError}
+                </div>
+              )}
             </div>
 
-            {/* Selected unit quantity rows */}
-            {selectedUnits.size > 0 && (
-              <div className="mt-5 flex flex-col gap-3">
-                {UNIT_OPTIONS.map((option) => {
-                  const matchedUnit = findUnitForOption(product, option.norm);
-                  if (!matchedUnit || !isUnitAvailable(matchedUnit)) return null;
-                  const unitKey = matchedUnit.unit;
-                  if (!selectedUnits.has(unitKey)) return null;
+            {/* Quantity & Add to Cart */}
+            <div className="mt-5 flex flex-col gap-3">
+              {selectedUnit && (() => {
+                const matchedUnit = product.unitList?.find((u) => u.unit === selectedUnit);
+                if (!matchedUnit || !isUnitAvailable(matchedUnit)) return null;
+                const option = UNIT_OPTIONS.find((o) => normalizeUnit(matchedUnit.unit) === o.norm);
+                const label = option?.label || matchedUnit.unit;
+                const displayQuantity = getQuantityValue();
+                const lineTotal = (matchedUnit.sellPrice || 0) * displayQuantity;
 
-                  const qty = unitQuantities[unitKey] || 1;
-                  const lineTotal = (matchedUnit.sellPrice || 0) * qty;
+                return (
+                  <div className="rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_2px_12px_rgba(0,39,25,0.04)]">
+                    {/* Unit summary */}
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-medium text-black/60">
+                        {label} — Rp {(matchedUnit.sellPrice || 0).toLocaleString("id-ID")} each
+                      </span>
+                      <span className="text-[1.1rem] font-extrabold text-[#101210]">
+                        Rp {lineTotal.toLocaleString("id-ID")}
+                      </span>
+                    </div>
 
-                  return (
-                    <div
-                      key={unitKey}
-                      className="rounded-2xl border border-black/[0.06] bg-white p-4 shadow-[0_2px_12px_rgba(0,39,25,0.04)]"
-                    >
-                      {/* Top row: unit info + line total */}
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium text-black/60">
-                          {option.label} — Rp {(matchedUnit.sellPrice || 0).toLocaleString("id-ID")} each
-                        </span>
-                        <span className="text-[1.1rem] font-extrabold text-[#101210]">
-                          Rp {lineTotal.toLocaleString("id-ID")}
+                    {/* Helper text */}
+                    {matchedUnit.convertQuantity && matchedUnit.convertQuantity > 1 && (
+                      <div className="mb-4 flex items-center gap-2 rounded-xl bg-[#f0fdf4] px-3 py-2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-primary shrink-0">
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 16v-4M12 8h.01" strokeLinecap="round" />
+                        </svg>
+                        <span className="text-xs font-bold text-primary">
+                          1 {label} = {matchedUnit.convertQuantity} Pcs
                         </span>
                       </div>
+                    )}
 
-                      {/* Bottom row: quantity label + stepper */}
-                      <div className="flex items-center gap-4">
-                        <span className="text-[0.6rem] font-bold uppercase tracking-[0.12em] text-black/35">Quantity</span>
-                        <div className="flex h-10 items-center rounded-xl border border-black/[0.08] bg-white px-1">
+                    {/* Quantity stepper */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[0.7rem] font-bold uppercase tracking-[0.12em] text-black/40">Quantity</span>
+                        <div className="flex h-11 items-center rounded-xl border border-black/[0.08] bg-[#f9faf8] px-1">
                           <button
-                            onClick={() => changeUnitQuantity(unitKey, -1)}
-                            disabled={qty <= 1}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-black/40 hover:bg-[#f6f8f5] disabled:opacity-30 transition-all"
+                            onClick={() => changeQuantity(-1)}
+                            disabled={getQuantityValue() <= 1}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-black/40 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all"
                           >
-                            <MinusIcon className="h-3.5 w-3.5" />
+                            <MinusIcon className="h-4 w-4" />
                           </button>
                           <input
                             type="number"
                             min="1"
-                            value={qty}
-                            onChange={(e) => handleUnitInput(unitKey, e.target.value)}
-                            className="w-12 bg-transparent text-center text-sm font-bold text-[#101210] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            inputMode="numeric"
+                            value={quantityInput}
+                            onChange={(e) => handleQuantityInput(e.target.value)}
+                            onBlur={commitQuantityInput}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                commitQuantityInput();
+                                e.currentTarget.blur();
+                              }
+                            }}
+                            className="w-20 bg-white rounded-lg text-center text-base font-bold text-[#101210] outline-none focus:ring-2 focus:ring-primary/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           />
                           <button
-                            onClick={() => changeUnitQuantity(unitKey, 1)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-black/40 hover:bg-[#f6f8f5] transition-all"
+                            onClick={() => changeQuantity(1)}
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-black/40 hover:bg-white hover:shadow-sm transition-all"
                           >
-                            <PlusIcon className="h-3.5 w-3.5" />
+                            <PlusIcon className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
+
+                      {/* Selected summary pill */}
+                      <div className="rounded-full bg-primary/10 px-4 py-2">
+                        <span className="text-xs font-bold text-primary">
+                          {displayQuantity} {label}
+                        </span>
+                      </div>
                     </div>
-                  );
-                })}
-
-                {/* Finalize Add to Cart */}
-                <button
-                  onClick={handleAddToCart}
-                  disabled={addingToCart}
-                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0 disabled:opacity-60"
-                >
-                  {addingToCart ? (
-                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  ) : (
-                    <CartIcon className="h-4 w-4" />
-                  )}
-                  {addingToCart ? "Adding…" : "Add to Cart"}
-                </button>
-
-                {cartSuccess && (
-                  <div className={`rounded-xl px-4 py-2.5 text-sm font-bold text-center ${cartSuccess.includes("Failed") ? "bg-red-50 text-red-600" : "bg-[#f0fdf4] text-primary"}`}>
-                    {cartSuccess}
                   </div>
+                );
+              })()}
+
+              {/* Add to Cart */}
+              <button
+                onClick={handleAddToCart}
+                disabled={addingToCart}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0 disabled:opacity-60"
+              >
+                {addingToCart ? (
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <CartIcon className="h-4 w-4" />
                 )}
-              </div>
-            )}
+                {addingToCart ? "Adding…" : "Add to Cart"}
+              </button>
+
+              {cartSuccess && (
+                <div className={`rounded-xl px-4 py-2.5 text-sm font-bold text-center ${cartSuccess.includes("Failed") ? "bg-red-50 text-red-600" : "bg-[#f0fdf4] text-primary"}`}>
+                  {cartSuccess}
+                </div>
+              )}
+            </div>
 
             {/* Feature badges */}
             <div className="mt-6 flex gap-3">
@@ -836,6 +915,59 @@ export default function ProductDetailPage() {
 
       {/* ── Login Prompt Modal ── */}
       <LoginPromptModal isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
+
+      {/* ── Add To Cart Confirmation Popup ── */}
+      {cartConfirmation?.show && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#001c12]/45 px-5 py-8 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cart-confirmation-title"
+        >
+          <div className="w-full max-w-[420px] rounded-[28px] border border-white/70 bg-white p-6 text-center shadow-[0_28px_80px_rgba(0,39,25,0.24)]">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white shadow-[0_10px_28px_rgba(0,105,65,0.28)]">
+              <CheckIcon className="h-7 w-7" />
+            </div>
+
+            <p className="mt-5 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-primary">
+              Berhasil ditambahkan
+            </p>
+            <h2 id="cart-confirmation-title" className="mt-2 font-headline text-2xl font-extrabold tracking-[-0.03em] text-[#101210]">
+              Barang sudah masuk ke keranjang
+            </h2>
+            <p className="mt-3 text-sm font-medium leading-6 text-black/55">
+              {cartConfirmation.quantity} {cartConfirmation.unitLabel} — {cartConfirmation.productName}
+            </p>
+
+            <div className="mt-6 grid gap-3">
+              <Link
+                href="/cart"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all hover:-translate-y-0.5 hover:bg-primary-dim"
+              >
+                <CartIcon className="h-4 w-4" />
+                Lihat Keranjang
+              </Link>
+              <button
+                onClick={() => {
+                  setCartConfirmation(null);
+                  setSelectedUnit(null);
+                  setQuantityInput("1");
+                  router.push("/product/category");
+                }}
+                className="flex w-full items-center justify-center rounded-2xl border border-black/[0.08] bg-[#f9faf8] py-4 text-sm font-bold text-[#101210] transition-all hover:bg-white hover:shadow-sm"
+              >
+                Lanjut Belanja
+              </button>
+              <button
+                onClick={() => setCartConfirmation(null)}
+                className="py-2 text-sm font-bold text-black/40 transition hover:text-primary"
+              >
+                Tetap di halaman ini
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Footer ── */}
       <footer className="border-t border-black/5 bg-white">

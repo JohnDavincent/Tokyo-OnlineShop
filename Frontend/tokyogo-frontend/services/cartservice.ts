@@ -1,39 +1,7 @@
 import { CART_API_BASE_URL } from "./config";
+import { AuthRequiredError, authFetch, getAccessToken, isLoggedIn, refreshIfPossible } from "./authFetch";
 
-export class AuthRequiredError extends Error {
-    constructor() {
-        super("AUTH_REQUIRED");
-        this.name = "AuthRequiredError";
-    }
-}
-
-function getToken(): string | null {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("token");
-}
-
-function ensureAuth(): string {
-    const token = getToken();
-    if (!token) {
-        throw new AuthRequiredError();
-    }
-    return token;
-}
-
-function getAuthHeaders(): Record<string, string> {
-    const token = getToken();
-    const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-    };
-    if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-    }
-    return headers;
-}
-
-export function isLoggedIn(): boolean {
-    return !!getToken();
-}
+export { AuthRequiredError, isLoggedIn };
 
 export function redirectToLogin() {
     if (typeof window !== "undefined") {
@@ -87,11 +55,11 @@ export interface CartListResponse {
     };
 }
 
+type MutationResponse = Record<string, unknown> | void;
+
 export async function addToCart(payload: AddCartItemRequest): Promise<AddCartResponse> {
-    ensureAuth();
-    const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart`, {
+    const response = await authFetch(`${CART_API_BASE_URL}/tokyo/gropup/cart`, {
         method: "POST",
-        headers: getAuthHeaders(),
         body: JSON.stringify(payload),
     });
 
@@ -100,7 +68,7 @@ export async function addToCart(payload: AddCartItemRequest): Promise<AddCartRes
         try {
             const errorData = await response.json();
             if (errorData.message) errorMsg = errorData.message;
-        } catch (e) {
+        } catch {
             // Ignored
         }
         throw new Error(errorMsg);
@@ -109,11 +77,9 @@ export async function addToCart(payload: AddCartItemRequest): Promise<AddCartRes
     return response.json();
 }
 
-export async function updateCartItem(productId: string, quantity: number): Promise<any> {
-    ensureAuth();
-    const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/${productId}/quantity/`, {
+export async function updateCartItem(productId: string, quantity: number): Promise<MutationResponse> {
+    const response = await authFetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/${productId}/quantity/`, {
         method: "PATCH",
-        headers: getAuthHeaders(),
         body: JSON.stringify(quantity),
     });
 
@@ -122,7 +88,7 @@ export async function updateCartItem(productId: string, quantity: number): Promi
         try {
             const errorData = await response.json();
             if (errorData.message) errorMsg = errorData.message;
-        } catch (e) {
+        } catch {
             // Ignored
         }
         throw new Error(errorMsg);
@@ -131,11 +97,9 @@ export async function updateCartItem(productId: string, quantity: number): Promi
     return response.json();
 }
 
-export async function removeFromCart(cartDetailId: string): Promise<any> {
-    ensureAuth();
-    const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/${cartDetailId}`, {
+export async function removeFromCart(cartDetailId: string): Promise<MutationResponse> {
+    const response = await authFetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/${cartDetailId}`, {
         method: "DELETE",
-        headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -143,7 +107,7 @@ export async function removeFromCart(cartDetailId: string): Promise<any> {
         try {
             const errorData = await response.json();
             if (errorData.message) errorMsg = errorData.message;
-        } catch (e) {
+        } catch {
             // Ignored
         }
         throw new Error(errorMsg);
@@ -156,11 +120,10 @@ export async function removeFromCart(cartDetailId: string): Promise<any> {
 }
 
 export async function getCartList(): Promise<CartListResponse> {
-    // GET /cart/list is permitAll on backend — no auth required to view
-    const response = await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/list`, {
-        method: "GET",
-        headers: getAuthHeaders(),
-    });
+    const token = getAccessToken();
+    let response = token
+        ? await authFetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/list`, { method: "GET" })
+        : await fetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/list`, { method: "GET" });
 
     if (!response.ok) {
         if (response.status === 404) {
@@ -178,11 +141,30 @@ export async function getCartList(): Promise<CartListResponse> {
         try {
             const errorData = await response.json();
             if (errorData.message) errorMsg = errorData.message;
-        } catch (e) {
+        } catch {
             // Ignored
         }
         throw new Error(errorMsg);
     }
 
-    return response.json();
+    const cartResponse = (await response.json()) as CartListResponse;
+
+    if (token && cartResponse.message === "Please login first" && await refreshIfPossible()) {
+        response = await authFetch(`${CART_API_BASE_URL}/tokyo/gropup/cart/list`, { method: "GET" });
+        return response.json();
+    }
+
+    return cartResponse;
+}
+
+export async function getCartCount(): Promise<number> {
+    try {
+        const res = await getCartList();
+        if (res.data && res.data.itemList) {
+            return res.data.itemList.reduce((sum, item) => sum + item.quantity, 0);
+        }
+        return 0;
+    } catch {
+        return 0;
+    }
 }

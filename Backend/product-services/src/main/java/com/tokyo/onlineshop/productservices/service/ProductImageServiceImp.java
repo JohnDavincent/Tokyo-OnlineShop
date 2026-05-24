@@ -40,7 +40,7 @@ public class ProductImageServiceImp implements ProductImageService {
         if (files == null || files.isEmpty()) {
             throw new RuntimeException("Image is empty");
         }
-
+        
         String safeSlug = slug == null || slug.isBlank()
                 ? "product-image"
                 : slug.strip().toLowerCase(Locale.ROOT).replaceAll("\\s+", "-");

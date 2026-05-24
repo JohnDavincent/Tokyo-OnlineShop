@@ -13,5 +13,4 @@ public class CartServicesApplication {
     public static void main(String[] args) {
         SpringApplication.run(CartServicesApplication.class, args);
     }
-
 }

@@ -7,10 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -25,5 +22,21 @@ public class TransactionController {
     ResponseEntity<BaseResponse> createTransaction(@RequestBody AddTransactionRequest request){
         BaseResponse response = transactionService.createTransaction(request.getAddressId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+    @GetMapping("list")
+    ResponseEntity<BaseResponse> getTransactionList(
+            @RequestParam(name = "currentPage", defaultValue = "1") int currentPage,
+            @RequestParam(name = "pageSize",defaultValue = "10") int pageSize,
+            @RequestParam(name = "startDate", required = false) String startDate,
+            @RequestParam(name = "endDate", required = false) String endDate
+    ){
+        BaseResponse response = transactionService.getTransactionList(currentPage,pageSize,startDate,endDate);
+        return new ResponseEntity<>(response,response.code());
+    }
+
+    @GetMapping("/{transactionId}")
+    ResponseEntity<BaseResponse> getTransactionDetail(@PathVariable UUID transactionId) {
+        BaseResponse response = transactionService.getTransactionDetail(transactionId);
+        return new ResponseEntity<>(response, response.code());
     }
 }

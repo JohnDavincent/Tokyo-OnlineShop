@@ -361,6 +361,200 @@ function AddressDropdown({
   );
 }
 
+/* ─── Checkout Review Modal ─────────────────────────────── */
+function CheckoutReviewModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  items,
+  grandTotal,
+  selectedAddress,
+  isProcessing,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  items: CartListItem[];
+  grandTotal: number;
+  selectedAddress: UserAddress | null;
+  isProcessing: boolean;
+}) {
+  if (!isOpen) return null;
+
+  const addr = selectedAddress;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="relative w-full max-w-[520px] overflow-hidden rounded-t-[28px] bg-white shadow-[0_-20px_80px_rgba(0,0,0,0.2)] sm:rounded-[28px] border border-white/40 flex flex-col max-h-[92dvh] sm:max-h-[90vh]"
+        style={{ animation: "slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both" }}
+      >
+        {/* Decorative background */}
+        <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/10 blur-[40px] pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-emerald-500/10 blur-[40px] pointer-events-none" />
+
+        {/* Header */}
+        <div className="relative shrink-0 px-6 pt-6 pb-4 flex items-center justify-between border-b border-black/[0.05]">
+          <div>
+            <h2 className="font-headline text-[1.25rem] font-extrabold tracking-[-0.02em] text-[#101210]">
+              Review Your Order
+            </h2>
+            <p className="text-sm font-medium text-black/50 mt-0.5">
+              Please check your details before confirming
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/[0.04] text-black/50 transition hover:bg-black/[0.08] hover:text-black/80"
+            aria-label="Close"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-5 w-5">
+              <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="relative overflow-y-auto overscroll-contain px-6 py-5 space-y-5">
+          {/* Delivery Address */}
+          <div>
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-black/40 mb-3">Deliver To</p>
+            {addr ? (
+              <div className="rounded-2xl border border-black/[0.06] bg-[#f6f8f5] p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <MapPinIcon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-extrabold text-[#101210]">{addr.recipientName}</span>
+                      {addr.isDefaultShipping && (
+                        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-emerald-600">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-semibold text-black/50 mt-0.5">{addr.recipientPhoneNumber}</p>
+                    <p className="mt-2 text-sm font-bold text-[#101210] leading-relaxed">
+                      {addr.address}
+                    </p>
+                    <p className="text-xs font-medium text-black/40">
+                      {addr.city}, {addr.province} {addr.postalCode}
+                    </p>
+                    {addr.notes && (
+                      <p className="mt-1.5 text-xs font-medium text-black/35 italic">Note: {addr.notes}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-black/10 bg-[#f6f8f5] p-5 text-center">
+                <p className="text-sm font-bold text-black/50">No address selected</p>
+              </div>
+            )}
+          </div>
+
+          {/* Items */}
+          <div>
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-black/40 mb-3">Items ({items.length})</p>
+            <div className="flex flex-col gap-3">
+              {items.map((item, idx) => {
+                const normUnit = normalizeUnit(item.productUnit);
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-3 rounded-2xl border border-black/[0.05] bg-[#f6f8f5] p-3"
+                  >
+                    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white">
+                      {item.productUrl ? (
+                        <img
+                          src={resolveProductImage(item.productUrl)}
+                          alt={item.productName}
+                          className="h-full w-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = resolveProductImage(); }}
+                        />
+                      ) : (
+                        <span className="font-headline text-xs font-extrabold text-primary/30">
+                          {getInitials(item.productName)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-[#101210] truncate">{item.productName}</p>
+                      <p className="text-xs text-black/45 mt-0.5">
+                        {item.quantity} × {normUnit}
+                      </p>
+                    </div>
+                    <p className="text-sm font-extrabold text-[#101210] shrink-0">
+                      Rp {item.subTotal.toLocaleString("id-ID")}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Total */}
+          <div className="rounded-2xl border border-black/[0.06] bg-white p-4 shadow-[0_4px_16px_rgba(0,39,25,0.04)]">
+            <div className="flex items-center justify-between">
+              <span className="text-[0.8rem] font-bold uppercase tracking-[0.12em] text-black/40">Grand Total</span>
+              <span className="font-headline text-[1.5rem] font-extrabold tracking-[-0.04em] text-primary">
+                Rp {grandTotal.toLocaleString("id-ID")}
+              </span>
+            </div>
+          </div>
+
+          {/* Confirmation message */}
+          <div className="rounded-2xl bg-amber-50/60 border border-amber-200/60 p-4 text-center">
+            <p className="text-sm font-bold text-amber-800">
+              Apakah anda yakin mau checkout?
+            </p>
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="relative shrink-0 px-6 py-4 border-t border-black/[0.05] bg-white">
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isProcessing}
+              className="flex-1 rounded-2xl border border-black/[0.08] bg-black/[0.03] py-3.5 text-sm font-bold text-black/60 transition hover:bg-black/[0.06] hover:text-[#101210] disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={isProcessing}
+              className="flex-[2] rounded-2xl bg-primary py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.3)] disabled:opacity-60 disabled:hover:translate-y-0"
+            >
+              {isProcessing ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Processing…
+                </span>
+              ) : (
+                "Confirm Checkout"
+              )}
+            </button>
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Checkout Confirmation Modal ───────────────────────── */
 function CheckoutConfirmationModal({
   result,
@@ -492,6 +686,7 @@ export default function CartPage() {
   const [addressLoading, setAddressLoading] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState<TransactionResponse | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [showCheckoutReview, setShowCheckoutReview] = useState(false);
 
   const loadCart = useCallback(async () => {
     setLoading(true);
@@ -576,14 +771,20 @@ export default function CartPage() {
     }
   }
 
-  async function handleCheckout() {
+  function openCheckoutReview() {
     if (!selectedAddress) {
       toast.error("Please select a delivery address first.");
       return;
     }
+    setShowCheckoutReview(true);
+  }
+
+  async function handleConfirmCheckout() {
+    if (!selectedAddress) return;
     setCheckoutLoading(true);
     try {
       const result = await checkoutTransaction(selectedAddress.addressId);
+      setShowCheckoutReview(false);
       setCheckoutResult(result);
       toast.success(result.message || "Order placed successfully!");
     } catch (e: any) {
@@ -852,7 +1053,7 @@ export default function CartPage() {
 
               {user ? (
                 <button
-                  onClick={handleCheckout}
+                  onClick={openCheckoutReview}
                   disabled={checkoutLoading}
                   className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0 disabled:opacity-60 disabled:hover:translate-y-0"
                 >
@@ -900,6 +1101,17 @@ export default function CartPage() {
 
       {/* ── Login Prompt Modal ── */}
       <LoginPromptModal isOpen={showLoginPrompt} onClose={() => setShowLoginPrompt(false)} />
+
+      {/* ── Checkout Review Modal ── */}
+      <CheckoutReviewModal
+        isOpen={showCheckoutReview}
+        onClose={() => setShowCheckoutReview(false)}
+        onConfirm={handleConfirmCheckout}
+        items={items}
+        grandTotal={grandTotal}
+        selectedAddress={selectedAddress}
+        isProcessing={checkoutLoading}
+      />
 
       {/* ── Checkout Confirmation Modal ── */}
       {checkoutResult && (

@@ -9,7 +9,7 @@ import java.util.List;
 @Data
 @Builder
 public class AddTransactionResponseDto {
-    private String transactionId;
+    private String orderId;
     private BigDecimal GrandTotal;
     private AddTransactionAddressResponseDto userAddress;
     private List<AddTransactionDetailResponseDto> transactionDetail;

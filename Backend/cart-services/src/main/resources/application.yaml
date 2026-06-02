@@ -6,10 +6,13 @@ spring:
     name: cart-services
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/tokyo_db
-    username: admin
+    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
+    username: postgres.wgdwwibyjiewwhiwuwme
     password: TokyoGuntungOnline290705
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
 
   jpa:
     hibernate:

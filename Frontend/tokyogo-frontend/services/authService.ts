@@ -178,3 +178,46 @@ export async function getUserAddressList(): Promise<UserAddress[]> {
 
   return response.json();
 }
+
+export interface CreateAddressPayload {
+  fullAddress: string;
+  province: string;
+  notes: string;
+  recipientName: string;
+  recipientPhone: string;
+  city: string;
+  postalCode: string;
+}
+
+export interface CreateAddressDto {
+  fullAddress: string;
+  Province: string;
+  notes: string;
+  recipientName: string;
+  recipientPhone: string;
+  city: string;
+  postalCode: string;
+}
+
+export async function addAddress(payload: CreateAddressPayload): Promise<CreateAddressDto> {
+  const response = await authFetch(`${AUTH_API_BASE_URL}/tokyogo/user/address`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let errorMsg = "Failed to add address";
+    try {
+      const errorData = await response.json();
+      if (errorData.message) errorMsg = errorData.message;
+    } catch {
+      // Ignored
+    }
+    throw new Error(errorMsg);
+  }
+
+  return response.json();
+}

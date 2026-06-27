@@ -278,13 +278,16 @@ export default function ProfilePage() {
 
         {/* Stats Cards */}
         <div className="mt-5 grid grid-cols-3 gap-3">
-          <div className="flex flex-col items-center rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_4px_16px_rgba(0,39,25,0.04)]">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
+          <Link
+            href="/orders"
+            className="group flex flex-col items-center rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_4px_16px_rgba(0,39,25,0.04)] transition hover:border-primary/20 hover:bg-primary/[0.02] hover:shadow-[0_8px_24px_rgba(0,105,65,0.08)]"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary mb-3 transition group-hover:bg-primary group-hover:text-white">
               <PackageIcon className="h-5 w-5" />
             </div>
             <span className="text-[1.35rem] font-extrabold text-[#101210]">0</span>
             <span className="text-xs font-medium text-black/50">Orders</span>
-          </div>
+          </Link>
           <div className="flex flex-col items-center rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_4px_16px_rgba(0,39,25,0.04)]">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-500 mb-3">
               <HeartIcon className="h-5 w-5" />

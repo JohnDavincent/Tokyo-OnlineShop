@@ -2,6 +2,7 @@ package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.onlineshop.productservices.dto.CreateProductRequest;
+import com.tokyo.onlineshop.productservices.dto.FlashSaleRequest;
 import com.tokyo.onlineshop.productservices.dto.GetProductClientResponse;
 import com.tokyo.onlineshop.productservices.dto.RequestProductListDto;
 
@@ -16,6 +17,11 @@ public interface ProductService {
     BaseResponse getProductDetail(UUID id);
     BaseResponse getProductByCategory(UUID categoryId, int page, int size);
     BaseResponse getProductList(RequestProductListDto request);
+    BaseResponse getTopSoldProducts();
+    BaseResponse getNewProducts();
+    BaseResponse markProductAsNew(UUID id);
+    BaseResponse markProductAsFlashSale(UUID id, FlashSaleRequest request);
+    BaseResponse endFlashSale(UUID id);
     GetProductClientResponse getProduct(UUID id);
     List<GetProductClientResponse> getProductListByIds(List<UUID> ids);
 }

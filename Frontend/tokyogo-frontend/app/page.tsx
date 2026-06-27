@@ -424,6 +424,13 @@ function UserMenu() {
           >
             My Profile
           </Link>
+          <Link
+            href="/orders"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-[#101210] transition hover:bg-black/[0.04]"
+          >
+            My Orders
+          </Link>
           <button
             onClick={logout}
             className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-red-500 transition hover:bg-red-50"

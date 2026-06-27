@@ -15,6 +15,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -47,6 +48,7 @@ public class ProductServiceImp implements ProductService {
                 .stock(request.getStock())
                 .description(request.getDescription())
                 .status(ProductionStatus.AVAILABLE)
+                .totalSold(0L)
                 .isFeaturedPage(false)
                 .productUnitList(new ArrayList<>())
                 .build();
@@ -104,28 +106,8 @@ public class ProductServiceImp implements ProductService {
         }
 
         List<ProductCard> data = productList.stream()
-                .map(card -> {
-                    return ProductCard.builder()
-                            .productId(card.getId())
-                            .productName(card.getName())
-                            .url(card.getProductImageList().getFirst().getUrl())
-                            .altText(card.getProductImageList().getFirst().getUrl())
-                            .status(card.getStatus())
-                            .category(card.getCategory().getName())
-                            .unitList(
-                                    card.getProductUnitList().stream()
-                                            .map(unit -> {
-                                                    return UnitCard.builder()
-                                                            .unit(unit.getUnit())
-                                                            .convertQuantity(unit.getConvertQuantity())
-                                                            .sellPrice(unit.getUnitSellPrice())
-                                                            .status(unit.getStatus())
-                                                            .build();
-                                                    }
-                                            ).toList()
-                            )
-                            .build();
-                }).toList();
+                .map(this::mapToProductCard)
+                .toList();
 
         return BaseResponse.builder()
                 .status(HttpStatus.OK.value())
@@ -143,28 +125,8 @@ public class ProductServiceImp implements ProductService {
         }
 
         List<ProductCard> data = productList.stream()
-                .map(card -> {
-                    return ProductCard.builder()
-                            .productId(card.getId())
-                            .productName(card.getName())
-                            .url(card.getProductImageList().getFirst().getUrl())
-                            .altText(card.getProductImageList().getFirst().getUrl())
-                            .status(card.getStatus())
-                            .category(card.getCategory().getName())
-                            .unitList(
-                                    card.getProductUnitList().stream()
-                                            .map(unit -> {
-                                                        return UnitCard.builder()
-                                                                .unit(unit.getUnit())
-                                                                .convertQuantity(unit.getConvertQuantity())
-                                                                .sellPrice(unit.getUnitSellPrice())
-                                                                .status(unit.getStatus())
-                                                                .build();
-                                                    }
-                                            ).toList()
-                            )
-                            .build();
-                }).toList();
+                .map(this::mapToProductCard)
+                .toList();
 
         return BaseResponse.builder()
                 .status(HttpStatus.OK.value())
@@ -248,6 +210,7 @@ public class ProductServiceImp implements ProductService {
                                     .status(product.getProductStatus())
                                     .url(product.getImageUrl())
                                     .category(product.getCategoryName())
+                                    .isHot(product.getIsHot())
                                     .unitList(productUnits.getOrDefault(product.getProductId(),List.of()))
                                     .build()
                             ).toList();
@@ -282,25 +245,8 @@ public class ProductServiceImp implements ProductService {
         Page<Product> result = productRepository.findAll(spec,PageRequest.of(request.getCurrentPage(),request.getPageSize(),sort));
 
         List<ProductCard> productCards = result.getContent().stream()
-                .map(product -> ProductCard.builder()
-                        .productId(product.getId())
-                        .productName(product.getName())
-                        .url(product.getProductImageList().isEmpty() ? "" : product.getProductImageList().getFirst().getUrl())
-                        .altText(product.getProductImageList().isEmpty() ? "" : product.getProductImageList().getFirst().getUrl())
-                        .status(product.getStatus())
-                        .category(product.getCategory() != null ? product.getCategory().getName() : "")
-                        .unitList(
-                                product.getProductUnitList().stream()
-                                        .map(unit -> UnitCard.builder()
-                                                .unit(unit.getUnit())
-                                                .convertQuantity(unit.getConvertQuantity())
-                                                .sellPrice(unit.getUnitSellPrice())
-                                                .status(unit.getStatus())
-                                                .build()
-                                        ).toList()
-                        )
-                        .build()
-                ).toList();
+                .map(this::mapToProductCard)
+                .toList();
 
         PagingResponse pagingData = new PagingResponse(productCards, result.getTotalPages(), result.getTotalElements(), result.getNumber() + 1, result.getSize());
 
@@ -309,6 +255,141 @@ public class ProductServiceImp implements ProductService {
                 .code(HttpStatus.OK)
                 .message("Products retrieved successfully")
                 .data(pagingData)
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public BaseResponse getTopSoldProducts() {
+        List<Product> productList = productRepository.findTop10ByTotalSold();
+        if (productList.isEmpty()) {
+            throw new RuntimeException("No products found");
+        }
+
+        productRepository.clearTopSoldHotFlags();
+
+        List<UUID> topIds = productList.stream()
+                .map(Product::getId)
+                .toList();
+        if (!topIds.isEmpty()) {
+            productRepository.setTopSoldHotFlags(topIds);
+        }
+
+        productList.forEach(product -> product.setIsHot(true));
+
+        List<ProductCard> data = productList.stream()
+                .map(this::mapToProductCard)
+                .toList();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Top sold products retrieved successfully")
+                .data(data)
+                .build();
+    }
+
+    @Override
+    public BaseResponse getNewProducts() {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(7);
+        List<Product> productList = productRepository.findActiveNewProducts(ProductionStatus.NEW, cutoff);
+        if (productList.isEmpty()) {
+            throw new RuntimeException("No new products found");
+        }
+
+        List<ProductCard> data = productList.stream()
+                .map(this::mapToProductCard)
+                .toList();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("New products retrieved successfully")
+                .data(data)
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public BaseResponse markProductAsNew(UUID id) {
+        if (id == null) {
+            throw new RuntimeException("Product ID is required");
+        }
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        product.setStatus(ProductionStatus.NEW);
+        product.setNewMarkedAt(LocalDateTime.now());
+        productRepository.save(product);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("productId", product.getId());
+        data.put("status", product.getStatus());
+        data.put("newMarkedAt", product.getNewMarkedAt());
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Product marked as NEW successfully")
+                .data(data)
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public BaseResponse markProductAsFlashSale(UUID id, FlashSaleRequest request) {
+        if (id == null) {
+            throw new RuntimeException("Product ID is required");
+        }
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        product.setStatus(ProductionStatus.FLASH_SALE);
+        product.setFlashSaleUntil(request != null ? request.getFlashSaleUntil() : null);
+        productRepository.save(product);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("productId", product.getId());
+        data.put("status", product.getStatus());
+        data.put("flashSaleUntil", product.getFlashSaleUntil());
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Product marked as FLASH_SALE successfully")
+                .data(data)
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public BaseResponse endFlashSale(UUID id) {
+        if (id == null) {
+            throw new RuntimeException("Product ID is required");
+        }
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        if (product.getStatus() != ProductionStatus.FLASH_SALE) {
+            throw new RuntimeException("Product is not in FLASH_SALE status");
+        }
+
+        product.setStatus(ProductionStatus.AVAILABLE);
+        product.setFlashSaleUntil(null);
+        productRepository.save(product);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("productId", product.getId());
+        data.put("status", product.getStatus());
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Flash sale ended successfully")
+                .data(data)
                 .build();
     }
 
@@ -334,6 +415,29 @@ public class ProductServiceImp implements ProductService {
                         .url(product.getProductImageList().isEmpty() ? "" : product.getProductImageList().getFirst().getUrl())
                         .build())
                 .toList();
+    }
+
+    private ProductCard mapToProductCard(Product product) {
+        String imageUrl = product.getProductImageList().isEmpty() ? "" : product.getProductImageList().getFirst().getUrl();
+        return ProductCard.builder()
+                .productId(product.getId())
+                .productName(product.getName())
+                .url(imageUrl)
+                .altText(imageUrl)
+                .status(product.getStatus())
+                .category(product.getCategory() != null ? product.getCategory().getName() : "")
+                .isHot(product.getIsHot())
+                .unitList(
+                        product.getProductUnitList().stream()
+                                .map(unit -> UnitCard.builder()
+                                        .unit(unit.getUnit())
+                                        .convertQuantity(unit.getConvertQuantity())
+                                        .sellPrice(unit.getUnitSellPrice())
+                                        .status(unit.getStatus())
+                                        .build())
+                                .toList()
+                )
+                .build();
     }
 
 }

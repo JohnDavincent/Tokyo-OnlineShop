@@ -65,6 +65,38 @@ public class ProductController {
     }
 
     @Operation(
+            summary = "Get top 10 best-selling products",
+            description = "### Section: Product\n" +
+                    "**Request:** Retrieve the top 10 products with the highest total sold.\n" +
+                    "**Response:** Returns a BaseResponse containing top sold products as ProductCard with status HOT."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Top sold products retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    })
+    @GetMapping("/hot")
+    public ResponseEntity<BaseResponse> getTopSoldProducts() {
+        BaseResponse response = productService.getTopSoldProducts();
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Get new products",
+            description = "### Section: Product\n" +
+                    "**Request:** Retrieve products currently marked as NEW within the 1-week window.\n" +
+                    "**Response:** Returns a BaseResponse containing new products as ProductCard."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "New products retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    })
+    @GetMapping("/new")
+    public ResponseEntity<BaseResponse> getNewProducts() {
+        BaseResponse response = productService.getNewProducts();
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
             summary = "Get product detail",
             description = "### Section: Product\n" +
                     "**Request:** Retrieve detailed information for a specific product by its ID.\n" +

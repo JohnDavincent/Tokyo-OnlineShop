@@ -10,5 +10,6 @@ public interface ProductCardProjection {
     String getCategoryName();
     ProductionStatus getProductStatus();
     String getImageUrl();
+    Boolean getIsHot();
 
 }

@@ -15,5 +15,6 @@ public record ProductCard(
         String url,
         String altText,
         String category,
+        Boolean isHot,
         List<UnitCard> unitList
 ) {}

@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -49,6 +50,20 @@ public class Product extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "Product_status")
     private ProductionStatus status;
+
+    @Column(name = "total_sold")
+    @Builder.Default
+    private Long totalSold = 0L;
+
+    @Column(name = "new_marked_at")
+    private LocalDateTime newMarkedAt;
+
+    @Column(name = "is_hot")
+    @Builder.Default
+    private Boolean isHot = false;
+
+    @Column(name = "flash_sale_until")
+    private LocalDateTime flashSaleUntil;
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY,cascade = {CascadeType.PERSIST,CascadeType.MERGE})
     private List<ProductUnit> productUnitList = new ArrayList<>();

@@ -1,14 +1,17 @@
 package com.tokyo.onlineshop.productservices.repository;
 
+import com.tokyo.common.ProductionStatus;
 import com.tokyo.onlineshop.productservices.entity.Product;
 import com.tokyo.onlineshop.productservices.projection.ProductCardProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,7 +51,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
                 p.name as productName,
                 p.status as productStatus,
                 pi.url as imageUrl,
-                c.name as categoryName
+                c.name as categoryName,
+                p.isHot as isHot
             FROM Product p
             LEFT JOIN p.productImageList pi
             JOIN p.category c
@@ -70,5 +74,67 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
             WHERE p.id IN :ids
             """)
     List<Product> findAllByIdWithImages(@Param("ids") List<UUID> ids);
+
+    @Query("""
+            SELECT DISTINCT p
+            FROM Product p
+            LEFT JOIN FETCH p.productImageList
+            LEFT JOIN p.productUnitList
+            ORDER BY p.totalSold DESC
+            LIMIT 10
+            """)
+    List<Product> findTop10ByTotalSold();
+
+    @Query("""
+            SELECT DISTINCT p
+            FROM Product p
+            LEFT JOIN FETCH p.productImageList
+            LEFT JOIN p.productUnitList
+            WHERE p.status = :status
+              AND p.newMarkedAt >= :cutoff
+            ORDER BY p.newMarkedAt DESC
+            """)
+    List<Product> findActiveNewProducts(
+            @Param("status") ProductionStatus status,
+            @Param("cutoff") LocalDateTime cutoff);
+
+    @Query("""
+            SELECT p
+            FROM Product p
+            WHERE p.status = :status
+              AND p.newMarkedAt < :cutoff
+            """)
+    List<Product> findExpiredNewProducts(
+            @Param("status") ProductionStatus status,
+            @Param("cutoff") LocalDateTime cutoff);
+
+    @Modifying
+    @Query("""
+            UPDATE Product p
+            SET p.isHot = false
+            WHERE p.isHot = true
+            """)
+    void clearTopSoldHotFlags();
+
+    @Modifying
+    @Query("""
+            UPDATE Product p
+            SET p.isHot = true
+            WHERE p.id IN :ids
+            """)
+    void setTopSoldHotFlags(@Param("ids") List<UUID> ids);
+
+    @Modifying
+    @Query("""
+            UPDATE Product p
+            SET p.status = :availableStatus,
+                p.flashSaleUntil = NULL
+            WHERE p.status = :flashSaleStatus
+              AND p.flashSaleUntil < :now
+            """)
+    int expireFlashSales(
+            @Param("availableStatus") ProductionStatus availableStatus,
+            @Param("flashSaleStatus") ProductionStatus flashSaleStatus,
+            @Param("now") LocalDateTime now);
 
 }

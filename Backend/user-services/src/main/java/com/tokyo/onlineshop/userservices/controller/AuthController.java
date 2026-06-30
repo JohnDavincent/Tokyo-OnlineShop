@@ -1,5 +1,7 @@
 package com.tokyo.onlineshop.userservices.controller;
 
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.onlineshop.userservices.dto.GetProfileResponse;
 import com.tokyo.onlineshop.userservices.dto.LoginRequest;
 import com.tokyo.onlineshop.userservices.dto.RefreshTokenRequest;
@@ -50,10 +52,10 @@ public class AuthController {
     })
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
-        UserEntity user = userRepository.findByPhoneNumber(request.getPhoneNumber()).orElseThrow(() -> new RuntimeException("login failed, Phone or pin is incorrect"));
+        UserEntity user = userRepository.findByPhoneNumber(request.getPhoneNumber()).orElseThrow(() -> new BadRequestException("Login failed, phone or pin is incorrect"));
 
         if (!passwordEncoder.matches(request.getPin(), user.getPinHash())) {
-            throw new RuntimeException("Login failed, phone or pin is incorrect!");
+            throw new BadRequestException("Login failed, phone or pin is incorrect!");
         }
 
         String accessToken = jwtService.generateAccessToken(user.getId(), user.getMembership(), Role.USER);
@@ -118,7 +120,7 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<GetProfileResponse> profile() {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        UserEntity user = userRepository.findById(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("User not found!!"));
+        UserEntity user = userRepository.findById(UUID.fromString(userId)).orElseThrow(() -> new NotFoundException("User not found!!"));
         GetProfileResponse response = GetProfileResponse.builder()
                 .id(user.getId())
                 .name(user.getName())

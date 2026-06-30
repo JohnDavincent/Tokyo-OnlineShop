@@ -2,8 +2,14 @@ package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.common.dto.PagingResponse;
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.ConflictException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.common.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.*;
+import com.tokyo.onlineshop.productservices.dto.request.CreateProductRequest;
+import com.tokyo.onlineshop.productservices.dto.request.FlashSaleRequest;
+import com.tokyo.onlineshop.productservices.dto.response.*;
 import com.tokyo.onlineshop.productservices.entity.*;
 import com.tokyo.onlineshop.productservices.projection.ProductCardProjection;
 import com.tokyo.onlineshop.productservices.repository.*;
@@ -15,6 +21,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,10 +42,10 @@ public class ProductServiceImp implements ProductService {
     @Override
     public BaseResponse createProduct(CreateProductRequest request) {
         if(request == null){
-            throw new RuntimeException("Field must be fill!!");
+            throw new BadRequestException("Field must be fill!!");
         }
         if(productRepository.existsByName(request.getName())){
-            throw new RuntimeException("Product Already Exists!");
+            throw new ConflictException("Product Already Exists!");
         }
         Product createProduct = Product.builder()
                 .name(request.getName())
@@ -51,13 +58,14 @@ public class ProductServiceImp implements ProductService {
                 .totalSold(0L)
                 .isFeaturedPage(false)
                 .productUnitList(new ArrayList<>())
+                .newMarkedAt(LocalDateTime.now())
                 .build();
 
-        Brand existBrand = brandRepository.findById(request.getBrand()).orElseThrow(() -> new RuntimeException("No brand found"));
+        Brand existBrand = brandRepository.findById(request.getBrand()).orElseThrow(() -> new NotFoundException("No brand found"));
         existBrand.addProduct(createProduct);
         createProduct.setBrand(existBrand);
 
-        Category category = categoryRepository.findById(request.getCategory()).orElseThrow(() -> new RuntimeException("No category found"));
+        Category category = categoryRepository.findById(request.getCategory()).orElseThrow(() -> new NotFoundException("No category found"));
         List<String> subCategoryList = categoryRepository.getSubCategoryList(category.getId());
 
 
@@ -69,7 +77,7 @@ public class ProductServiceImp implements ProductService {
             createProduct.setCategory(setCategory);
             setCategory.addProduct(createProduct);
         }else{
-            throw new RuntimeException("Sub category not found");
+            throw new NotFoundException("Sub category not found");
         }
 
         productRepository.save(createProduct);
@@ -102,7 +110,7 @@ public class ProductServiceImp implements ProductService {
     public BaseResponse getProductListFeatured() {
         List<Product> productList = productRepository.listOfFeaturedPageProduct();
         if(productList.isEmpty()){
-            throw new RuntimeException("There is no product that is featuredPage");
+            throw new NotFoundException("There is no product that is featuredPage");
         }
 
         List<ProductCard> data = productList.stream()
@@ -121,7 +129,7 @@ public class ProductServiceImp implements ProductService {
     public BaseResponse getLastArrivalProductList() {
         List<Product> productList = productRepository.listOfArrivalProduct();
         if(productList.isEmpty()){
-            throw new RuntimeException("There is no product that is featuredPage");
+            throw new NotFoundException("There is no product that is featuredPage");
         }
 
         List<ProductCard> data = productList.stream()
@@ -138,9 +146,9 @@ public class ProductServiceImp implements ProductService {
 
     @Override
     public BaseResponse getProductDetail(UUID id) {
-        Product existProduct = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product Not Found!!"));
-        Brand productBrand = brandRepository.findById(existProduct.getBrand().getId()).orElseThrow(() -> new RuntimeException("Brand is not found"));
-        Category productSubCategory = categoryRepository.findById(existProduct.getCategory().getId()).orElseThrow(() -> new RuntimeException("Category not found"));
+        Product existProduct = productRepository.findById(id).orElseThrow(() -> new NotFoundException("Product Not Found!!"));
+        Brand productBrand = brandRepository.findById(existProduct.getBrand().getId()).orElseThrow(() -> new NotFoundException("Brand is not found"));
+        Category productSubCategory = categoryRepository.findById(existProduct.getCategory().getId()).orElseThrow(() -> new NotFoundException("Category not found"));
         Category productCategory = categoryRepository.findByParentIdAndName(productSubCategory.getParentId(),productSubCategory.getName());
 
         GetProductDetailResponse data = GetProductDetailResponse.builder()
@@ -181,7 +189,7 @@ public class ProductServiceImp implements ProductService {
     @Override
     public BaseResponse getProductByCategory(UUID categoryId, int page, int size) {
         if(!categoryRepository.existsById(categoryId)){
-            throw new RuntimeException("Category not exists");
+            throw new NotFoundException("Category not exists");
         }
 
         Pageable pageable = PageRequest.of(page,size);
@@ -198,6 +206,7 @@ public class ProductServiceImp implements ProductService {
                                 u -> UnitCard.builder()
                                         .unit(u.getUnit())
                                         .sellPrice(u.getUnitSellPrice())
+                                        .discountPrice(u.isOnFlashSale() ? u.getFlashSalePrice() : null)
                                         .convertQuantity(u.getConvertQuantity())
                                         .status(u.getStatus())
                                         .build(), Collectors.toList())
@@ -263,7 +272,7 @@ public class ProductServiceImp implements ProductService {
     public BaseResponse getTopSoldProducts() {
         List<Product> productList = productRepository.findTop10ByTotalSold();
         if (productList.isEmpty()) {
-            throw new RuntimeException("No products found");
+            throw new NotFoundException("No products found");
         }
 
         productRepository.clearTopSoldHotFlags();
@@ -294,7 +303,7 @@ public class ProductServiceImp implements ProductService {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(7);
         List<Product> productList = productRepository.findActiveNewProducts(ProductionStatus.NEW, cutoff);
         if (productList.isEmpty()) {
-            throw new RuntimeException("No new products found");
+            throw new NotFoundException("No new products found");
         }
 
         List<ProductCard> data = productList.stream()
@@ -313,11 +322,11 @@ public class ProductServiceImp implements ProductService {
     @Override
     public BaseResponse markProductAsNew(UUID id) {
         if (id == null) {
-            throw new RuntimeException("Product ID is required");
+            throw new BadRequestException("Product ID is required");
         }
 
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new NotFoundException("Product not found"));
 
         product.setStatus(ProductionStatus.NEW);
         product.setNewMarkedAt(LocalDateTime.now());
@@ -338,27 +347,60 @@ public class ProductServiceImp implements ProductService {
 
     @Transactional
     @Override
-    public BaseResponse markProductAsFlashSale(UUID id, FlashSaleRequest request) {
-        if (id == null) {
-            throw new RuntimeException("Product ID is required");
+    public BaseResponse markProductAsFlashSale(UUID productId, FlashSaleRequest request) {
+        if (productId == null) {
+            throw new BadRequestException("Product ID is required");
+        }
+        if (request == null || request.getUnitsSale() == null || request.getUnitsSale().isEmpty()) {
+            throw new BadRequestException("At least one unit must be provided for flash sale");
+        }
+        if (request.getFlashSaleUntil() == null) {
+            throw new BadRequestException("Flash sale expiry is required");
         }
 
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new NotFoundException("Product not found"));
 
-        product.setStatus(ProductionStatus.FLASH_SALE);
-        product.setFlashSaleUntil(request != null ? request.getFlashSaleUntil() : null);
-        productRepository.save(product);
+        List<UnitCard> flashSaleUnits = new ArrayList<>();
+
+        for (FlashSaleRequest.ProductFlashSaleDto unitSale : request.getUnitsSale()) {
+            ProductUnit existUnit = productUnitRepository
+                    .findByProduct_IdAndUnit(productId, unitSale.getUnit())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Unit %s not found for product %s".formatted(unitSale.getUnit(), productId)));
+
+            BigDecimal discountPrice = unitSale.getDiscountPrice();
+            if (discountPrice == null
+                    || discountPrice.compareTo(BigDecimal.ZERO) <= 0
+                    || discountPrice.compareTo(existUnit.getUnitSellPrice()) >= 0) {
+                throw new BadRequestException(
+                        "Discount price for unit %s must be greater than 0 and less than the sell price"
+                                .formatted(unitSale.getUnit()));
+            }
+
+            existUnit.setFlashSalePrice(discountPrice);
+            existUnit.setFlashSaleUntil(request.getFlashSaleUntil());
+            productUnitRepository.save(existUnit);
+
+            flashSaleUnits.add(UnitCard.builder()
+                    .unit(existUnit.getUnit())
+                    .convertQuantity(existUnit.getConvertQuantity())
+                    .sellPrice(existUnit.getUnitSellPrice())
+                    .discountPrice(discountPrice)
+                    .status(existUnit.getStatus())
+                    .build());
+        }
 
         Map<String, Object> data = new HashMap<>();
         data.put("productId", product.getId());
-        data.put("status", product.getStatus());
-        data.put("flashSaleUntil", product.getFlashSaleUntil());
+        data.put("productName", product.getName());
+        data.put("flashSaleUntil", request.getFlashSaleUntil());
+        data.put("units", flashSaleUnits);
 
         return BaseResponse.builder()
                 .status(HttpStatus.OK.value())
                 .code(HttpStatus.OK)
-                .message("Product marked as FLASH_SALE successfully")
+                .message("Product units marked as FLASH_SALE successfully")
                 .data(data)
                 .build();
     }
@@ -367,23 +409,29 @@ public class ProductServiceImp implements ProductService {
     @Override
     public BaseResponse endFlashSale(UUID id) {
         if (id == null) {
-            throw new RuntimeException("Product ID is required");
+            throw new BadRequestException("Product ID is required");
         }
 
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new NotFoundException("Product not found"));
 
-        if (product.getStatus() != ProductionStatus.FLASH_SALE) {
-            throw new RuntimeException("Product is not in FLASH_SALE status");
+        List<ProductUnit> activeUnits = productUnitRepository.findByProduct_Id(id).stream()
+                .filter(unit -> unit.getFlashSalePrice() != null || unit.getFlashSaleUntil() != null)
+                .toList();
+
+        if (activeUnits.isEmpty()) {
+            throw new BadRequestException("Product has no unit on flash sale");
         }
 
-        product.setStatus(ProductionStatus.AVAILABLE);
-        product.setFlashSaleUntil(null);
-        productRepository.save(product);
+        for (ProductUnit unit : activeUnits) {
+            unit.setFlashSalePrice(null);
+            unit.setFlashSaleUntil(null);
+        }
+        productUnitRepository.saveAll(activeUnits);
 
         Map<String, Object> data = new HashMap<>();
         data.put("productId", product.getId());
-        data.put("status", product.getStatus());
+        data.put("clearedUnitCount", activeUnits.size());
 
         return BaseResponse.builder()
                 .status(HttpStatus.OK.value())
@@ -395,7 +443,7 @@ public class ProductServiceImp implements ProductService {
 
     @Override
     public GetProductClientResponse getProduct(UUID id) {
-        Product product = productRepository.findById(id).orElseThrow(() ->  new RuntimeException("product with id : " + id +  " not found"));
+        Product product = productRepository.findById(id).orElseThrow(() -> new NotFoundException("product with id : " + id + " not found"));
         String image = productImageRepository.getUrl(product.getId());
         return GetProductClientResponse.builder()
                 .productId(product.getId())
@@ -433,6 +481,7 @@ public class ProductServiceImp implements ProductService {
                                         .unit(unit.getUnit())
                                         .convertQuantity(unit.getConvertQuantity())
                                         .sellPrice(unit.getUnitSellPrice())
+                                        .discountPrice(unit.isOnFlashSale() ? unit.getFlashSalePrice() : null)
                                         .status(unit.getStatus())
                                         .build())
                                 .toList()

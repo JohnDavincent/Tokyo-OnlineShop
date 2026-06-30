@@ -1,10 +1,13 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.ConflictException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.common.ProductionStatus;
-import com.tokyo.onlineshop.productservices.dto.CreateUnitRequest;
-import com.tokyo.onlineshop.productservices.dto.CreateUnitResponse;
-import com.tokyo.onlineshop.productservices.dto.GetProductUnitResponse;
+import com.tokyo.onlineshop.productservices.dto.request.CreateUnitRequest;
+import com.tokyo.onlineshop.productservices.dto.response.CreateUnitResponse;
+import com.tokyo.onlineshop.productservices.dto.response.GetProductUnitResponse;
 import com.tokyo.onlineshop.productservices.entity.Product;
 import com.tokyo.onlineshop.productservices.entity.ProductUnit;
 import com.tokyo.onlineshop.productservices.repository.ProductRepository;
@@ -31,9 +34,9 @@ public class ProductUnitServiceImp implements ProductUnitService{
     public BaseResponse createUnit(UUID productId, List<CreateUnitRequest> request) {
 
         if(request == null){
-            throw new RuntimeException("Field must be fill");
+            throw new BadRequestException("Field must be fill");
         }
-        Product product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product not found!!"));
+        Product product = productRepository.findById(productId).orElseThrow(() -> new NotFoundException("Product not found!!"));
         List<ProductUnit> unitList = new ArrayList<>();
 
         for(CreateUnitRequest unit : request){
@@ -42,7 +45,7 @@ public class ProductUnitServiceImp implements ProductUnitService{
                     unit.getConvertQuantity(),
                     productId)
             ){
-                throw new RuntimeException("unit Already Exists");
+                throw new ConflictException("unit Already Exists");
             }
             ProductUnit createUnit = ProductUnit.builder()
                     .convertQuantity(unit.getConvertQuantity())
@@ -83,7 +86,7 @@ public class ProductUnitServiceImp implements ProductUnitService{
     public List<GetProductUnitResponse> getUnit(List<UUID> id, UUID productId) {
         List<GetProductUnitResponse> unitListResponse = new ArrayList<>();
         for(UUID unitId : id){
-            ProductUnit unit  = productUnitRepository.findByIdAndProduct_Id(unitId,productId).orElseThrow(() -> new RuntimeException("Product unit not found"));
+            ProductUnit unit  = productUnitRepository.findByIdAndProduct_Id(unitId,productId).orElseThrow(() -> new NotFoundException("Product unit not found"));
             GetProductUnitResponse dto = GetProductUnitResponse.builder()
                     .unitId(unit.getId())
                     .unit(unit.getUnit())

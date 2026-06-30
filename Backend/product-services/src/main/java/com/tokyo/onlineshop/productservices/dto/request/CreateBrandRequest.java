@@ -1,4 +1,4 @@
-package com.tokyo.onlineshop.productservices.dto;
+package com.tokyo.onlineshop.productservices.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

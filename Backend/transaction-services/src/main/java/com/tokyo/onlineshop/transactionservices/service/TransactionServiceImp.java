@@ -2,6 +2,9 @@ package com.tokyo.onlineshop.transactionservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.common.dto.PagingResponse;
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.ForbiddenException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.onlineshop.transactionservices.client.CartClient;
 import com.tokyo.onlineshop.transactionservices.dto.AddTransactionAddressResponseDto;
 import com.tokyo.onlineshop.transactionservices.dto.AddTransactionDetailResponseDto;
@@ -64,7 +67,7 @@ public class TransactionServiceImp implements TransactionService{
         List<AddTransactionDetailResponseDto> transactionDetailList = transactionDetailService.addTransactionDetail(transaction.getId());
         AddTransactionAddressResponseDto address = transactionAddressService.getUserAddress(transaction.getId(), addressId);
         Transaction savedTransaction = repository.findById(transaction.getId())
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
         AddTransactionResponseDto data =  AddTransactionResponseDto.builder()
                 .orderId(savedTransaction.getOrderId())
@@ -95,12 +98,12 @@ public class TransactionServiceImp implements TransactionService{
     private String getAuthorizationHeader() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
-            throw new RuntimeException("Authorization header is not available");
+            throw new BadRequestException("Authorization header is not available");
         }
 
         String authorizationHeader = attributes.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
         if (authorizationHeader == null || authorizationHeader.isBlank()) {
-            throw new RuntimeException("Authorization header is required");
+            throw new BadRequestException("Authorization header is required");
         }
 
         return authorizationHeader;
@@ -111,15 +114,10 @@ public class TransactionServiceImp implements TransactionService{
     public BaseResponse getTransactionDetail(UUID transactionId) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         Transaction transaction = repository.findById(transactionId)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
         if (!transaction.getUserId().equals(UUID.fromString(userId))) {
-            return BaseResponse.builder()
-                    .status(HttpStatus.FORBIDDEN.value())
-                    .code(HttpStatus.FORBIDDEN)
-                    .message("You are not authorized to view this transaction")
-                    .data(null)
-                    .build();
+            throw new ForbiddenException("You are not authorized to view this transaction");
         }
 
         TransactionAddress address = transaction.getDeliveryAddress();
@@ -168,12 +166,7 @@ public class TransactionServiceImp implements TransactionService{
     public BaseResponse getTransactionList(int currentPage, int pageSize, String startDate, String endDate) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         if(userId == null){
-            return BaseResponse.builder()
-                    .status(HttpStatus.OK.value())
-                    .code(HttpStatus.OK)
-                    .message("Please Login first to see the transaction")
-                    .data(null)
-                    .build();
+            throw new ForbiddenException("Please Login first to see the transaction");
         }
 
         Sort sort = Sort.by(Sort.Direction.DESC,"createdAt");

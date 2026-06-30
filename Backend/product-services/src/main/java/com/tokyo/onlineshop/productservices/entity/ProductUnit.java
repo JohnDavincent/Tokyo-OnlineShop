@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -41,7 +42,19 @@ public class ProductUnit extends BaseEntity {
     @Column(name = "status")
     private ProductionStatus status;
 
+    @Column(name = "flash_sale_price")
+    private BigDecimal flashSalePrice;
+
+    @Column(name = "flash_sale_until")
+    private LocalDateTime flashSaleUntil;
+
     @ManyToOne
     @JoinColumn(name = "products")
     private Product product;
+
+    public boolean isOnFlashSale() {
+        return flashSalePrice != null
+                && flashSaleUntil != null
+                && flashSaleUntil.isAfter(LocalDateTime.now());
+    }
 }

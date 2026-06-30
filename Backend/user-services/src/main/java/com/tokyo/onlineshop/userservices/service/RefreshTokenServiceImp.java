@@ -1,5 +1,7 @@
 package com.tokyo.onlineshop.userservices.service;
 
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.onlineshop.userservices.entity.RefreshToken;
 import com.tokyo.onlineshop.userservices.entity.UserEntity;
 import com.tokyo.onlineshop.userservices.repository.RefreshTokenRepository;
@@ -55,15 +57,15 @@ public class RefreshTokenServiceImp implements RefreshTokenService{
 
     @Override
     public UserEntity verifyRefreshToken(String token) {
-       RefreshToken refreshToken =  refreshTokenRepository.findByTokenHash(hash(token)).orElseThrow(() -> new RuntimeException("Token not found"));
+       RefreshToken refreshToken =  refreshTokenRepository.findByTokenHash(hash(token)).orElseThrow(() -> new NotFoundException("Token not found"));
 
         if(refreshToken.isRevoke()){
-            throw new RuntimeException("Refresh token has been revoked");
+            throw new BadRequestException("Refresh token has been revoked");
         }
 
         if(refreshToken.getExpiredAt().isBefore(Instant.now().atZone(zone).toLocalDateTime())){
            refreshTokenRepository.delete(refreshToken);
-           throw new RuntimeException("Refresh token has expired");
+           throw new BadRequestException("Refresh token has expired");
        }
 
         return refreshToken.getUser();
@@ -71,7 +73,7 @@ public class RefreshTokenServiceImp implements RefreshTokenService{
 
     @Override
     public void revokeToken(String rawToken) {
-        RefreshToken refreshToken = refreshTokenRepository.findByTokenHash(hash(rawToken)).orElseThrow(() -> new RuntimeException("Refresh token Not found!"));
+        RefreshToken refreshToken = refreshTokenRepository.findByTokenHash(hash(rawToken)).orElseThrow(() -> new NotFoundException("Refresh token Not found!"));
         refreshToken.setRevoke(true);
         refreshToken.setRevokeAt(LocalDateTime.now());
         refreshTokenRepository.save(refreshToken);

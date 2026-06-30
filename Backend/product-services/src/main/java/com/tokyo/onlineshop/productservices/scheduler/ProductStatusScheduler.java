@@ -3,6 +3,7 @@ package com.tokyo.onlineshop.productservices.scheduler;
 import com.tokyo.common.ProductionStatus;
 import com.tokyo.onlineshop.productservices.entity.Product;
 import com.tokyo.onlineshop.productservices.repository.ProductRepository;
+import com.tokyo.onlineshop.productservices.repository.ProductUnitRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import java.util.List;
 public class ProductStatusScheduler {
 
     private final ProductRepository productRepository;
+    private final ProductUnitRepository productUnitRepository;
 
     @Scheduled(cron = "0 0 0 * * ?") // daily at midnight
     @Transactional
@@ -37,11 +39,7 @@ public class ProductStatusScheduler {
     @Scheduled(cron = "0 0 * * * ?") // hourly
     @Transactional
     public void expireFlashSales() {
-        LocalDateTime now = LocalDateTime.now();
-        int expired = productRepository.expireFlashSales(
-                ProductionStatus.AVAILABLE,
-                ProductionStatus.FLASH_SALE,
-                now);
-        log.info("Expired {} FLASH_SALE products back to AVAILABLE", expired);
+        int expired = productUnitRepository.expireFlashSales(LocalDateTime.now());
+        log.info("Cleared flash sale on {} product units", expired);
     }
 }

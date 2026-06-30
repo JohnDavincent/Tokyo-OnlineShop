@@ -1,6 +1,8 @@
 package com.tokyo.onlineshop.transactionservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.onlineshop.transactionservices.client.CartClient;
 import com.tokyo.onlineshop.transactionservices.client.UserClient;
 import com.tokyo.onlineshop.transactionservices.dto.AddTransactionDetailResponseDto;
@@ -40,7 +42,7 @@ public class TransactionDetailServiceImp implements TransactionDetailService{
     @Override
     public List<AddTransactionDetailResponseDto> addTransactionDetail(UUID transactionId) {
         try{
-            Transaction transaction = transactionRepository.findById(transactionId).orElseThrow(() -> new RuntimeException("No transaction with id" + transactionId + "is found"));
+            Transaction transaction = transactionRepository.findById(transactionId).orElseThrow(() -> new NotFoundException("No transaction with id " + transactionId + " is found"));
             List<CartDetailDto> cartDetail = client.getCartDetail(getAuthorizationHeader());
             List<TransactionDetail> transactionDetailList = cartDetail.stream()
                     .map(detail -> TransactionDetail.builder()
@@ -74,21 +76,23 @@ public class TransactionDetailServiceImp implements TransactionDetailService{
                             .build()
                     ).toList();
 
+        }catch (BadRequestException | NotFoundException e){
+            throw e;
         }catch (Exception e){
             log.error("[CartClient] error to fetch cart list data");
-            throw new RuntimeException("Failed to create transaction detail", e);
+            throw new BadRequestException("Failed to create transaction detail");
         }
     }
 
     private String getAuthorizationHeader() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
-            throw new RuntimeException("Authorization header is not available");
+            throw new BadRequestException("Authorization header is not available");
         }
 
         String authorizationHeader = attributes.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
         if (authorizationHeader == null || authorizationHeader.isBlank()) {
-            throw new RuntimeException("Authorization header is required");
+            throw new BadRequestException("Authorization header is required");
         }
 
         return authorizationHeader;

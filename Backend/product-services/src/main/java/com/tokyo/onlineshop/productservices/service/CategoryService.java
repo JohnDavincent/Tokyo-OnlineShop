@@ -1,7 +1,7 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
-import com.tokyo.onlineshop.productservices.dto.*;
+import com.tokyo.onlineshop.productservices.dto.request.CreateCategoryRequest;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;

@@ -1,9 +1,12 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.ConflictException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.common.ProductionStatus;
-import com.tokyo.onlineshop.productservices.dto.CreateBrandRequest;
-import com.tokyo.onlineshop.productservices.dto.CreateBrandResponse;
+import com.tokyo.onlineshop.productservices.dto.request.CreateBrandRequest;
+import com.tokyo.onlineshop.productservices.dto.response.CreateBrandResponse;
 import com.tokyo.onlineshop.productservices.entity.Brand;
 import com.tokyo.onlineshop.productservices.repository.BrandRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,10 +26,10 @@ public class BrandServiceImp implements BrandService{
     @Override
     public BaseResponse createBrand(CreateBrandRequest request) {
         if(request == null){
-            throw new RuntimeException("The field must be fill!");
+            throw new BadRequestException("The field must be fill!");
         }
         if(brandRepository.existsByName(request.getName())){
-            throw new RuntimeException("Brand Already exists!!");
+            throw new ConflictException("Brand Already exists!!");
         }
         String slug = request.getName().toLowerCase(Locale.ROOT).strip().replaceAll("//s+", "-");
         Brand createBrand = Brand.builder()
@@ -56,7 +59,7 @@ public class BrandServiceImp implements BrandService{
     public BaseResponse getBrandList() {
         List<Brand> brands = brandRepository.findAll();
         if(brands.isEmpty()){
-            throw new RuntimeException("No brands found");
+            throw new NotFoundException("No brands found");
         }
 
         List<CreateBrandResponse> data = brands.stream()

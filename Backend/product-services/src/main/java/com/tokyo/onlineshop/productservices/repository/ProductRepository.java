@@ -124,17 +124,4 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
             """)
     void setTopSoldHotFlags(@Param("ids") List<UUID> ids);
 
-    @Modifying
-    @Query("""
-            UPDATE Product p
-            SET p.status = :availableStatus,
-                p.flashSaleUntil = NULL
-            WHERE p.status = :flashSaleStatus
-              AND p.flashSaleUntil < :now
-            """)
-    int expireFlashSales(
-            @Param("availableStatus") ProductionStatus availableStatus,
-            @Param("flashSaleStatus") ProductionStatus flashSaleStatus,
-            @Param("now") LocalDateTime now);
-
 }

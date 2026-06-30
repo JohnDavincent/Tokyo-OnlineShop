@@ -1,5 +1,7 @@
 package com.tokyo.onlineshop.userservices.service;
 
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.onlineshop.userservices.Purpose;
 import com.tokyo.onlineshop.userservices.dto.RequestOtpDto;
 import com.tokyo.onlineshop.userservices.dto.VerifyOtpRequest;
@@ -50,23 +52,23 @@ public class OtpVerificationServiceImp implements OtpVerificationService {
     @Override
     public void verifiedUserOtpCode(VerifyOtpRequest response) {
         OtpVerification otp = otpVerificationRepo.findTopByPhoneNumberAndUsedAtIsNullAndPurposeOrderByCreatedAtDesc(response.getPhoneNumber(),Purpose.REGISTER)
-                .orElseThrow(() -> new RuntimeException("No Otp Found"));
+                .orElseThrow(() -> new NotFoundException("No Otp Found"));
 
         if(otp.getExpiresAt().isBefore(LocalDateTime.now())){
-            throw new RuntimeException("OTP code is Expired");
+            throw new BadRequestException("OTP code is Expired");
         }
 
         int currentCount = otp.getAttemptCount() == null ? 0 : otp.getAttemptCount();
 
         if(currentCount >= 3){
-            throw new RuntimeException("OTP attemps limit reached");
+            throw new BadRequestException("OTP attemps limit reached");
         }
 
         if(!passwordEncoder.matches(response.getCode(),otp.getCodeHash())){
             log.info("otp code in db {}",otp.getCodeHash());
             otp.setAttemptCount(otp.getAttemptCount() + 1);
             otpVerificationRepo.save(otp);
-            throw new RuntimeException("OTP code is not matches");
+            throw new BadRequestException("OTP code is not matches");
         }
 
         otp.setUsedAt(LocalDateTime.now());

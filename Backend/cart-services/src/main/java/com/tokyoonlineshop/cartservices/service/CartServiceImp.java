@@ -1,6 +1,8 @@
 package com.tokyoonlineshop.cartservices.service;
 import com.tokyo.common.ProductionStatus;
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyoonlineshop.cartservices.CartStatus;
 import com.tokyoonlineshop.cartservices.client.ProductClient;
 import com.tokyoonlineshop.cartservices.dto.*;
@@ -49,26 +51,26 @@ public class CartServiceImp implements CartService {
             List<GetProductUnitResponse> unitList = productClient.getUnit(request.getUnit(),request.getProductId());
 
             if(unitList == null || unitList.isEmpty()){
-                throw new RuntimeException("Please select the unit");
+                throw new BadRequestException("Please select the unit");
             }
 
             if(product.getStatus() == ProductionStatus.OUT_OF_STOCK){
-                throw new RuntimeException("Product is out of stock");
+                throw new BadRequestException("Product is out of stock");
             }
 
             if(product.getStatus() == ProductionStatus.IS_NOT_AVAILABLE){
-                throw new RuntimeException("Product is currently not available");
+                throw new BadRequestException("Product is currently not available");
             }
 
             if(product.getStatus() == ProductionStatus.REMOVED){
-                throw new RuntimeException("Product is removed");
+                throw new NotFoundException("Product is removed");
             }
 
             List<AddProductResponse> items = new ArrayList<>();
             for(GetProductUnitResponse unitRequest : unitList){
 
                 if(unitRequest.getStatus() == ProductionStatus.OUT_OF_STOCK){
-                    throw new RuntimeException("Unit " + unitRequest.getUnit() + " is out of stock");
+                    throw new BadRequestException("Unit " + unitRequest.getUnit() + " is out of stock");
                 }
 
                 Optional<CartDetail> existCartDetail = cart.getCartDetails().stream()
@@ -108,7 +110,7 @@ public class CartServiceImp implements CartService {
 
         }catch (FeignException e){
             log.error("Failed to connect to Product Client : {}",e.getMessage());
-            throw new RuntimeException("Failed to connect to Product Client");
+            throw new BadRequestException("Failed to connect to Product Client");
         }
 
     }
@@ -125,7 +127,7 @@ public class CartServiceImp implements CartService {
         }
 
         String userId = auth.getName();
-        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("add a product first"));
+        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new NotFoundException("add a product first"));
         List<CartDetail> cartList = cartDetailRepository.findByCart_Id(cart.getId());
         if(cartList == null || cartList.isEmpty()){
             return BaseResponse.builder()
@@ -206,11 +208,11 @@ public class CartServiceImp implements CartService {
     @Override
     public BaseResponse updateCartQuantity(UUID productId, int quantity ) {
         if(quantity < 0){
-            throw new RuntimeException("value cannot be less than 0");
+            throw new BadRequestException("value cannot be less than 0");
         }
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("No cart found"));
+        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new NotFoundException("No cart found"));
         Optional<CartDetail> existItems =  cart.getCartDetails().stream()
                 .filter(c -> c.getProductId().equals(productId))
                 .findFirst();
@@ -235,11 +237,11 @@ public class CartServiceImp implements CartService {
     public BaseResponse deleteCartDetail(UUID cartDetailId) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("No cart found"));
+        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new NotFoundException("No cart found"));
         List<CartDetail> cartDetailList = cartDetailRepository.findByCart_Id(cart.getId());
 
         if(cartDetailList.isEmpty()){
-            throw new RuntimeException("Product not found in the cart List");
+            throw new NotFoundException("Product not found in the cart List");
         }
 
         Optional<CartDetail> item = cartDetailList.stream()
@@ -247,7 +249,7 @@ public class CartServiceImp implements CartService {
                 .findFirst();
 
         if(item.isEmpty()){
-           throw new RuntimeException("cartdetail id not exist");
+           throw new NotFoundException("cartdetail id not exist");
         }
 
         CartDetail deleteItem = item.get();
@@ -266,7 +268,7 @@ public class CartServiceImp implements CartService {
     public BaseResponse deleteAllCartDetail() {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("No cart found"));
+        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new NotFoundException("No cart found"));
         cartDetailRepository.deleteAllByCart_userId(UUID.fromString(userId));
         return BaseResponse.builder()
                 .message("Successfully delete All item from user cart")

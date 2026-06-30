@@ -1,4 +1,4 @@
-package com.tokyo.onlineshop.productservices.dto;
+package com.tokyo.onlineshop.productservices.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
@@ -8,7 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 

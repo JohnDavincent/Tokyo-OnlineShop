@@ -1,6 +1,5 @@
 package com.tokyo.onlineshop.productservices.repository;
 
-import com.tokyo.onlineshop.productservices.dto.CategoryListResponse;
 import com.tokyo.onlineshop.productservices.entity.Category;
 import com.tokyo.onlineshop.productservices.projection.SubCategoryProjection;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,8 +1,8 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
-import com.tokyo.onlineshop.productservices.dto.CreateUnitRequest;
-import com.tokyo.onlineshop.productservices.dto.GetProductUnitResponse;
+import com.tokyo.onlineshop.productservices.dto.request.CreateUnitRequest;
+import com.tokyo.onlineshop.productservices.dto.response.GetProductUnitResponse;
 
 import java.util.List;
 import java.util.UUID;

@@ -1,5 +1,6 @@
 package com.tokyo.onlineshop.userservices.service;
 
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.onlineshop.userservices.dto.CreateAddressDto;
 import com.tokyo.onlineshop.userservices.dto.CreateAddressRequest;
 import com.tokyo.onlineshop.userservices.dto.GetUserAddressDto;
@@ -27,7 +28,7 @@ public class AddressServiceImp implements AddressService{
     public CreateAddressDto addAddress(CreateAddressRequest request) {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         UserEntity user = userRepository.findById(UUID.fromString(userId))
-                .orElseThrow(() -> new RuntimeException("User is not found"));
+                .orElseThrow(() -> new NotFoundException("User is not found"));
 
         Address address = Address.builder()
                 .recipientName(request.getRecipientName())

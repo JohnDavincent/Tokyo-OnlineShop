@@ -17,5 +17,6 @@ public class UnitCard {
     private String unit;
     private Integer convertQuantity;
     private BigDecimal sellPrice;
+    private BigDecimal discountPrice;
     private ProductionStatus status;
 }

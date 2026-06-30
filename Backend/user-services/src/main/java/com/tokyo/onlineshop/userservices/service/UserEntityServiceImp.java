@@ -1,5 +1,8 @@
 package com.tokyo.onlineshop.userservices.service;
 
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.ConflictException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.onlineshop.userservices.Membership;
 import com.tokyo.onlineshop.userservices.Purpose;
 import com.tokyo.onlineshop.userservices.Status;
@@ -38,16 +41,16 @@ public class UserEntityServiceImp implements UserEntityService{
         Optional<UserEntity> existingUser = userRepository.findByPhoneNumber(request.getPhoneNumber());
 
         if(existingUser.isPresent() && existingUser.get().getStatus() == Status.VERIFIED && existingUser.get().getPhoneVerifiedAt() != null){
-            throw new RuntimeException("Nomor ini sudah terdaftar");
+            throw new ConflictException("Nomor ini sudah terdaftar");
         }
 
         OtpVerification latestOtp = otpVerificationRepo.findTopByPhoneNumberAndPurposeOrderByCreatedAtDesc(
                 request.getPhoneNumber(),
                 Purpose.REGISTER
-        ).orElseThrow(() -> new RuntimeException("OTP belum diverifikasi"));
+        ).orElseThrow(() -> new BadRequestException("OTP belum diverifikasi"));
 
         if (latestOtp.getUsedAt() == null) {
-            throw new RuntimeException("OTP belum diverifikasi");
+            throw new BadRequestException("OTP belum diverifikasi");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -76,10 +79,10 @@ public class UserEntityServiceImp implements UserEntityService{
     public UserDataResponse getUserProfile() {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
         if(userId == null){
-            throw new RuntimeException("User not found");
+            throw new NotFoundException("User not found");
         }
 
-        UserEntity user = userRepository.findById(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("User not found"));
+        UserEntity user = userRepository.findById(UUID.fromString(userId)).orElseThrow(() -> new NotFoundException("User not found"));
         List<String> listAddressList = addressRepository.listAllUserAddress(UUID.fromString(userId));
         return  UserDataResponse.builder()
                 .username(user.getName())

@@ -1,9 +1,9 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
-import com.tokyo.onlineshop.productservices.dto.CreateProductRequest;
-import com.tokyo.onlineshop.productservices.dto.FlashSaleRequest;
-import com.tokyo.onlineshop.productservices.dto.GetProductClientResponse;
+import com.tokyo.onlineshop.productservices.dto.request.CreateProductRequest;
+import com.tokyo.onlineshop.productservices.dto.request.FlashSaleRequest;
+import com.tokyo.onlineshop.productservices.dto.response.GetProductClientResponse;
 import com.tokyo.onlineshop.productservices.dto.RequestProductListDto;
 
 import java.util.List;

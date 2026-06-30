@@ -1,5 +1,8 @@
 package com.tokyo.onlineshop.userservices.controller;
 
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.ForbiddenException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.onlineshop.userservices.Status;
 import com.tokyo.onlineshop.userservices.dto.AdminLoginRequest;
 import com.tokyo.onlineshop.userservices.entity.AdminAccount;
@@ -48,12 +51,12 @@ public class AdminController {
     })
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@Valid @RequestBody AdminLoginRequest request) {
-        AdminAccount admin = adminRepository.findByEmail(request.getEmail()).orElseThrow(() -> new RuntimeException("USer not Found!!"));
+        AdminAccount admin = adminRepository.findByEmail(request.getEmail()).orElseThrow(() -> new NotFoundException("User not Found!!"));
         if (!passwordEncoder.matches(request.getPassword(), admin.getPasswordHash())) {
-            throw new RuntimeException("The password or email is wrong");
+            throw new BadRequestException("The password or email is wrong");
         }
         if (admin.getStatus() == Status.LOCKED || admin.getStatus() == Status.SUSPENDED) {
-            throw new RuntimeException("Error with admin account");
+            throw new ForbiddenException("Admin account is locked or suspended");
         }
         String token = jwtService.generateTokenAdmin(admin.getEmail(), Role.ADMIN);
 

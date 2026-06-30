@@ -1,6 +1,8 @@
 package com.tokyo.onlineshop.transactionservices.service;
 
 
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.onlineshop.transactionservices.client.UserClient;
 import com.tokyo.onlineshop.transactionservices.dto.AddTransactionAddressResponseDto;
 import com.tokyo.onlineshop.transactionservices.dto.GetUserAddressDto;
@@ -34,7 +36,7 @@ public class TransactionAddressServiceImp implements TransactionAddressService{
         List<GetUserAddressDto> listUserAddress = userClient.userAddressList(getAuthorizationHeader());
         log.info("Fetched {} user addresses from user-service for transaction {}", listUserAddress == null ? 0 : listUserAddress.size(), transactionId);
         if(listUserAddress == null || listUserAddress.isEmpty()){
-            throw new RuntimeException("user Address not found");
+            throw new NotFoundException("user Address not found");
         }
         Optional<TransactionAddress> selectedAddress;
 
@@ -71,10 +73,10 @@ public class TransactionAddressServiceImp implements TransactionAddressService{
         }
 
         if(selectedAddress.isEmpty()){
-            throw new RuntimeException("Address is not found");
+            throw new NotFoundException("Address is not found");
         }
 
-        Transaction transaction = transactionRepository.findById(transactionId).orElseThrow(() -> new RuntimeException("No transaction id found for id" + transactionId));
+        Transaction transaction = transactionRepository.findById(transactionId).orElseThrow(() -> new NotFoundException("No transaction found for id " + transactionId));
         TransactionAddress userAddress = selectedAddress.get();
         transaction.setDeliveryAddress(userAddress);
         transactionRepository.save(transaction);
@@ -96,12 +98,12 @@ public class TransactionAddressServiceImp implements TransactionAddressService{
     private String getAuthorizationHeader() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
-            throw new RuntimeException("Authorization header is not available");
+            throw new BadRequestException("Authorization header is not available");
         }
 
         String authorizationHeader = attributes.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
         if (authorizationHeader == null || authorizationHeader.isBlank()) {
-            throw new RuntimeException("Authorization header is required");
+            throw new BadRequestException("Authorization header is required");
         }
 
         return authorizationHeader;

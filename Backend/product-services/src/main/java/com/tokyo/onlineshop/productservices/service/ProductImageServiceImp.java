@@ -1,8 +1,10 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
-import com.tokyo.onlineshop.productservices.dto.CreateImageRequest;
-import com.tokyo.onlineshop.productservices.dto.CreateImageResponse;
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.NotFoundException;
+import com.tokyo.onlineshop.productservices.dto.request.CreateImageRequest;
+import com.tokyo.onlineshop.productservices.dto.response.CreateImageResponse;
 import com.tokyo.onlineshop.productservices.entity.Product;
 import com.tokyo.onlineshop.productservices.entity.ProductImage;
 import com.tokyo.onlineshop.productservices.helper.ImageFileHelper;
@@ -12,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -38,7 +39,7 @@ public class ProductImageServiceImp implements ProductImageService {
     @Override
     public BaseResponse uploadImage(String slug, List<MultipartFile> files, List<String> altTexts) {
         if (files == null || files.isEmpty()) {
-            throw new RuntimeException("Image is empty");
+            throw new BadRequestException("Image is empty");
         }
         
         String safeSlug = slug == null || slug.isBlank()
@@ -54,7 +55,7 @@ public class ProductImageServiceImp implements ProductImageService {
             for (int i = 0; i < files.size(); i++) {
                 MultipartFile file = files.get(i);
                 if (file == null || file.isEmpty()) {
-                    throw new RuntimeException("Image file is empty");
+                    throw new BadRequestException("Image file is empty");
                 }
 
                 String altText = null;
@@ -76,7 +77,7 @@ public class ProductImageServiceImp implements ProductImageService {
                         .build());
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to save the image", e);
+            throw new BadRequestException("Failed to save the image");
         }
 
         return BaseResponse.builder()
@@ -99,7 +100,7 @@ public class ProductImageServiceImp implements ProductImageService {
         }
 
         Product existProduct = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("No product found"));
+                .orElseThrow(() -> new NotFoundException("No product found"));
 
         String slug = existProduct.getName().strip().toLowerCase(Locale.ROOT).replaceAll("\\s+", "-");
         List<CreateImageResponse> imageList = new ArrayList<>();
@@ -107,7 +108,7 @@ public class ProductImageServiceImp implements ProductImageService {
         for (int i = 0; i < request.size(); i++) {
             CreateImageRequest image = request.get(i);
             if (image.getUrl() == null || image.getUrl().isBlank()) {
-                throw new RuntimeException("Image url is empty");
+                throw new BadRequestException("Image url is empty");
             }
 
             ProductImage addImage = ProductImage.builder()

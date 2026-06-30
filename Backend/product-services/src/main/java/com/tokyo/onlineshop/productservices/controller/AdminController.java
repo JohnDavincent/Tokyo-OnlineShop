@@ -2,7 +2,10 @@ package com.tokyo.onlineshop.productservices.controller;
 
 
 import com.tokyo.common.dto.BaseResponse;
-import com.tokyo.onlineshop.productservices.dto.*;
+import com.tokyo.onlineshop.productservices.dto.request.CreateBrandRequest;
+import com.tokyo.onlineshop.productservices.dto.request.CreateCategoryRequest;
+import com.tokyo.onlineshop.productservices.dto.request.CreateProductRequest;
+import com.tokyo.onlineshop.productservices.dto.request.FlashSaleRequest;
 import com.tokyo.onlineshop.productservices.service.BrandService;
 import com.tokyo.onlineshop.productservices.service.CategoryService;
 import com.tokyo.onlineshop.productservices.service.ProductImageService;

@@ -5,7 +5,5 @@ public enum ProductionStatus {
     OUT_OF_STOCK,
     REMOVED,
     IS_NOT_AVAILABLE,
-    HOT,
     NEW,
-    FLASH_SALE
 }

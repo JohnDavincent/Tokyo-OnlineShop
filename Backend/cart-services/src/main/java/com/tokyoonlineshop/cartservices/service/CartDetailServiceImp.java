@@ -1,6 +1,7 @@
 package com.tokyoonlineshop.cartservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyoonlineshop.cartservices.client.ProductClient;
 import com.tokyoonlineshop.cartservices.dto.CartDetailDto;
 import com.tokyoonlineshop.cartservices.dto.GetProductClientResponse;
@@ -31,7 +32,7 @@ public class CartDetailServiceImp implements CartDetailService{
     @Override
     public List<CartDetailDto> getCartDetail() {
         String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new RuntimeException("Cart for user " + userId + "not found"));
+        Cart cart = cartRepository.findByUserId(UUID.fromString(userId)).orElseThrow(() -> new NotFoundException("Cart for user " + userId + " not found"));
         List<CartDetail> cartDetailList = cartDetailRepository.findByCart_Id(cart.getId());
 
         if(cartDetailList == null || cartDetailList.isEmpty()){

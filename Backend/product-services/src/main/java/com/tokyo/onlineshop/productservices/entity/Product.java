@@ -62,9 +62,6 @@ public class Product extends BaseEntity {
     @Builder.Default
     private Boolean isHot = false;
 
-    @Column(name = "flash_sale_until")
-    private LocalDateTime flashSaleUntil;
-
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY,cascade = {CascadeType.PERSIST,CascadeType.MERGE})
     private List<ProductUnit> productUnitList = new ArrayList<>();
 

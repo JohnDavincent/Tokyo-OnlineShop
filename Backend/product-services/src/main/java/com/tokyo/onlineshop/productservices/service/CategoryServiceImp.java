@@ -1,8 +1,15 @@
 package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.common.exception.BadRequestException;
+import com.tokyo.common.exception.ConflictException;
+import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.common.ProductionStatus;
-import com.tokyo.onlineshop.productservices.dto.*;
+import com.tokyo.onlineshop.productservices.dto.request.CreateCategoryRequest;
+import com.tokyo.onlineshop.productservices.dto.response.CategoryListResponse;
+import com.tokyo.onlineshop.productservices.dto.response.CreateCategoryImageResponse;
+import com.tokyo.onlineshop.productservices.dto.response.CreateCategoryResponse;
+import com.tokyo.onlineshop.productservices.dto.response.GetSubCategoryListResponse;
 import com.tokyo.onlineshop.productservices.entity.Category;
 import com.tokyo.onlineshop.productservices.helper.ImageFileHelper;
 import com.tokyo.onlineshop.productservices.projection.SubCategoryProjection;
@@ -39,11 +46,11 @@ public class CategoryServiceImp implements CategoryService{
     @Override
     public BaseResponse CreateCategory(CreateCategoryRequest request) {
         if(request == null || request.getName() == null || request.getName().isBlank()){
-            throw new RuntimeException("Please fill the field!");
+            throw new BadRequestException("Please fill the field!");
         }
 
         if(categoryRepository.existsByName(request.getName())){
-           throw new RuntimeException("Category already register with that name");
+           throw new ConflictException("Category already register with that name");
         }
 
 
@@ -59,7 +66,7 @@ public class CategoryServiceImp implements CategoryService{
 
         if(request.getParent_id() != null) {
             if (!categoryRepository.existsById(request.getParent_id())) {
-                throw new RuntimeException("Parent category not found");
+                throw new NotFoundException("Parent category not found");
             }
             createCategory.setParentId(request.getParent_id());
 
@@ -84,7 +91,7 @@ public class CategoryServiceImp implements CategoryService{
 
     @Override
     public BaseResponse createImage(UUID categoryId, MultipartFile file) {
-        Category existParentCategory = categoryRepository.findById(categoryId).orElseThrow(() -> new RuntimeException("Product Not Found"));
+        Category existParentCategory = categoryRepository.findById(categoryId).orElseThrow(() -> new NotFoundException("Category Not Found"));
         try{
             Path uploadPath = Paths.get(uploadDir);
             Files.createDirectories(uploadPath);
@@ -97,7 +104,7 @@ public class CategoryServiceImp implements CategoryService{
 
             categoryRepository.save(existParentCategory);
         }catch(IOException e){
-            throw new RuntimeException("Failed to save the image", e);
+            throw new BadRequestException("Failed to save the image");
         }
 
         CreateCategoryImageResponse data = CreateCategoryImageResponse.builder()
@@ -117,7 +124,7 @@ public class CategoryServiceImp implements CategoryService{
     public BaseResponse getCategoryList() {
        List<Category> mainCategory = categoryRepository.getCategoryList();
        if(mainCategory == null || mainCategory.isEmpty()){
-           throw new RuntimeException("Category is not found");
+           throw new NotFoundException("Category is not found");
        }
 
        List<CategoryListResponse> data = mainCategory.stream()
@@ -144,7 +151,7 @@ public class CategoryServiceImp implements CategoryService{
     public BaseResponse getSubCategoryList(UUID parentId) {
         List<SubCategoryProjection> subCategoryList = categoryRepository.getSubCategoryBasedOnTheParent(parentId);
         if(subCategoryList == null || subCategoryList.isEmpty()){
-            throw new RuntimeException("Sub category is empty");
+            throw new NotFoundException("Sub category is empty");
         }
         List<GetSubCategoryListResponse> data = subCategoryList.stream()
                 .map(subcategory -> GetSubCategoryListResponse.builder()

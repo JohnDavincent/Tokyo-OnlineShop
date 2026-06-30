@@ -1,4 +1,4 @@
-package com.tokyo.onlineshop.productservices.dto;
+package com.tokyo.onlineshop.productservices.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -30,6 +30,7 @@ public interface ProductUnitRepository extends JpaRepository<ProductUnit, UUID> 
     public Optional<ProductUnit> findByIdAndProduct_Id(UUID unitId, UUID productId);
     public Optional<ProductUnit> findByProduct_IdAndUnit(UUID productId, String unit);
     public List<ProductUnit> findByProduct_Id(UUID productId);
+    public void deleteByProduct_Id(UUID productId);
 
     @Modifying
     @Query("""

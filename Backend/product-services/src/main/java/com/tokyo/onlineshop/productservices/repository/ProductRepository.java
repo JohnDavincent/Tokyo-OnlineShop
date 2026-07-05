@@ -19,6 +19,12 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
 
     public boolean existsByName(String name);
 
+    public boolean existsBySku(String sku);
+
+    public boolean existsByNameAndIdNot(String name, UUID id);
+
+    public boolean existsBySkuAndIdNot(String sku, UUID id);
+
     @Query(
             """
             SELECT DISTINCT p

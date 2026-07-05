@@ -9,6 +9,7 @@ import com.tokyo.common.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.*;
 import com.tokyo.onlineshop.productservices.dto.request.CreateProductRequest;
 import com.tokyo.onlineshop.productservices.dto.request.FlashSaleRequest;
+import com.tokyo.onlineshop.productservices.dto.request.IncrementSoldRequest;
 import com.tokyo.onlineshop.productservices.dto.response.*;
 import com.tokyo.onlineshop.productservices.entity.*;
 import com.tokyo.onlineshop.productservices.projection.ProductCardProjection;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -40,13 +42,9 @@ public class ProductServiceImp implements ProductService {
 
     @Transactional
     @Override
-    public BaseResponse createProduct(CreateProductRequest request) {
-        if(request == null){
-            throw new BadRequestException("Field must be fill!!");
-        }
-        if(productRepository.existsByName(request.getName())){
-            throw new ConflictException("Product Already Exists!");
-        }
+    public BaseResponse createProduct(CreateProductRequest request, List<MultipartFile> images) {
+        ValidatedProductRequest validated = validateProductRequest(request, images, null);
+
         Product createProduct = Product.builder()
                 .name(request.getName())
                 .baseUnit("Pcs")
@@ -61,48 +59,169 @@ public class ProductServiceImp implements ProductService {
                 .newMarkedAt(LocalDateTime.now())
                 .build();
 
-        Brand existBrand = brandRepository.findById(request.getBrand()).orElseThrow(() -> new NotFoundException("No brand found"));
-        existBrand.addProduct(createProduct);
-        createProduct.setBrand(existBrand);
+        validated.brand().addProduct(createProduct);
+        createProduct.setBrand(validated.brand());
 
-        Category category = categoryRepository.findById(request.getCategory()).orElseThrow(() -> new NotFoundException("No category found"));
-        List<String> subCategoryList = categoryRepository.getSubCategoryList(category.getId());
-
-
-        boolean exists = subCategoryList.stream()
-                .anyMatch(sub -> sub.equals(request.getSubCategory()));
-
-        if(exists){
-            Category setCategory = categoryRepository.findByParentIdAndName(request.getCategory(),request.getSubCategory());
-            createProduct.setCategory(setCategory);
-            setCategory.addProduct(createProduct);
-        }else{
-            throw new NotFoundException("Sub category not found");
-        }
+        createProduct.setCategory(validated.subCategory());
+        validated.subCategory().addProduct(createProduct);
 
         productRepository.save(createProduct);
 
-        //product Unit
-        productUnitService.createUnit(createProduct.getId(),request.getUnitList());
-
-        //product image
-        productImageService.addImage(createProduct.getId(),request.getImageList());
-
-        CreateProductResponse data = CreateProductResponse.builder()
-                .name(createProduct.getName())
-                .description(createProduct.getDescription())
-                .brand(existBrand.getName())
-                .category(category.getName())
-                .subCategory(createProduct.getCategory().getName())
-                .baseWeight(createProduct.getBaseWeightUnit())
-                .stock(createProduct.getStock())
-                .build();
+        productUnitService.createUnit(createProduct.getId(), request.getUnitList());
+        productImageService.saveImages(createProduct, images, request.getAltTexts());
 
         return BaseResponse.builder()
                 .status(HttpStatus.CREATED.value())
                 .code(HttpStatus.CREATED)
                 .message("Product created successfully")
-                .data(data)
+                .data(buildProductResponse(createProduct, validated))
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public BaseResponse updateProduct(UUID id, CreateProductRequest request, List<MultipartFile> images) {
+        if (id == null) {
+            throw new BadRequestException("Product ID is required");
+        }
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Product not found"));
+
+        ValidatedProductRequest validated = validateProductRequest(request, images, id);
+
+        product.setName(request.getName());
+        product.setSku(request.getSku());
+        product.setStock(request.getStock());
+        product.setBaseWeightUnit(request.getBaseWeight());
+        product.setDescription(request.getDescription());
+        product.setBrand(validated.brand());
+        product.setCategory(validated.subCategory());
+
+        productRepository.save(product);
+
+        productUnitRepository.deleteByProduct_Id(product.getId());
+        productUnitRepository.flush();
+        productUnitService.createUnit(product.getId(), request.getUnitList());
+
+        if (images != null && !images.isEmpty()) {
+            productImageRepository.deleteByProduct_Id(product.getId());
+            productImageRepository.flush();
+            productImageService.saveImages(product, images, request.getAltTexts());
+        }
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Product updated successfully")
+                .data(buildProductResponse(product, validated))
+                .build();
+    }
+
+    private ValidatedProductRequest validateProductRequest(CreateProductRequest request,
+                                                           List<MultipartFile> images,
+                                                           UUID excludeProductId) {
+        if (request == null) {
+            throw new BadRequestException("Request body is required");
+        }
+
+        boolean nameTaken = excludeProductId == null
+                ? productRepository.existsByName(request.getName())
+                : productRepository.existsByNameAndIdNot(request.getName(), excludeProductId);
+        if (nameTaken) {
+            throw new ConflictException("Product name already exists");
+        }
+
+        boolean skuTaken = excludeProductId == null
+                ? productRepository.existsBySku(request.getSku())
+                : productRepository.existsBySkuAndIdNot(request.getSku(), excludeProductId);
+        if (skuTaken) {
+            throw new ConflictException("Product SKU already exists");
+        }
+
+        if (request.getUnitList() == null || request.getUnitList().isEmpty()) {
+            throw new BadRequestException("At least one unit is required");
+        }
+
+        if (request.getBrand() == null) {
+            throw new BadRequestException("Brand is required");
+        }
+        Brand brand = brandRepository.findById(request.getBrand())
+                .orElseThrow(() -> new NotFoundException("Brand not found"));
+
+        if (request.getCategory() == null) {
+            throw new BadRequestException("Category is required");
+        }
+        Category category = categoryRepository.findById(request.getCategory())
+                .orElseThrow(() -> new NotFoundException("Category not found"));
+
+        if (request.getSubCategory() == null || request.getSubCategory().isBlank()) {
+            throw new BadRequestException("Sub category is required");
+        }
+        Category subCategory = categoryRepository.findByParentIdAndName(category.getId(), request.getSubCategory());
+        if (subCategory == null) {
+            throw new NotFoundException("Sub category not found under the given category");
+        }
+
+        if (images != null) {
+            for (int i = 0; i < images.size(); i++) {
+                MultipartFile file = images.get(i);
+                if (file == null || file.isEmpty()) {
+                    throw new BadRequestException("Image file at index " + i + " is empty");
+                }
+            }
+            if (request.getAltTexts() != null && request.getAltTexts().size() > images.size()) {
+                throw new BadRequestException("altTexts has more entries than uploaded images");
+            }
+        }
+
+        return new ValidatedProductRequest(brand, category, subCategory);
+    }
+
+    private CreateProductResponse buildProductResponse(Product product, ValidatedProductRequest validated) {
+        return CreateProductResponse.builder()
+                .name(product.getName())
+                .sku(product.getSku())
+                .stock(product.getStock())
+                .baseWeight(product.getBaseWeightUnit())
+                .brand(validated.brand().getName())
+                .category(validated.category().getName())
+                .subCategory(validated.subCategory().getName())
+                .description(product.getDescription())
+                .build();
+    }
+
+    private record ValidatedProductRequest(Brand brand, Category category, Category subCategory) {}
+
+    @Transactional
+    @Override
+    public BaseResponse incrementTotalSold(List<IncrementSoldRequest> request) {
+        if (request == null || request.isEmpty()) {
+            throw new BadRequestException("At least one item is required");
+        }
+
+        for (IncrementSoldRequest item : request) {
+            if (item == null || item.getProductId() == null) {
+                throw new BadRequestException("productId is required for every item");
+            }
+            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+                throw new BadRequestException("quantity must be positive for every item");
+            }
+        }
+
+        for (IncrementSoldRequest item : request) {
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new NotFoundException("Product %s not found".formatted(item.getProductId())));
+            long current = product.getTotalSold() == null ? 0L : product.getTotalSold();
+            product.setTotalSold(current + item.getQuantity());
+            productRepository.save(product);
+        }
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Total sold updated for %d product(s)".formatted(request.size()))
+                .data(request.size())
                 .build();
     }
 
@@ -361,7 +480,7 @@ public class ProductServiceImp implements ProductService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product not found"));
 
-        List<UnitCard> flashSaleUnits = new ArrayList<>();
+        List<FlashSaleResponse.UnitResponse> unitResponses = new ArrayList<>();
 
         for (FlashSaleRequest.ProductFlashSaleDto unitSale : request.getUnitsSale()) {
             ProductUnit existUnit = productUnitRepository
@@ -382,26 +501,25 @@ public class ProductServiceImp implements ProductService {
             existUnit.setFlashSaleUntil(request.getFlashSaleUntil());
             productUnitRepository.save(existUnit);
 
-            flashSaleUnits.add(UnitCard.builder()
-                    .unit(existUnit.getUnit())
-                    .convertQuantity(existUnit.getConvertQuantity())
-                    .sellPrice(existUnit.getUnitSellPrice())
-                    .discountPrice(discountPrice)
-                    .status(existUnit.getStatus())
+            unitResponses.add(FlashSaleResponse.UnitResponse.builder()
+                    .beforeDiscount(existUnit.getUnitSellPrice())
+                    .afterDiscount(discountPrice)
                     .build());
         }
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("productId", product.getId());
-        data.put("productName", product.getName());
-        data.put("flashSaleUntil", request.getFlashSaleUntil());
-        data.put("units", flashSaleUnits);
+        FlashSaleResponse response = FlashSaleResponse.builder()
+                .productId(productId)
+                .isFlashSale(true)
+                .flashSaleUntil(request.getFlashSaleUntil())
+                .status(product.getStatus())
+                .units(unitResponses)
+                .build();
 
         return BaseResponse.builder()
                 .status(HttpStatus.OK.value())
                 .code(HttpStatus.OK)
                 .message("Product units marked as FLASH_SALE successfully")
-                .data(data)
+                .data(response)
                 .build();
     }
 

@@ -3,15 +3,19 @@ package com.tokyo.onlineshop.productservices.service;
 import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.onlineshop.productservices.dto.request.CreateProductRequest;
 import com.tokyo.onlineshop.productservices.dto.request.FlashSaleRequest;
+import com.tokyo.onlineshop.productservices.dto.request.IncrementSoldRequest;
 import com.tokyo.onlineshop.productservices.dto.response.GetProductClientResponse;
 import com.tokyo.onlineshop.productservices.dto.RequestProductListDto;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface ProductService {
 
-    BaseResponse createProduct(CreateProductRequest request);
+    BaseResponse createProduct(CreateProductRequest request, List<MultipartFile> images);
+    BaseResponse updateProduct(UUID id, CreateProductRequest request, List<MultipartFile> images);
+    BaseResponse incrementTotalSold(List<IncrementSoldRequest> request);
     BaseResponse getProductListFeatured();
     BaseResponse getLastArrivalProductList();
     BaseResponse getProductDetail(UUID id);

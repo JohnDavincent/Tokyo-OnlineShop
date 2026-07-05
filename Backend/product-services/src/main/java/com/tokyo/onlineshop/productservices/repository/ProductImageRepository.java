@@ -21,4 +21,6 @@ public interface ProductImageRepository extends JpaRepository<ProductImage, UUID
     )
     String getUrl(UUID productId);
 
+    void deleteByProduct_Id(UUID productId);
+
 }

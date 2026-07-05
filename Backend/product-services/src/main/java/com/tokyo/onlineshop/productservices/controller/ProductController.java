@@ -1,6 +1,7 @@
 package com.tokyo.onlineshop.productservices.controller;
 
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.onlineshop.productservices.dto.request.IncrementSoldRequest;
 import com.tokyo.onlineshop.productservices.dto.response.GetProductClientResponse;
 import com.tokyo.onlineshop.productservices.dto.response.GetProductUnitResponse;
 import com.tokyo.onlineshop.productservices.dto.RequestProductListDto;
@@ -205,6 +206,24 @@ public class ProductController {
     @PostMapping("/list-by-ids")
     public List<GetProductClientResponse> getProductListByIds(@RequestBody List<UUID> productIds) {
         return productService.getProductListByIds(productIds);
+    }
+
+    @Operation(
+            summary = "Increment total sold (internal)",
+            description = "### Section: Product\n" +
+                    "**Request:** Called by transaction-services when an order is confirmed. Accepts a list of {productId, quantity} entries and adds each quantity to the corresponding product's totalSold counter.\n" +
+                    "**Response:** Returns a BaseResponse with the number of products updated."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Total sold updated successfully",
+                    content = @Content(schema = @Schema(implementation = BaseResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Empty list or invalid quantity"),
+            @ApiResponse(responseCode = "404", description = "One of the products was not found")
+    })
+    @PostMapping("/increment-sold")
+    public ResponseEntity<BaseResponse> incrementTotalSold(@RequestBody List<IncrementSoldRequest> request) {
+        BaseResponse response = productService.incrementTotalSold(request);
+        return ResponseEntity.ok(response);
     }
 
 }

@@ -39,8 +39,8 @@ public class CreateProductRequest {
 
     private String description;
 
-    List<CreateUnitRequest> unitList;
+    private List<CreateUnitRequest> unitList;
 
-    List<CreateImageRequest> imageList;
+    private List<String> altTexts;
 
 }

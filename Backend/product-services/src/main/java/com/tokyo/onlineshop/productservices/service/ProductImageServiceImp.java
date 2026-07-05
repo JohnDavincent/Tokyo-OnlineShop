@@ -1,18 +1,12 @@
 package com.tokyo.onlineshop.productservices.service;
 
-import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.common.exception.BadRequestException;
-import com.tokyo.common.exception.NotFoundException;
-import com.tokyo.onlineshop.productservices.dto.request.CreateImageRequest;
-import com.tokyo.onlineshop.productservices.dto.response.CreateImageResponse;
 import com.tokyo.onlineshop.productservices.entity.Product;
 import com.tokyo.onlineshop.productservices.entity.ProductImage;
 import com.tokyo.onlineshop.productservices.helper.ImageFileHelper;
 import com.tokyo.onlineshop.productservices.repository.ProductImageRepository;
-import com.tokyo.onlineshop.productservices.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,7 +17,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -33,20 +26,16 @@ public class ProductImageServiceImp implements ProductImageService {
     private String uploadDir;
 
     private final ProductImageRepository productImageRepository;
-    private final ProductRepository productRepository;
     private final ImageFileHelper fileHelper;
 
     @Override
-    public BaseResponse uploadImage(String slug, List<MultipartFile> files, List<String> altTexts) {
+    public List<ProductImage> saveImages(Product product, List<MultipartFile> files, List<String> altTexts) {
         if (files == null || files.isEmpty()) {
-            throw new BadRequestException("Image is empty");
+            return List.of();
         }
-        
-        String safeSlug = slug == null || slug.isBlank()
-                ? "product-image"
-                : slug.strip().toLowerCase(Locale.ROOT).replaceAll("\\s+", "-");
 
-        List<CreateImageResponse> imageList = new ArrayList<>();
+        String slug = product.getName().strip().toLowerCase(Locale.ROOT).replaceAll("\\s+", "-");
+        List<ProductImage> saved = new ArrayList<>();
 
         try {
             Path uploadPath = Paths.get(uploadDir);
@@ -55,89 +44,30 @@ public class ProductImageServiceImp implements ProductImageService {
             for (int i = 0; i < files.size(); i++) {
                 MultipartFile file = files.get(i);
                 if (file == null || file.isEmpty()) {
-                    throw new BadRequestException("Image file is empty");
+                    throw new BadRequestException("Image file at index " + i + " is empty");
                 }
 
-                String altText = null;
-                if (altTexts != null && i < altTexts.size()) {
-                    altText = altTexts.get(i);
-                }
-
-                String fileName = fileHelper.createImageFileName(safeSlug, file);
+                String altText = (altTexts != null && i < altTexts.size()) ? altTexts.get(i) : null;
+                String fileName = fileHelper.createImageFileName(slug, file);
                 String url = "/images/products/" + fileName;
                 Path target = uploadPath.resolve(fileName);
 
                 file.transferTo(target.toFile());
 
-                imageList.add(CreateImageResponse.builder()
+                ProductImage image = ProductImage.builder()
+                        .product(product)
+                        .slug(slug)
                         .url(url)
                         .altText(altText)
-                        .slug(safeSlug)
                         .isPrimary(i == 0)
-                        .build());
+                        .build();
+
+                saved.add(productImageRepository.save(image));
             }
         } catch (IOException e) {
-            throw new BadRequestException("Failed to save the image");
+            throw new BadRequestException("Failed to save image file");
         }
 
-        return BaseResponse.builder()
-                .status(HttpStatus.CREATED.value())
-                .code(HttpStatus.CREATED)
-                .message("Images uploaded successfully")
-                .data(imageList)
-                .build();
+        return saved;
     }
-
-    @Override
-    public BaseResponse addImage(UUID productId, List<CreateImageRequest> request) {
-        if (request == null || request.isEmpty()) {
-            return BaseResponse.builder()
-                    .status(HttpStatus.CREATED.value())
-                    .code(HttpStatus.CREATED)
-                    .message("No images to add")
-                    .data(List.of())
-                    .build();
-        }
-
-        Product existProduct = productRepository.findById(productId)
-                .orElseThrow(() -> new NotFoundException("No product found"));
-
-        String slug = existProduct.getName().strip().toLowerCase(Locale.ROOT).replaceAll("\\s+", "-");
-        List<CreateImageResponse> imageList = new ArrayList<>();
-
-        for (int i = 0; i < request.size(); i++) {
-            CreateImageRequest image = request.get(i);
-            if (image.getUrl() == null || image.getUrl().isBlank()) {
-                throw new BadRequestException("Image url is empty");
-            }
-
-            ProductImage addImage = ProductImage.builder()
-                    .product(existProduct)
-                    .slug(slug)
-                    .url(image.getUrl())
-                    .altText(image.getAltText())
-                    .isPrimary(i == 0)
-                    .build();
-
-            productImageRepository.save(addImage);
-
-            imageList.add(CreateImageResponse.builder()
-                    .productName(existProduct.getName())
-                    .isPrimary(addImage.getIsPrimary())
-                    .url(addImage.getUrl())
-                    .altText(addImage.getAltText())
-                    .slug(addImage.getSlug())
-                    .build());
-        }
-
-        return BaseResponse.builder()
-                .status(HttpStatus.CREATED.value())
-                .code(HttpStatus.CREATED)
-                .message("Images added successfully")
-                .data(imageList)
-                .build();
-    }
-
-
-
 }

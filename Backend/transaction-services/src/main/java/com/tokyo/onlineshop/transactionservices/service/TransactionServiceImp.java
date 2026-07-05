@@ -6,7 +6,9 @@ import com.tokyo.common.exception.BadRequestException;
 import com.tokyo.common.exception.ForbiddenException;
 import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.onlineshop.transactionservices.client.CartClient;
+import com.tokyo.onlineshop.transactionservices.client.ProductClient;
 import com.tokyo.onlineshop.transactionservices.dto.AddTransactionAddressResponseDto;
+import com.tokyo.onlineshop.transactionservices.dto.IncrementSoldRequest;
 import com.tokyo.onlineshop.transactionservices.dto.AddTransactionDetailResponseDto;
 import com.tokyo.onlineshop.transactionservices.dto.AddTransactionResponseDto;
 import com.tokyo.onlineshop.transactionservices.dto.GetTransactionDetailResponseDto;
@@ -45,6 +47,7 @@ public class TransactionServiceImp implements TransactionService{
     private final TransactionDetailService transactionDetailService;
     private final TransactionAddressService transactionAddressService;
     private final CartClient client;
+    private final ProductClient productClient;
 
     @Transactional
     @Override
@@ -159,6 +162,46 @@ public class TransactionServiceImp implements TransactionService{
                 .code(HttpStatus.OK)
                 .data(data)
                 .message("Transaction detail retrieved successfully")
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public BaseResponse confirmTransaction(UUID transactionId) {
+        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        Transaction transaction = repository.findById(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        if (!transaction.getUserId().equals(UUID.fromString(userId))) {
+            throw new ForbiddenException("You are not authorized to confirm this transaction");
+        }
+
+        if (transaction.getStatus() != TransactionStatus.PENDING) {
+            throw new BadRequestException("Transaction is not in PENDING status");
+        }
+
+        List<IncrementSoldRequest> soldItems = transaction.getTransactionDetailList().stream()
+                .map(detail -> IncrementSoldRequest.builder()
+                        .productId(detail.getProductId())
+                        .quantity(detail.getQuantity())
+                        .build())
+                .toList();
+
+        if (soldItems.isEmpty()) {
+            throw new BadRequestException("Transaction has no items to confirm");
+        }
+
+        productClient.incrementTotalSold(soldItems);
+
+        transaction.setStatus(TransactionStatus.SUCCESS);
+        repository.save(transaction);
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Transaction confirmed successfully")
+                .data(transaction.getOrderId())
                 .build();
     }
 

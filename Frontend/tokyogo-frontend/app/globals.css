@@ -100,3 +100,73 @@ img {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ============================================================
+   Admin panel theme — scoped to .admin-shell so the customer
+   storefront is completely unaffected. Values are derived from
+   the existing Tokyo GO palette in tailwind.config.ts.
+   ============================================================ */
+.admin-shell {
+  --admin-bg: #f4f8f6;
+  --admin-surface: #ffffff;
+  --admin-surface-2: #eef6f1;
+  --admin-border: rgba(0, 54, 39, 0.1);
+  --admin-text: #0f2118;
+  --admin-heading: #003627;
+  --admin-muted: #517a67;
+  --admin-primary: #006941;
+  --admin-primary-hover: #005c38;
+  --admin-on-primary: #ffffff;
+  --admin-primary-soft: rgba(0, 105, 65, 0.1);
+  --admin-accent: #e29700;
+  --admin-accent-soft: rgba(254, 170, 0, 0.16);
+  --admin-danger: #b31b25;
+  --admin-danger-soft: rgba(179, 27, 37, 0.1);
+  --admin-info: #1a56b0;
+  --admin-info-soft: rgba(26, 86, 176, 0.1);
+  --admin-sidebar-bg: #003627;
+  --admin-sidebar-text: #a9d3c1;
+  --admin-sidebar-active-bg: rgba(123, 254, 184, 0.14);
+  --admin-sidebar-active-text: #7bfeb8;
+  --admin-chart-1: #006941;
+  --admin-chart-2: #feaa00;
+  --admin-chart-3: #4d816d;
+  --admin-chart-4: #176a21;
+  --admin-chart-grid: rgba(0, 54, 39, 0.08);
+  --admin-shadow-card: 0 8px 30px rgba(0, 39, 25, 0.06);
+  --admin-shadow-elevated: 0 16px 40px rgba(0, 39, 25, 0.08);
+
+  background: var(--admin-bg);
+  color: var(--admin-text);
+}
+
+.admin-shell.dark {
+  --admin-bg: #081410;
+  --admin-surface: #0e211a;
+  --admin-surface-2: #132b22;
+  --admin-border: rgba(131, 184, 162, 0.16);
+  --admin-text: #d3ebde;
+  --admin-heading: #eafff4;
+  --admin-muted: #73a892;
+  --admin-primary: #2fae74;
+  --admin-primary-hover: #35c483;
+  --admin-on-primary: #002d1c;
+  --admin-primary-soft: rgba(123, 254, 184, 0.12);
+  --admin-accent: #feaa00;
+  --admin-accent-soft: rgba(254, 170, 0, 0.14);
+  --admin-danger: #ff6b74;
+  --admin-danger-soft: rgba(255, 107, 116, 0.12);
+  --admin-info: #7aa8ee;
+  --admin-info-soft: rgba(122, 168, 238, 0.12);
+  --admin-sidebar-bg: #06110d;
+  --admin-sidebar-text: #7ca390;
+  --admin-sidebar-active-bg: rgba(123, 254, 184, 0.1);
+  --admin-sidebar-active-text: #7bfeb8;
+  --admin-chart-1: #4fd695;
+  --admin-chart-2: #feaa00;
+  --admin-chart-3: #73a892;
+  --admin-chart-4: #90e28a;
+  --admin-chart-grid: rgba(131, 184, 162, 0.12);
+  --admin-shadow-card: 0 8px 30px rgba(0, 0, 0, 0.3);
+  --admin-shadow-elevated: 0 16px 40px rgba(0, 0, 0, 0.4);
+}

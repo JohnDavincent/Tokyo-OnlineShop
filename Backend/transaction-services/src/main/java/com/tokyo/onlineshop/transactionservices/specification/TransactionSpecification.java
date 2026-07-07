@@ -42,4 +42,32 @@ public class TransactionSpecification {
         };
     }
 
+    public static Specification<Transaction> hasStatus(String status){
+        return (root, query, criteriaBuilder) -> {
+            if (status == null || status.isBlank() || status.equalsIgnoreCase("ALL")) {
+                return criteriaBuilder.conjunction();
+            }
+            try {
+                com.tokyo.onlineshop.transactionservices.enums.TransactionStatus txStatus = 
+                    com.tokyo.onlineshop.transactionservices.enums.TransactionStatus.valueOf(status.toUpperCase());
+                return criteriaBuilder.equal(root.get("status"), txStatus);
+            } catch (IllegalArgumentException e) {
+                return criteriaBuilder.conjunction();
+            }
+        };
+    }
+
+    public static Specification<Transaction> searchKeyword(String keyword){
+        return (root, query, criteriaBuilder) -> {
+            if (keyword == null || keyword.isBlank()) {
+                return criteriaBuilder.conjunction();
+            }
+            String likePattern = "%" + keyword.toLowerCase() + "%";
+            return criteriaBuilder.or(
+                criteriaBuilder.like(criteriaBuilder.lower(root.get("orderId")), likePattern),
+                criteriaBuilder.like(criteriaBuilder.lower(root.get("deliveryAddress").get("recipientName")), likePattern),
+                criteriaBuilder.like(criteriaBuilder.lower(root.get("deliveryAddress").get("recipientPhone")), likePattern)
+            );
+        };
+    }
 }

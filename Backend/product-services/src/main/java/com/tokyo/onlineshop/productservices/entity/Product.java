@@ -76,7 +76,9 @@ public class Product extends BaseEntity {
     @JoinColumn(name = "brands_id")
     private Brand brand;
 
-
+    @Builder.Default
+    @Column(name = "is_flash_sale")
+    private Boolean isFlashSale = false;
 
     public void addProductUnit(ProductUnit unit){
         productUnitList.add(unit);

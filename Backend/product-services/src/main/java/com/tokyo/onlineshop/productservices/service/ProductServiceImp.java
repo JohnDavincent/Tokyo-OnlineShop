@@ -284,6 +284,7 @@ public class ProductServiceImp implements ProductService {
                         unit -> CreateUnitResponse.builder()
                                 .id(unit.getId())
                                 .unit(unit.getUnit())
+                                .basePrice(unit.getUnitBasePrice())
                                 .sellPrice(unit.getUnitSellPrice())
                                 .convertUnit(unit.getQuantityUnit())
                                 .build()
@@ -384,6 +385,11 @@ public class ProductServiceImp implements ProductService {
                 .message("Products retrieved successfully")
                 .data(pagingData)
                 .build();
+    }
+
+    @Override
+    public BaseResponse getProductSaleList() {
+        List<Product> flashSaleProduct = productRepository.getProductOnFlashSale();
     }
 
     @Transactional

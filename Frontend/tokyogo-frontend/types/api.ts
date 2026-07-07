@@ -2,6 +2,7 @@ export type UnitList = {
   unit: string;
   convertQuantity: number;
   sellPrice: number;
+  discountPrice?: number | null;
   status: string;
 };
 

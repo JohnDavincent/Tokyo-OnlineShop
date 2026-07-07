@@ -42,6 +42,7 @@ public class BrandServiceImp implements BrandService{
         brandRepository.save(createBrand);
 
         CreateBrandResponse data = CreateBrandResponse.builder()
+                .id(createBrand.getId())
                 .name(createBrand.getName())
                 .slug(createBrand.getSlug())
                 .status(createBrand.getStatus())
@@ -64,6 +65,7 @@ public class BrandServiceImp implements BrandService{
 
         List<CreateBrandResponse> data = brands.stream()
                 .map(brand -> CreateBrandResponse.builder()
+                        .id(brand.getId())
                         .name(brand.getName())
                         .slug(brand.getSlug())
                         .status(brand.getStatus())

@@ -10,4 +10,7 @@ public interface TransactionService {
     public BaseResponse getTransactionList(int currentPage, int pageSize, String startDate, String endDate);
     public BaseResponse getTransactionDetail(UUID transactionId);
     public BaseResponse confirmTransaction(UUID transactionId);
+    public BaseResponse getAdminTransactionList(int currentPage, int pageSize, String startDate, String endDate, String status, String keyword);
+    public BaseResponse getAdminTransactionDetail(UUID transactionId);
+    public BaseResponse confirmAdminTransaction(UUID transactionId);
 }

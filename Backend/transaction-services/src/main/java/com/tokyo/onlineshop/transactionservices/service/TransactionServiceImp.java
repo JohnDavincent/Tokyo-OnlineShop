@@ -249,5 +249,137 @@ public class TransactionServiceImp implements TransactionService{
                 .build();
     }
 
+    @Override
+    public BaseResponse getAdminTransactionList(int currentPage, int pageSize, String startDate, String endDate, String status, String keyword) {
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        Specification<Transaction> spec = (root, query, cb) -> cb.conjunction();
+        
+        if (startDate != null && !startDate.isBlank() || endDate != null && !endDate.isBlank()) {
+            LocalDate start = startDate != null && !startDate.isBlank() ? LocalDate.parse(startDate, formatter) : null;
+            LocalDate end = endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate, formatter) : null;
+            spec = spec.and(TransactionSpecification.hasDate(start, end));
+        }
 
+        spec = spec.and(TransactionSpecification.hasStatus(status));
+        spec = spec.and(TransactionSpecification.searchKeyword(keyword));
+
+        Page<Transaction> transactionList = repository.findAll(spec, PageRequest.of(currentPage - 1, pageSize, sort));
+        
+        List<com.tokyo.onlineshop.transactionservices.dto.GetAdminTransactionListDto> dtoList = transactionList.getContent().stream()
+                .map(t -> {
+                    String customerName = t.getDeliveryAddress() != null ? t.getDeliveryAddress().getRecipientName() : "";
+                    String customerPhone = t.getDeliveryAddress() != null ? t.getDeliveryAddress().getRecipientPhone() : "";
+                    int itemCount = t.getTransactionDetailList() == null ? 0 : 
+                        t.getTransactionDetailList().stream().mapToInt(com.tokyo.onlineshop.transactionservices.entity.TransactionDetail::getQuantity).sum();
+                    
+                    return com.tokyo.onlineshop.transactionservices.dto.GetAdminTransactionListDto.builder()
+                            .transactionId(t.getId())
+                            .orderId(t.getOrderId())
+                            .status(t.getStatus())
+                            .grandTotal(t.getGrandTotal())
+                            .customerName(customerName)
+                            .customerPhone(customerPhone)
+                            .createdAt(t.getCreatedAt())
+                            .itemCount(itemCount)
+                            .build();
+                }).toList();
+
+        PagingResponse response = PagingResponse.builder()
+                .items(dtoList)
+                .currentPage(currentPage)
+                .pageSize(pageSize)
+                .totalPages(transactionList.getTotalPages())
+                .totalItems(transactionList.getTotalElements())
+                .build();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .data(response)
+                .message("Admin transaction list retrieved successfully")
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public BaseResponse getAdminTransactionDetail(UUID transactionId) {
+        Transaction transaction = repository.findById(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        TransactionAddress address = transaction.getDeliveryAddress();
+        TransactionAddressResponseDto addressDto = null;
+        if (address != null) {
+            addressDto = TransactionAddressResponseDto.builder()
+                    .recipientName(address.getRecipientName())
+                    .recipientPhone(address.getRecipientPhone())
+                    .addressLine(address.getAddressLine())
+                    .city(address.getCity())
+                    .province(address.getProvince())
+                    .postalCode(address.getPostalCode())
+                    .addressLabel(address.getAddressLabel())
+                    .deliveryNotes(address.getDeliveryNotes())
+                    .build();
+        }
+
+        List<AddTransactionDetailResponseDto> items = transaction.getTransactionDetailList().stream()
+                .map(detail -> AddTransactionDetailResponseDto.builder()
+                        .productName(detail.getProductName())
+                        .quantity(detail.getQuantity())
+                        .productUnit(detail.getProductUnit())
+                        .price(detail.getPrice())
+                        .subTotal(detail.getSubtotal())
+                        .build()
+                ).toList();
+
+        GetTransactionDetailResponseDto data = GetTransactionDetailResponseDto.builder()
+                .transactionId(transaction.getId())
+                .orderId(transaction.getOrderId())
+                .status(transaction.getStatus())
+                .grandTotal(transaction.getGrandTotal())
+                .address(addressDto)
+                .items(items)
+                .build();
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .data(data)
+                .message("Admin transaction detail retrieved successfully")
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public BaseResponse confirmAdminTransaction(UUID transactionId) {
+        Transaction transaction = repository.findById(transactionId)
+                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+
+        if (transaction.getStatus() != TransactionStatus.PENDING) {
+            throw new BadRequestException("Transaction is not in PENDING status");
+        }
+
+        List<IncrementSoldRequest> soldItems = transaction.getTransactionDetailList().stream()
+                .map(detail -> IncrementSoldRequest.builder()
+                        .productId(detail.getProductId())
+                        .quantity(detail.getQuantity())
+                        .build())
+                .toList();
+
+        if (soldItems.isEmpty()) {
+            throw new BadRequestException("Transaction has no items to confirm");
+        }
+
+        productClient.incrementTotalSold(soldItems);
+
+        transaction.setStatus(TransactionStatus.SUCCESS);
+        repository.save(transaction);
+
+        return BaseResponse.builder()
+                .status(HttpStatus.OK.value())
+                .code(HttpStatus.OK)
+                .message("Transaction confirmed successfully by admin")
+                .data(transaction.getOrderId())
+                .build();
+    }
 }

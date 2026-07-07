@@ -21,6 +21,7 @@ public interface ProductService {
     BaseResponse getProductDetail(UUID id);
     BaseResponse getProductByCategory(UUID categoryId, int page, int size);
     BaseResponse getProductList(RequestProductListDto request);
+    BaseResponse getProductSaleList();
     BaseResponse getTopSoldProducts();
     BaseResponse getNewProducts();
     BaseResponse markProductAsNew(UUID id);

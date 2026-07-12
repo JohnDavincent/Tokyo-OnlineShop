@@ -36,10 +36,10 @@ public class ProductStatusScheduler {
         log.info("Expired {} NEW products back to AVAILABLE", expired.size());
     }
 
-    @Scheduled(cron = "0 0 * * * ?") // hourly
-    @Transactional
-    public void expireFlashSales() {
-        int expired = productUnitRepository.expireFlashSales(LocalDateTime.now());
-        log.info("Cleared flash sale on {} product units", expired);
-    }
+//    @Scheduled(cron = "0 0 * * * ?") // hourly
+//    @Transactional
+//    public void expireFlashSales() {
+//        int expired = productUnitRepository.expireFlashSales(LocalDateTime.now());
+//        log.info("Cleared flash sale on {} product units", expired);
+//    }
 }

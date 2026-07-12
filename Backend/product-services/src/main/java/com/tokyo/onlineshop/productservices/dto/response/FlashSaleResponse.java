@@ -15,7 +15,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class FlashSaleResponse {
     private LocalDateTime flashSaleUntil;
-    private UUID productId;
+    private String productName;
     private boolean isFlashSale;
     private ProductionStatus status;
     private List<UnitResponse> units;
@@ -27,8 +27,9 @@ public class FlashSaleResponse {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class UnitResponse{
-        private BigDecimal beforeDiscount;
-        private BigDecimal afterDiscount;
+        private String unit;
+        private BigDecimal originalFlashSale;
+        private BigDecimal flashSalePrice;
     }
 
 }

@@ -130,11 +130,5 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
             """)
     void setTopSoldHotFlags(@Param("ids") List<UUID> ids);
 
-    @Query("""
-            SELECT p
-            FROM Product
-            Where p.isFlashSale = true
-          """)
-    List<Product> getProductOnFlashSale();
 
 }

@@ -2,10 +2,7 @@ package com.tokyo.onlineshop.productservices.controller;
 
 
 import com.tokyo.common.dto.BaseResponse;
-import com.tokyo.onlineshop.productservices.dto.request.CreateBrandRequest;
-import com.tokyo.onlineshop.productservices.dto.request.CreateCategoryRequest;
-import com.tokyo.onlineshop.productservices.dto.request.CreateProductRequest;
-import com.tokyo.onlineshop.productservices.dto.request.FlashSaleRequest;
+import com.tokyo.onlineshop.productservices.dto.request.*;
 import com.tokyo.onlineshop.productservices.service.BrandService;
 import com.tokyo.onlineshop.productservices.service.CategoryService;
 import com.tokyo.onlineshop.productservices.service.ProductService;
@@ -156,52 +153,15 @@ public class AdminController {
         return ResponseEntity.ok(response);
     }
 
-//    @Operation(
-//            summary = "Mark product as FLASH_SALE",
-//            description = "### Section: Admin - Product Management\n" +
-//                    "**Request:** Mark a product as FLASH_SALE. Optional flashSaleUntil sets auto-expiry; omit for manual mode.\n" +
-//                    "**Response:** Returns a BaseResponse containing the updated product status and flashSaleUntil."
-//    )
-//    @ApiResponses({
-//            @ApiResponse(responseCode = "200", description = "Product marked as FLASH_SALE successfully",
-//                    content = @Content(schema = @Schema(implementation = BaseResponse.class))),
-//            @ApiResponse(responseCode = "400", description = "Invalid request payload"),
-//            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
-//            @ApiResponse(responseCode = "403", description = "Forbidden - requires ADMIN role"),
-//            @ApiResponse(responseCode = "404", description = "Product not found")
-//    })
-//    @PostMapping("/product/{id}/flash-sale")
-//    @PreAuthorize("hasRole('ADMIN')")
-//    public ResponseEntity<BaseResponse> markProductAsFlashSale(
-//            @Parameter(description = "Product UUID", required = true)
-//            @PathVariable UUID id,
-//            @Valid @RequestBody(required = false) FlashSaleRequest request) {
-//        BaseResponse response = productService.markProductAsFlashSale(id, request);
-//        return ResponseEntity.ok(response);
-//    }
 
-//    @Operation(
-//            summary = "End product flash sale",
-//            description = "### Section: Admin - Product Management\n" +
-//                    "**Request:** Manually revert a product from FLASH_SALE back to AVAILABLE.\n" +
-//                    "**Response:** Returns a BaseResponse containing the updated product status."
-//    )
-//    @ApiResponses({
-//            @ApiResponse(responseCode = "200", description = "Flash sale ended successfully",
-//                    content = @Content(schema = @Schema(implementation = BaseResponse.class))),
-//            @ApiResponse(responseCode = "400", description = "Product is not in FLASH_SALE status"),
-//            @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token missing or invalid"),
-//            @ApiResponse(responseCode = "403", description = "Forbidden - requires ADMIN role"),
-//            @ApiResponse(responseCode = "404", description = "Product not found")
-//    })
-//    @PostMapping("/product/{id}/end-flash-sale")
-//    @PreAuthorize("hasRole('ADMIN')")
-//    public ResponseEntity<BaseResponse> endFlashSale(
-//            @Parameter(description = "Product UUID", required = true)
-//            @PathVariable UUID id) {
-//        BaseResponse response = productService.endFlashSale(id);
-//        return ResponseEntity.ok(response);
-//    }
+    @PostMapping("/flash-sale/{product_id}")
+    ResponseEntity<BaseResponse> addFlashSaleProduct(
+            @PathVariable("product_id") UUID productId,
+            @RequestBody FlashSaleRequest request
+    ){
+        BaseResponse response = productService.addFlashSaleProduct(productId,request);
+        return ResponseEntity.status(HttpStatus.CREATED.value()).body(response);
+    }
 
     @Operation(
             summary = "Upload category image",

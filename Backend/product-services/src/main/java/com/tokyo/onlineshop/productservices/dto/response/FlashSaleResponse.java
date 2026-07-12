@@ -1,6 +1,7 @@
 package com.tokyo.onlineshop.productservices.dto.response;
 
 import com.tokyo.common.ProductionStatus;
+import com.tokyo.onlineshop.productservices.enums.FlashSaleStatus;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -14,10 +15,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class FlashSaleResponse {
-    private LocalDateTime flashSaleUntil;
     private String productName;
     private boolean isFlashSale;
-    private ProductionStatus status;
     private List<UnitResponse> units;
 
 
@@ -28,7 +27,10 @@ public class FlashSaleResponse {
     @NoArgsConstructor
     public static class UnitResponse{
         private String unit;
-        private BigDecimal originalFlashSale;
+        private LocalDateTime flashSaleUntil;
+        private FlashSaleStatus status;
+        private LocalDateTime flashSaleStart;
+        private BigDecimal originalPrice;
         private BigDecimal flashSalePrice;
     }
 

@@ -2,12 +2,11 @@ package com.tokyo.onlineshop.productservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.onlineshop.productservices.dto.request.CreateProductRequest;
-import com.tokyo.onlineshop.productservices.dto.request.FlashSaleListRequest;
 import com.tokyo.onlineshop.productservices.dto.request.FlashSaleRequest;
+import com.tokyo.onlineshop.productservices.dto.request.ListFlashSaleRequest;
 import com.tokyo.onlineshop.productservices.dto.request.IncrementSoldRequest;
 import com.tokyo.onlineshop.productservices.dto.response.GetProductClientResponse;
 import com.tokyo.onlineshop.productservices.dto.RequestProductListDto;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -27,11 +26,12 @@ public interface ProductService {
     BaseResponse getTopSoldProducts();
     BaseResponse getNewProducts();
     BaseResponse markProductAsNew(UUID id);
-   // BaseResponse markProductAsFlashSale(UUID id, FlashSaleRequest request);
+   // BaseResponse markProductAsFlashSale(UUID id, ListFlashSaleRequest request);
     //BaseResponse endFlashSale(UUID id);
     GetProductClientResponse getProduct(UUID id);
     List<GetProductClientResponse> getProductListByIds(List<UUID> ids);
 
     //flash sale
-    BaseResponse addFlashSaleProduct(UUID productId,List<FlashSaleRequest> request);
+    BaseResponse addFlashSaleProduct(UUID productId, FlashSaleRequest request);
+
 }

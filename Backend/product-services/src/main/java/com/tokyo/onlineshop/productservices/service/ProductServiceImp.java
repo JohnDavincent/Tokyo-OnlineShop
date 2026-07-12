@@ -8,8 +8,8 @@ import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.common.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.*;
 import com.tokyo.onlineshop.productservices.dto.request.CreateProductRequest;
-import com.tokyo.onlineshop.productservices.dto.request.FlashSaleListRequest;
 import com.tokyo.onlineshop.productservices.dto.request.FlashSaleRequest;
+import com.tokyo.onlineshop.productservices.dto.request.ListFlashSaleRequest;
 import com.tokyo.onlineshop.productservices.dto.request.IncrementSoldRequest;
 import com.tokyo.onlineshop.productservices.dto.response.*;
 import com.tokyo.onlineshop.productservices.entity.*;
@@ -17,7 +17,6 @@ import com.tokyo.onlineshop.productservices.enums.FlashSaleStatus;
 import com.tokyo.onlineshop.productservices.projection.ProductCardProjection;
 import com.tokyo.onlineshop.productservices.repository.*;
 import com.tokyo.onlineshop.productservices.specification.ProductFilterSpecification;
-import com.tokyo.onlineshop.productservices.specification.ProductUnitSpecification;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -26,7 +25,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -505,11 +503,11 @@ public class ProductServiceImp implements ProductService {
     }
 
     @Override
-    public BaseResponse addFlashSaleProduct(UUID productId, List<FlashSaleRequest> request) {
+    public BaseResponse addFlashSaleProduct(UUID productId, FlashSaleRequest request) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new NotFoundException("product with Id : %s".formatted(productId)));
 
-        if(request == null || request.isEmpty()){
+        if(request == null || request.getRequests().isEmpty()){
             throw new BadRequestException("Request Must not be null");
         }
 
@@ -524,7 +522,7 @@ public class ProductServiceImp implements ProductService {
         List<ProductFlashSale> flashSales = new ArrayList<>();
         List<FlashSaleResponse.UnitResponse> units = new ArrayList<>();
 
-        for(FlashSaleRequest flashSale : request){
+        for(ListFlashSaleRequest flashSale : request.getRequests()){
             if(flashSale.getFlashSaleStart().isAfter(flashSale.getFlashSaleEndDate())){
                 throw new BadRequestException("Start date must be earlier that the end date");
             }
@@ -534,7 +532,7 @@ public class ProductServiceImp implements ProductService {
                 throw new BadRequestException("unit Id : %s not valid".formatted(flashSale.getUnitId()));
             }
 
-            if(flashSale.getFlashSalePrice().compareTo(unit.getUnitSellPrice()) > 0){
+            if(flashSale.getFlashSalePrice().compareTo(unit.getUnitSellPrice()) >= 0){
                 throw new BadRequestException("Sell price cannot be less than the flash sale price");
             }
             LocalDateTime startTime = flashSale.getFlashSaleStart() != null ? flashSale.getFlashSaleStart() : LocalDateTime.now();
@@ -551,11 +549,34 @@ public class ProductServiceImp implements ProductService {
                     .status(status)
                     .build();
 
+            FlashSaleResponse.UnitResponse unitsDto = FlashSaleResponse.UnitResponse.builder()
+                    .unit(flashSaleProduct.getProductUnit().getUnit())
+                    .flashSaleStart(flashSaleProduct.getStartFlashSaleDate())
+                    .flashSaleUntil(flashSaleProduct.getEndFlashSaleDate())
+                    .status(flashSaleProduct.getStatus())
+                    .flashSalePrice(flashSale.getFlashSalePrice())
+                    .originalPrice(flashSaleProduct.getProductUnit().getUnitBasePrice())
+                    .build();
+
             flashSales.add(flashSaleProduct);
+            units.add(unitsDto);
+
         }
         productFlashSaleRepository.saveAll(flashSales);
+        FlashSaleResponse response = FlashSaleResponse.builder()
+                .isFlashSale(true)
+                .productName(product.getName())
+                .units(units)
+                .build();
 
-        FlashSaleResponse
+        return BaseResponse.builder()
+                .message("Flash sale successfully created")
+                .code(HttpStatus.CREATED)
+                .status(HttpStatus.CREATED.value())
+                .data(response)
+                .build();
+
+
     }
 
     private ProductCard mapToProductCard(Product product) {

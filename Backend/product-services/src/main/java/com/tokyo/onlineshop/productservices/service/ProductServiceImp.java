@@ -25,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -502,81 +503,104 @@ public class ProductServiceImp implements ProductService {
                 .toList();
     }
 
+    @Transactional
     @Override
     public BaseResponse addFlashSaleProduct(UUID productId, FlashSaleRequest request) {
+        if (request == null || request.getRequests() == null || request.getRequests().isEmpty()) {
+            throw new BadRequestException("Request must not be empty");
+        }
+
+        Set<UUID> seenUnitIds = new HashSet<>();
+        for (ListFlashSaleRequest item : request.getRequests()) {
+            if (item.getUnitId() == null) {
+                throw new BadRequestException("unitId is required for every flash sale entry");
+            }
+            if (!seenUnitIds.add(item.getUnitId())) {
+                throw new BadRequestException("Duplicate unitId in request: %s".formatted(item.getUnitId()));
+            }
+            if (item.getFlashSalePrice() == null
+                    || item.getFlashSalePrice().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new BadRequestException("Flash sale price must be greater than zero for unit %s"
+                        .formatted(item.getUnitId()));
+            }
+            if (item.getFlashSaleEndDate() == null) {
+                throw new BadRequestException("End date is required for unit %s".formatted(item.getUnitId()));
+            }
+        }
+
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new NotFoundException("product with Id : %s".formatted(productId)));
+                .orElseThrow(() -> new NotFoundException("Product %s not found".formatted(productId)));
 
-        if(request == null || request.getRequests().isEmpty()){
-            throw new BadRequestException("Request Must not be null");
-        }
-
-        List<ProductUnit> unitList = productUnitRepository.findByProduct_Id(productId);
-        if(unitList == null || unitList.isEmpty()){
-            throw new NotFoundException("product unit for product id : %s not found".formatted(productId));
-        }
-
-        Map<UUID, ProductUnit> unitHashMap = unitList.stream()
+        Map<UUID, ProductUnit> unitHashMap = productUnitRepository.findByProduct_Id(productId).stream()
                 .collect(Collectors.toMap(ProductUnit::getId, Function.identity()));
 
+        LocalDateTime now = LocalDateTime.now();
         List<ProductFlashSale> flashSales = new ArrayList<>();
         List<FlashSaleResponse.UnitResponse> units = new ArrayList<>();
+        boolean anyActive = false;
 
-        for(ListFlashSaleRequest flashSale : request.getRequests()){
-            if(flashSale.getFlashSaleStart().isAfter(flashSale.getFlashSaleEndDate())){
-                throw new BadRequestException("Start date must be earlier that the end date");
+        for (ListFlashSaleRequest item : request.getRequests()) {
+            ProductUnit unit = unitHashMap.get(item.getUnitId());
+            if (unit == null) {
+                throw new BadRequestException("Unit %s does not belong to product %s"
+                        .formatted(item.getUnitId(), productId));
             }
 
-            ProductUnit unit = unitHashMap.get(flashSale.getUnitId());
-            if(unit == null){
-                throw new BadRequestException("unit Id : %s not valid".formatted(flashSale.getUnitId()));
+            if (item.getFlashSalePrice().compareTo(unit.getUnitSellPrice()) >= 0) {
+                throw new BadRequestException("Flash sale price must be lower than the sell price for unit %s"
+                        .formatted(unit.getUnit()));
             }
 
-            if(flashSale.getFlashSalePrice().compareTo(unit.getUnitSellPrice()) >= 0){
-                throw new BadRequestException("Sell price cannot be less than the flash sale price");
+            if (productFlashSaleRepository.existsByProductUnit_Id(unit.getId())) {
+                throw new ConflictException("Unit %s already has a flash sale".formatted(unit.getUnit()));
             }
-            LocalDateTime startTime = flashSale.getFlashSaleStart() != null ? flashSale.getFlashSaleStart() : LocalDateTime.now();
 
-            FlashSaleStatus status = flashSale.getFlashSaleStart().isAfter(LocalDateTime.now())
+            LocalDateTime startTime = item.getFlashSaleStart() != null
+                    ? item.getFlashSaleStart()
+                    : now;
+            if (!startTime.isBefore(item.getFlashSaleEndDate())) {
+                throw new BadRequestException("Start date must be earlier than the end date for unit %s"
+                        .formatted(unit.getUnit()));
+            }
+
+            FlashSaleStatus status = startTime.isAfter(now)
                     ? FlashSaleStatus.SCHEDULED
                     : FlashSaleStatus.ACTIVE;
+            anyActive |= status == FlashSaleStatus.ACTIVE;
 
             ProductFlashSale flashSaleProduct = ProductFlashSale.builder()
                     .productUnit(unit)
-                    .flashSalePrice(flashSale.getFlashSalePrice())
+                    .flashSalePrice(item.getFlashSalePrice())
                     .startFlashSaleDate(startTime)
-                    .EndFlashSaleDate(flashSale.getFlashSaleEndDate())
+                    .EndFlashSaleDate(item.getFlashSaleEndDate())
                     .status(status)
                     .build();
 
-            FlashSaleResponse.UnitResponse unitsDto = FlashSaleResponse.UnitResponse.builder()
-                    .unit(flashSaleProduct.getProductUnit().getUnit())
-                    .flashSaleStart(flashSaleProduct.getStartFlashSaleDate())
-                    .flashSaleUntil(flashSaleProduct.getEndFlashSaleDate())
-                    .status(flashSaleProduct.getStatus())
-                    .flashSalePrice(flashSale.getFlashSalePrice())
-                    .originalPrice(flashSaleProduct.getProductUnit().getUnitBasePrice())
-                    .build();
-
             flashSales.add(flashSaleProduct);
-            units.add(unitsDto);
-
+            units.add(FlashSaleResponse.UnitResponse.builder()
+                    .unit(unit.getUnit())
+                    .flashSaleStart(startTime)
+                    .flashSaleUntil(item.getFlashSaleEndDate())
+                    .status(status)
+                    .flashSalePrice(item.getFlashSalePrice())
+                    .originalPrice(unit.getUnitSellPrice())
+                    .build());
         }
+
         productFlashSaleRepository.saveAll(flashSales);
+
         FlashSaleResponse response = FlashSaleResponse.builder()
-                .isFlashSale(true)
                 .productName(product.getName())
+                .isFlashSale(anyActive)
                 .units(units)
                 .build();
 
         return BaseResponse.builder()
-                .message("Flash sale successfully created")
+                .message("Flash sale successfully created for %d unit(s)".formatted(flashSales.size()))
                 .code(HttpStatus.CREATED)
                 .status(HttpStatus.CREATED.value())
                 .data(response)
                 .build();
-
-
     }
 
     private ProductCard mapToProductCard(Product product) {

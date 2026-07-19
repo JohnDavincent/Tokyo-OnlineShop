@@ -7,10 +7,7 @@ import com.tokyo.common.exception.ConflictException;
 import com.tokyo.common.exception.NotFoundException;
 import com.tokyo.common.ProductionStatus;
 import com.tokyo.onlineshop.productservices.dto.*;
-import com.tokyo.onlineshop.productservices.dto.request.CreateProductRequest;
-import com.tokyo.onlineshop.productservices.dto.request.FlashSaleRequest;
-import com.tokyo.onlineshop.productservices.dto.request.ListFlashSaleRequest;
-import com.tokyo.onlineshop.productservices.dto.request.IncrementSoldRequest;
+import com.tokyo.onlineshop.productservices.dto.request.*;
 import com.tokyo.onlineshop.productservices.dto.response.*;
 import com.tokyo.onlineshop.productservices.entity.*;
 import com.tokyo.onlineshop.productservices.enums.FlashSaleStatus;
@@ -601,6 +598,12 @@ public class ProductServiceImp implements ProductService {
                 .status(HttpStatus.CREATED.value())
                 .data(response)
                 .build();
+    }
+
+    @Override
+    public BaseResponse flashSaleList(FlashSaleListRequest request) {
+        Sort sort = Sort.by(Sort.Direction.fromString(request.getSort()),request.getSortBy());
+
     }
 
     private ProductCard mapToProductCard(Product product) {

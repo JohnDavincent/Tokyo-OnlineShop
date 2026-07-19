@@ -2,6 +2,9 @@ package com.tokyo.onlineshop.productservices.scheduler;
 
 import com.tokyo.common.ProductionStatus;
 import com.tokyo.onlineshop.productservices.entity.Product;
+import com.tokyo.onlineshop.productservices.entity.ProductFlashSale;
+import com.tokyo.onlineshop.productservices.enums.FlashSaleStatus;
+import com.tokyo.onlineshop.productservices.repository.ProductFlashSaleRepository;
 import com.tokyo.onlineshop.productservices.repository.ProductRepository;
 import com.tokyo.onlineshop.productservices.repository.ProductUnitRepository;
 import jakarta.transaction.Transactional;
@@ -20,6 +23,7 @@ public class ProductStatusScheduler {
 
     private final ProductRepository productRepository;
     private final ProductUnitRepository productUnitRepository;
+    private final ProductFlashSaleRepository flashSaleRepository;
 
     @Scheduled(cron = "0 0 0 * * ?") // daily at midnight
     @Transactional
@@ -36,10 +40,31 @@ public class ProductStatusScheduler {
         log.info("Expired {} NEW products back to AVAILABLE", expired.size());
     }
 
-//    @Scheduled(cron = "0 0 * * * ?") // hourly
-//    @Transactional
-//    public void expireFlashSales() {
-//        int expired = productUnitRepository.expireFlashSales(LocalDateTime.now());
-//        log.info("Cleared flash sale on {} product units", expired);
-//    }
+    @Scheduled(cron = "0 0 * * * ?") // hourly
+    @Transactional
+   public void startFlashSale() {
+       LocalDateTime time = LocalDateTime.now();
+       List<ProductFlashSale> listProductFlashSale = flashSaleRepository.findAllByStatusAndStartFlashSaleDateLessThanEqual(FlashSaleStatus.SCHEDULED,time);
+
+       if(listProductFlashSale.isEmpty()) return;
+
+       for(ProductFlashSale flashSale : listProductFlashSale){
+           flashSale.setStatus(FlashSaleStatus.ACTIVE);
+       }
+       log.info("Activated {} schedule flash sale start at {}",listProductFlashSale.size(),time);
+    }
+
+    @Scheduled(cron = "0 0 * * * ?") // hourly
+    @Transactional
+    public void endFlashSale(){
+        LocalDateTime time = LocalDateTime.now();
+        List<ProductFlashSale> listProductFlashSale = flashSaleRepository.findAllByStatusAndEndFlashSaleDateLessThanEqual(FlashSaleStatus.ACTIVE,time);
+
+        if(listProductFlashSale.isEmpty()) return;
+
+        for(ProductFlashSale flashSale : listProductFlashSale){
+            flashSale.setStatus(FlashSaleStatus.ENDED);
+        }
+        log.info("Ended {} schedule flash sale end {}",listProductFlashSale.size(),time);
+    }
 }

@@ -31,6 +31,8 @@ public interface ProductService {
 
     //flash sale
     BaseResponse addFlashSaleProduct(UUID productId, FlashSaleRequest request);
-    BaseResponse flashSaleList(FlashSaleListRequest request);
+    //BaseResponse flashSaleList(FlashSaleListRequest request);
+
+
 
 }

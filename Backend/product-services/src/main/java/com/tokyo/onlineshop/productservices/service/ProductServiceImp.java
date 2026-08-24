@@ -600,11 +600,11 @@ public class ProductServiceImp implements ProductService {
                 .build();
     }
 
-    @Override
-    public BaseResponse flashSaleList(FlashSaleListRequest request) {
-        Sort sort = Sort.by(Sort.Direction.fromString(request.getSort()),request.getSortBy());
-
-    }
+    //@Override
+//    public BaseResponse flashSaleList(FlashSaleListRequest request) {
+//        Sort sort = Sort.by(Sort.Direction.fromString(request.getSort()),request.getSortBy());
+//
+//    }
 
     private ProductCard mapToProductCard(Product product) {
         String imageUrl = product.getProductImageList().isEmpty() ? "" : product.getProductImageList().getFirst().getUrl();

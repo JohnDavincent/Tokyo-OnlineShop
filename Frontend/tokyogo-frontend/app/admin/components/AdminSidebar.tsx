@@ -34,6 +34,14 @@ function NavIcon({ name, className = "h-5 w-5" }: { name: string; className?: st
         <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
       </>
     ),
+    vouchers: (
+      <>
+        <path d="M3 8.5V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 7V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-7Z" strokeLinejoin="round" />
+        <path d="M14 8.5 10 15.5" strokeLinecap="round" />
+        <circle cx="10" cy="9.5" r="1" />
+        <circle cx="14" cy="14.5" r="1" />
+      </>
+    ),
     sales: (
       <>
         <path d="M3 3v16a2 2 0 0 0 2 2h16" strokeLinecap="round" />
@@ -66,6 +74,7 @@ const NAV_ITEMS = [
   { href: "/admin/products", label: "Product", icon: "products" },
   { href: "/admin/transactions", label: "Transaction", icon: "transactions" },
   { href: "/admin/customers", label: "Customer", icon: "customers" },
+  { href: "/admin/vouchers", label: "Voucher", icon: "vouchers" },
   { href: "/admin/sales", label: "Sales", icon: "sales" },
   { href: "/admin/site", label: "Dashboard Panel", icon: "site" },
 ];

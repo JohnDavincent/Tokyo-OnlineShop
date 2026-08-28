@@ -8,6 +8,7 @@ const PAGE_TITLES: Array<{ prefix: string; title: string }> = [
   { prefix: "/admin/products", title: "Product Management" },
   { prefix: "/admin/transactions", title: "Transactions" },
   { prefix: "/admin/customers", title: "Customers" },
+  { prefix: "/admin/vouchers", title: "Voucher Management" },
   { prefix: "/admin/sales", title: "Sales & Analytics" },
   { prefix: "/admin/site", title: "Dashboard Panel" },
   { prefix: "/admin", title: "Dashboard" },

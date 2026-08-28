@@ -191,6 +191,11 @@ const STATUS_STYLES: Record<string, string> = {
   FAILED: "bg-[var(--admin-danger-soft)] text-[var(--admin-danger)]",
   VIP: "bg-[var(--admin-accent-soft)] text-[var(--admin-accent)]",
   REGULAR: "bg-[var(--admin-info-soft)] text-[var(--admin-info)]",
+  // Voucher lifecycle
+  ONGOING: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
+  SCHEDULED: "bg-[var(--admin-info-soft)] text-[var(--admin-info)]",
+  ENDED: "bg-[var(--admin-surface-2)] text-[var(--admin-muted)]",
+  CANCELLED: "bg-[var(--admin-danger-soft)] text-[var(--admin-danger)]",
 };
 
 export function StatusBadge({ status }: { status: string }) {

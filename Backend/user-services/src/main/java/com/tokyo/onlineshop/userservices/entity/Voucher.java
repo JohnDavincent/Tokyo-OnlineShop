@@ -51,7 +51,6 @@ public class Voucher extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private VoucherStatus voucherStatus;
 
-
     @Enumerated(EnumType.STRING)
     @Column(name = "audience")
     private VoucherAudience audience;

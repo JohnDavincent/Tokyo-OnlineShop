@@ -8,6 +8,7 @@ import com.tokyo.onlineshop.userservices.Status;
 import com.tokyo.onlineshop.userservices.dto.AdminLoginRequest;
 import com.tokyo.onlineshop.userservices.dto.request.CreateVoucherRequest;
 import com.tokyo.onlineshop.userservices.dto.request.UpdateVoucherRequest;
+import com.tokyo.onlineshop.userservices.dto.request.VoucherListFilter;
 import com.tokyo.onlineshop.userservices.entity.AdminAccount;
 import com.tokyo.onlineshop.userservices.repository.AdminRepository;
 import com.tokyo.onlineshop.userservices.service.JwtService;
@@ -24,12 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.UUID;
@@ -94,5 +90,12 @@ public class AdminController {
         BaseResponse response = voucherService.updateVoucher(voucherId, request);
         return ResponseEntity.status(response.code()).body(response);
     }
+
+    @PostMapping("/voucher/list")
+    public ResponseEntity<BaseResponse>voucherList(@RequestBody VoucherListFilter request){
+        BaseResponse response = voucherService.voucherList(request);
+        return ResponseEntity.status(response.code()).body(response);
+    }
+
 
 }

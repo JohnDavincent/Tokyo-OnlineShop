@@ -3,7 +3,9 @@ package com.tokyo.onlineshop.userservices.dto.request;
 import com.tokyo.onlineshop.userservices.DiscountType;
 import com.tokyo.onlineshop.userservices.VoucherAudience;
 import com.tokyo.onlineshop.userservices.VoucherType;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

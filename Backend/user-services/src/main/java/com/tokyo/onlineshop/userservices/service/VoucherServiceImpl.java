@@ -1,21 +1,33 @@
 package com.tokyo.onlineshop.userservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
+import com.tokyo.common.dto.PagingResponse;
 import com.tokyo.common.exception.BadRequestException;
 import com.tokyo.onlineshop.userservices.DiscountType;
 import com.tokyo.onlineshop.userservices.VoucherStatus;
 import com.tokyo.onlineshop.userservices.dto.request.CreateVoucherRequest;
 import com.tokyo.onlineshop.userservices.dto.request.UpdateVoucherRequest;
+import com.tokyo.onlineshop.userservices.dto.request.VoucherListFilter;
 import com.tokyo.onlineshop.userservices.dto.response.VoucherDto;
+import com.tokyo.onlineshop.userservices.dto.response.VoucherListResponse;
 import com.tokyo.onlineshop.userservices.entity.Voucher;
 import com.tokyo.onlineshop.userservices.repository.VoucherRepository;
+import com.tokyo.onlineshop.userservices.specification.VoucherSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -23,12 +35,17 @@ public class VoucherServiceImpl implements VoucherService{
 
     private final VoucherRepository voucherRepository;
 
+    // whitelist field yang boleh dipakai buat sort (cegah PropertyReferenceException & sort injection)
+    private static final Set<String> ALLOWED_SORT = Set.of("createdAt", "startAt", "endAt", "title", "usedCount");
+    private static final String DEFAULT_SORT = "createdAt";
+
     public VoucherServiceImpl(VoucherRepository voucherRepository) {
         this.voucherRepository = voucherRepository;
     }
 
     @Override
-    public BaseResponse createNewVoucher(CreateVoucherRequest request) {
+    public BaseResponse createNewVoucher( CreateVoucherRequest request) {
+
         LocalDateTime now = LocalDateTime.now();
         if (request.endAt() != null && !request.endAt().isAfter(request.startAt())) {
             throw new BadRequestException("endAt harus setelah startAt");
@@ -126,6 +143,82 @@ public class VoucherServiceImpl implements VoucherService{
                 .status(HttpStatus.OK.value())
                 .message("Voucher Successfully Updated")
                 .data(toDto(voucher))
+                .build();
+    }
+
+    @Override
+    public BaseResponse voucherList(VoucherListFilter filter) {
+        // gabung semua specification. tiap spec udah null-safe (balik conjunction kalau param null),
+        // jadi nggak perlu if satu-satu.
+        Specification<Voucher> spec = Specification
+                .where(VoucherSpecification.hasSearch(filter.getSearch()))
+                .and(VoucherSpecification.hasDiscountType(filter.getDiscountType()))
+                .and(VoucherSpecification.hasVoucherStatus(filter.getVoucherStatus()))
+                .and(VoucherSpecification.hasVoucherType(filter.getVoucherType()))
+                .and(VoucherSpecification.hasAudience(filter.getAudience()))
+                .and(VoucherSpecification.hasDate(filter.getStartDate(), filter.getEndDate()));
+
+        // sortBy divalidasi ke whitelist, biar default "created_time" yang invalid nggak bikin error
+        String sortBy = ALLOWED_SORT.contains(filter.getSortBy()) ? filter.getSortBy() : DEFAULT_SORT;
+        Sort sort = Sort.by(Sort.Direction.fromString(filter.getSort()), sortBy);
+
+        // ---- pageable = false: ambil SEMUA hasil, tanpa halaman ----
+        if (!filter.isPageable()) {
+            List<VoucherListResponse> items = voucherRepository.findAll(spec, sort)
+                    .stream()
+                    .map(this::toListResponse)
+                    .toList();
+
+            PagingResponse paging = PagingResponse.builder()
+                    .items(items)
+                    .totalPages(1)
+                    .totalItems((long) items.size())
+                    .currentPage(0)
+                    .pageSize(items.size())
+                    .build();
+
+            return okList(paging);
+        }
+
+        // ---- pageable = true: pakai halaman ----
+        Pageable pageable = PageRequest.of(filter.getCurrentPage(), filter.getPageSize(), sort);
+        Page<Voucher> page = voucherRepository.findAll(spec, pageable);
+
+        List<VoucherListResponse> items = page.getContent()
+                .stream()
+                .map(this::toListResponse)
+                .toList();
+
+        PagingResponse paging = PagingResponse.builder()
+                .items(items)
+                .totalPages(page.getTotalPages())
+                .totalItems(page.getTotalElements())
+                .currentPage(page.getNumber())
+                .pageSize(page.getSize())
+                .build();
+
+        return okList(paging);
+    }
+
+    private BaseResponse okList(PagingResponse paging) {
+        return BaseResponse.builder()
+                .code(HttpStatus.OK)
+                .status(HttpStatus.OK.value())
+                .message("Voucher list fetched successfully")
+                .data(paging)
+                .build();
+    }
+
+    private VoucherListResponse toListResponse(Voucher voucher) {
+        return VoucherListResponse.builder()
+                .voucherId(voucher.getId())
+                .voucherTitle(voucher.getTitle())
+                .voucherCode(voucher.getCode())
+                .startDate(voucher.getStartAt())
+                .endDate(voucher.getEndAt())
+                .discountType(voucher.getDiscountType())
+                .voucherStatus(voucher.getVoucherStatus())
+                .voucherType(voucher.getVoucherType())
                 .build();
     }
 

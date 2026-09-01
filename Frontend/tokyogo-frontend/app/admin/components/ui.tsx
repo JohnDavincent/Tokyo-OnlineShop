@@ -189,6 +189,12 @@ const STATUS_STYLES: Record<string, string> = {
   PENDING: "bg-[var(--admin-accent-soft)] text-[var(--admin-accent)]",
   SUCCESS: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
   FAILED: "bg-[var(--admin-danger-soft)] text-[var(--admin-danger)]",
+  // Payment / order lifecycle
+  WAITING_PAYMENT: "bg-[var(--admin-accent-soft)] text-[var(--admin-accent)]",
+  WAITING_CONFIRMATION: "bg-[var(--admin-info-soft)] text-[var(--admin-info)]",
+  PAID: "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]",
+  REJECTED: "bg-[var(--admin-danger-soft)] text-[var(--admin-danger)]",
+  EXPIRED: "bg-[var(--admin-surface-2)] text-[var(--admin-muted)]",
   VIP: "bg-[var(--admin-accent-soft)] text-[var(--admin-accent)]",
   REGULAR: "bg-[var(--admin-info-soft)] text-[var(--admin-info)]",
   // Voucher lifecycle

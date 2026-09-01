@@ -4,6 +4,7 @@ export const API_BASE_URL = "http://localhost:5001";
 export const AUTH_API_BASE_URL = "http://localhost:5100";
 export const CART_API_BASE_URL = "http://localhost:5002";
 export const TRANSACTION_API_BASE_URL = "http://localhost:5004";
+export const PAYMENT_API_BASE_URL = "http://localhost:5101";
 
 export function extractProducts(payload: unknown): ApiProduct[] {
   if (Array.isArray(payload)) return payload as ApiProduct[];

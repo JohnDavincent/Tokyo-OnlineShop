@@ -28,6 +28,7 @@ export interface TransactionUserAddress {
 
 export interface TransactionData {
   GrandTotal: number;
+  status: TransactionStatus;
   transactionDetail: TransactionDetail[];
   transactionId: string;
   userAddress: TransactionUserAddress;
@@ -72,7 +73,13 @@ export async function checkoutTransaction(addressId: string): Promise<Transactio
 
 /* --- Transaction History DTOs ---------------------------- */
 
-export type TransactionStatus = "PENDING" | "SUCCESS" | "FAILED";
+export type TransactionStatus =
+  | "PENDING"
+  | "WAITING_PAYMENT"
+  | "WAITING_CONFIRMATION"
+  | "SUCCESS"
+  | "FAILED"
+  | "EXPIRED";
 
 export interface TransactionListItem {
   transactionId: string;

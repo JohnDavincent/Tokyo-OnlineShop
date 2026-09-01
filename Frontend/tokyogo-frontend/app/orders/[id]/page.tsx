@@ -232,10 +232,33 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {/* Payment call to action */}
+        {order.status === "WAITING_PAYMENT" && (
+          <Link
+            href={`/payment/${order.transactionId}`}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0"
+          >
+            Complete Payment
+          </Link>
+        )}
+
+        {order.status === "WAITING_CONFIRMATION" && (
+          <Link
+            href={`/payment/${order.transactionId}`}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 py-4 text-sm font-bold text-blue-700 transition-all hover:bg-blue-100"
+          >
+            View Payment Status
+          </Link>
+        )}
+
         {/* Back Button */}
         <Link
           href="/orders"
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0"
+          className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-bold transition-all duration-200 ${
+            order.status === "WAITING_PAYMENT" || order.status === "WAITING_CONFIRMATION"
+              ? "border border-black/[0.08] bg-white text-[#101210] hover:bg-[#f6f8f5]"
+              : "bg-primary text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0"
+          }`}
         >
           Back to Orders
         </Link>

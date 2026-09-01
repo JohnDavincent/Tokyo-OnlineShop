@@ -2,6 +2,8 @@ package com.tokyo.onlineshop.transactionservices.service;
 
 import com.tokyo.common.dto.BaseResponse;
 import com.tokyo.common.dto.PagingResponse;
+import com.tokyo.common.event.PaymentCompletedEvent;
+import com.tokyo.common.event.TransactionCreatedEvent;
 import com.tokyo.common.exception.BadRequestException;
 import com.tokyo.common.exception.ForbiddenException;
 import com.tokyo.common.exception.NotFoundException;
@@ -21,8 +23,9 @@ import com.tokyo.onlineshop.transactionservices.repository.TransactionRepository
 import com.tokyo.onlineshop.transactionservices.specification.TransactionSpecification;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.cglib.core.Local;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -35,10 +38,12 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class TransactionServiceImp implements TransactionService{
@@ -48,6 +53,7 @@ public class TransactionServiceImp implements TransactionService{
     private final TransactionAddressService transactionAddressService;
     private final CartClient client;
     private final ProductClient productClient;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     @Override
@@ -62,7 +68,7 @@ public class TransactionServiceImp implements TransactionService{
                 .orderId(createOrderId(date,nextNumber))
                 .userId(UUID.fromString(userId))
                 .dailyTransactionNumber(nextNumber)
-                .status(TransactionStatus.PENDING)
+                .status(TransactionStatus.WAITING_PAYMENT)
                 .build();
 
         repository.save(transaction);
@@ -73,13 +79,25 @@ public class TransactionServiceImp implements TransactionService{
                 .orElseThrow(() -> new NotFoundException("Transaction not found"));
 
         AddTransactionResponseDto data =  AddTransactionResponseDto.builder()
+                .transactionId(savedTransaction.getId())
                 .orderId(savedTransaction.getOrderId())
+                .status(savedTransaction.getStatus())
                 .GrandTotal(savedTransaction.getGrandTotal())
                 .userAddress(address)
                 .transactionDetail(transactionDetailList)
                 .build();
 
         client.deleteUserCart(getAuthorizationHeader());
+
+        // Handed to Kafka only after this transaction commits; payment-services
+        // picks it up and opens the payment window.
+        eventPublisher.publishEvent(new TransactionCreatedEvent(
+                savedTransaction.getId(),
+                savedTransaction.getOrderId(),
+                savedTransaction.getUserId(),
+                savedTransaction.getGrandTotal(),
+                LocalDateTime.now()
+        ));
 
         return BaseResponse.builder()
                 .code(HttpStatus.CREATED)
@@ -162,46 +180,6 @@ public class TransactionServiceImp implements TransactionService{
                 .code(HttpStatus.OK)
                 .data(data)
                 .message("Transaction detail retrieved successfully")
-                .build();
-    }
-
-    @Transactional
-    @Override
-    public BaseResponse confirmTransaction(UUID transactionId) {
-        String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        Transaction transaction = repository.findById(transactionId)
-                .orElseThrow(() -> new NotFoundException("Transaction not found"));
-
-        if (!transaction.getUserId().equals(UUID.fromString(userId))) {
-            throw new ForbiddenException("You are not authorized to confirm this transaction");
-        }
-
-        if (transaction.getStatus() != TransactionStatus.PENDING) {
-            throw new BadRequestException("Transaction is not in PENDING status");
-        }
-
-        List<IncrementSoldRequest> soldItems = transaction.getTransactionDetailList().stream()
-                .map(detail -> IncrementSoldRequest.builder()
-                        .productId(detail.getProductId())
-                        .quantity(detail.getQuantity())
-                        .build())
-                .toList();
-
-        if (soldItems.isEmpty()) {
-            throw new BadRequestException("Transaction has no items to confirm");
-        }
-
-        productClient.incrementTotalSold(soldItems);
-
-        transaction.setStatus(TransactionStatus.SUCCESS);
-        repository.save(transaction);
-
-        return BaseResponse.builder()
-                .status(HttpStatus.OK.value())
-                .code(HttpStatus.OK)
-                .message("Transaction confirmed successfully")
-                .data(transaction.getOrderId())
                 .build();
     }
 
@@ -349,16 +327,54 @@ public class TransactionServiceImp implements TransactionService{
                 .build();
     }
 
+    /**
+     * Applies the payment decision that arrived over Kafka. Stock is only counted
+     * as sold here, once the money has actually been confirmed by an admin.
+     */
     @Transactional
     @Override
-    public BaseResponse confirmAdminTransaction(UUID transactionId) {
-        Transaction transaction = repository.findById(transactionId)
-                .orElseThrow(() -> new NotFoundException("Transaction not found"));
+    public void applyPaymentOutcome(PaymentCompletedEvent event) {
+        Transaction transaction = repository.findById(event.transactionId())
+                .orElseThrow(() -> new NotFoundException("Transaction not found: " + event.transactionId()));
 
-        if (transaction.getStatus() != TransactionStatus.PENDING) {
-            throw new BadRequestException("Transaction is not in PENDING status");
+        if (isFinal(transaction.getStatus())) {
+            log.info("Order {} is already {}, ignoring {} event",
+                    transaction.getOrderId(), transaction.getStatus(), event.outcome());
+            return;
         }
 
+        switch (event.outcome()) {
+            case APPROVED -> {
+                incrementSoldQuietly(transaction);
+                transaction.setStatus(TransactionStatus.SUCCESS);
+            }
+            case REJECTED -> {
+                transaction.setStatus(TransactionStatus.FAILED);
+                transaction.setCancelledAt(event.occurredAt());
+                transaction.setCancelledBy(event.reviewedBy() == null ? "ADMIN" : event.reviewedBy());
+            }
+            case EXPIRED -> {
+                transaction.setStatus(TransactionStatus.EXPIRED);
+                transaction.setCancelledAt(event.occurredAt());
+                transaction.setCancelledBy("SYSTEM");
+            }
+        }
+
+        repository.save(transaction);
+        log.info("Order {} moved to {}", transaction.getOrderId(), transaction.getStatus());
+    }
+
+    private boolean isFinal(TransactionStatus status) {
+        return status == TransactionStatus.SUCCESS
+                || status == TransactionStatus.FAILED
+                || status == TransactionStatus.EXPIRED;
+    }
+
+    /**
+     * A failure to bump the sold counter must not leave a paid order stuck in limbo,
+     * so it is logged rather than rolled back.
+     */
+    private void incrementSoldQuietly(Transaction transaction) {
         List<IncrementSoldRequest> soldItems = transaction.getTransactionDetailList().stream()
                 .map(detail -> IncrementSoldRequest.builder()
                         .productId(detail.getProductId())
@@ -367,19 +383,14 @@ public class TransactionServiceImp implements TransactionService{
                 .toList();
 
         if (soldItems.isEmpty()) {
-            throw new BadRequestException("Transaction has no items to confirm");
+            log.warn("Order {} has no items to count as sold", transaction.getOrderId());
+            return;
         }
 
-        productClient.incrementTotalSold(soldItems);
-
-        transaction.setStatus(TransactionStatus.SUCCESS);
-        repository.save(transaction);
-
-        return BaseResponse.builder()
-                .status(HttpStatus.OK.value())
-                .code(HttpStatus.OK)
-                .message("Transaction confirmed successfully by admin")
-                .data(transaction.getOrderId())
-                .build();
+        try {
+            productClient.incrementTotalSold(soldItems);
+        } catch (Exception e) {
+            log.error("[ProductClient] failed to increment sold counters for order {}", transaction.getOrderId(), e);
+        }
     }
 }

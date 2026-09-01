@@ -7,6 +7,14 @@ const statusMeta: Record<TransactionStatus, { label: string; classes: string }> 
     label: "Pending",
     classes: "bg-amber-50 text-amber-700 border-amber-200",
   },
+  WAITING_PAYMENT: {
+    label: "Awaiting Payment",
+    classes: "bg-amber-50 text-amber-700 border-amber-200",
+  },
+  WAITING_CONFIRMATION: {
+    label: "Verifying Payment",
+    classes: "bg-blue-50 text-blue-700 border-blue-200",
+  },
   SUCCESS: {
     label: "Success",
     classes: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -14,6 +22,10 @@ const statusMeta: Record<TransactionStatus, { label: string; classes: string }> 
   FAILED: {
     label: "Failed",
     classes: "bg-red-50 text-red-700 border-red-200",
+  },
+  EXPIRED: {
+    label: "Expired",
+    classes: "bg-neutral-100 text-neutral-600 border-neutral-300",
   },
 };
 

@@ -19,17 +19,8 @@
         </processorPath>
         <module name="product-services" />
         <module name="user-services" />
-        <module name="cart-services" />
-        <module name="transaction-services" />
-      </profile>
-      <profile name="Annotation profile for payment-services" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <processorPath useClasspath="false">
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
-        </processorPath>
         <module name="payment-services" />
+        <module name="transaction-services" />
       </profile>
     </annotationProcessing>
   </component>

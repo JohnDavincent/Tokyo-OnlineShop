@@ -45,16 +45,23 @@ function ChevronRightIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+// Orders needing the customer to act come first.
 const statusPriority: Record<TransactionStatus, number> = {
-  PENDING: 0,
-  SUCCESS: 1,
-  FAILED: 2,
+  WAITING_PAYMENT: 0,
+  WAITING_CONFIRMATION: 1,
+  PENDING: 2,
+  SUCCESS: 3,
+  FAILED: 4,
+  EXPIRED: 5,
 };
 
 const sectionLabels: Record<TransactionStatus, string> = {
+  WAITING_PAYMENT: "Awaiting Payment",
+  WAITING_CONFIRMATION: "Verifying Payment",
   PENDING: "Pending Orders",
   SUCCESS: "Completed Orders",
   FAILED: "Failed Orders",
+  EXPIRED: "Expired Orders",
 };
 
 function groupByStatus(items: TransactionListItem[]): [TransactionStatus, TransactionListItem[]][] {

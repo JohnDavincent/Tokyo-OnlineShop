@@ -4,16 +4,22 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
+import { getAdminTransactionDetail } from "../../../../../services/adminTransactionService";
 import {
-  confirmTransaction,
-  getAdminTransactionDetail,
-} from "../../../../../services/adminTransactionService";
+  AdminPaymentItem,
+  approvePayment,
+  getAdminPaymentByTransaction,
+  rejectPayment,
+} from "../../../../../services/adminPaymentService";
 import type { TransactionDetailData } from "../../../../../services/transactionService";
 import {
   LoadingState,
   Modal,
   SectionCard,
   StatusBadge,
+  dangerButtonClass,
+  inputClass,
+  labelClass,
   primaryButtonClass,
   secondaryButtonClass,
   tdClass,
@@ -58,8 +64,11 @@ export default function AdminTransactionDetailPage() {
   const [view, setView] = useState<DetailView | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [payment, setPayment] = useState<AdminPaymentItem | null>(null);
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [acting, setActing] = useState(false);
 
   const load = useCallback(async () => {
     if (!transactionId) return;
@@ -72,6 +81,15 @@ export default function AdminTransactionDetailPage() {
     } catch (error) {
       setView(null);
       setLoadError(error instanceof Error ? error.message : "Failed to load transaction");
+      setLoading(false);
+      return;
+    }
+
+    // An order placed before the payment service existed simply has no payment.
+    try {
+      setPayment(await getAdminPaymentByTransaction(transactionId));
+    } catch {
+      setPayment(null);
     } finally {
       setLoading(false);
     }
@@ -81,18 +99,34 @@ export default function AdminTransactionDetailPage() {
     load();
   }, [load]);
 
-  async function handleConfirm() {
-    if (!view) return;
-    setConfirming(true);
+  async function handleApprove() {
+    if (!payment) return;
+    setActing(true);
     try {
-      await confirmTransaction(view.transactionId);
-      toast.success(`Transaction ${view.orderId} confirmed`);
-      setConfirmOpen(false);
+      await approvePayment(payment.paymentId);
+      toast.success(`Payment for ${payment.orderId} approved`);
+      setApproveOpen(false);
       load();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to confirm transaction");
+      toast.error(error instanceof Error ? error.message : "Failed to approve payment");
     } finally {
-      setConfirming(false);
+      setActing(false);
+    }
+  }
+
+  async function handleReject() {
+    if (!payment) return;
+    setActing(true);
+    try {
+      await rejectPayment(payment.paymentId, rejectReason.trim() || undefined);
+      toast.success(`Payment for ${payment.orderId} rejected`);
+      setRejectOpen(false);
+      setRejectReason("");
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to reject payment");
+    } finally {
+      setActing(false);
     }
   }
 
@@ -110,7 +144,7 @@ export default function AdminTransactionDetailPage() {
     );
   }
 
-  const canConfirm = view.status === "PENDING";
+  const canDecide = payment?.status === "WAITING_CONFIRMATION";
 
   return (
     <div className="flex flex-col gap-5">
@@ -136,13 +170,24 @@ export default function AdminTransactionDetailPage() {
           </div>
         </div>
 
-        {canConfirm && (
-          <button onClick={() => setConfirmOpen(true)} className={primaryButtonClass}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
-              <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Confirm transaction
-          </button>
+        {canDecide && (
+          <div className="flex items-center gap-2">
+            <button onClick={() => setApproveOpen(true)} className={primaryButtonClass}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-4 w-4">
+                <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Approve payment
+            </button>
+            <button
+              onClick={() => {
+                setRejectOpen(true);
+                setRejectReason("");
+              }}
+              className={dangerButtonClass}
+            >
+              Reject
+            </button>
+          </div>
         )}
       </div>
 
@@ -200,10 +245,39 @@ export default function AdminTransactionDetailPage() {
               ))}
             </div>
             <div>
-              <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--admin-muted)]">Payment status</p>
-              <div className="mt-1.5">
-                <StatusBadge status={view.status} />
-              </div>
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--admin-muted)]">Payment</p>
+              {payment ? (
+                <div className="mt-1.5 flex flex-col gap-1.5">
+                  <StatusBadge status={payment.status} />
+                  <p className="text-xs text-[var(--admin-text)]">
+                    {payment.channelLabel ?? "Method not chosen yet"}
+                  </p>
+                  {payment.payerName && (
+                    <p className="text-xs text-[var(--admin-muted)]">Sender: {payment.payerName}</p>
+                  )}
+                  {payment.payerNote && (
+                    <p className="text-xs text-[var(--admin-muted)]">Note: {payment.payerNote}</p>
+                  )}
+                  {payment.submittedAt && (
+                    <p className="text-xs text-[var(--admin-muted)]">
+                      Submitted {formatDateTime(payment.submittedAt)}
+                    </p>
+                  )}
+                  {payment.reviewedAt && (
+                    <p className="text-xs text-[var(--admin-muted)]">
+                      Reviewed {formatDateTime(payment.reviewedAt)}
+                      {payment.reviewedBy ? ` by ${payment.reviewedBy}` : ""}
+                    </p>
+                  )}
+                  {payment.rejectionReason && (
+                    <p className="text-xs text-[var(--admin-danger)]">{payment.rejectionReason}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-1.5 text-xs text-[var(--admin-muted)]">
+                  No payment record for this order.
+                </p>
+              )}
             </div>
             <div>
               <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-[var(--admin-muted)]">Transaction ID</p>
@@ -213,17 +287,45 @@ export default function AdminTransactionDetailPage() {
         </SectionCard>
       </div>
 
-      <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirm transaction">
+      <Modal open={approveOpen} onClose={() => setApproveOpen(false)} title="Approve payment">
         <p className="text-sm text-[var(--admin-text)]">
-          Confirm order <strong>{view.orderId}</strong> for <strong>{view.customerName}</strong> (
-          {formatRupiah(view.grandTotal)})? This marks it as processed and updates product sold counts.
+          Approve the payment for order <strong>{view.orderId}</strong> from <strong>{view.customerName}</strong> (
+          {formatRupiah(view.grandTotal)})? This marks the order as paid and updates product sold counts.
+        </p>
+        <p className="mt-2 text-xs text-[var(--admin-muted)]">
+          Check the money has actually arrived before approving. This cannot be undone.
         </p>
         <div className="mt-6 flex justify-end gap-3">
-          <button onClick={() => setConfirmOpen(false)} className={secondaryButtonClass}>
+          <button onClick={() => setApproveOpen(false)} className={secondaryButtonClass}>
             Cancel
           </button>
-          <button onClick={handleConfirm} disabled={confirming} className={primaryButtonClass}>
-            {confirming ? "Confirming…" : "Yes, confirm"}
+          <button onClick={handleApprove} disabled={acting} className={primaryButtonClass}>
+            {acting ? "Approving…" : "Yes, approve"}
+          </button>
+        </div>
+      </Modal>
+
+      <Modal open={rejectOpen} onClose={() => setRejectOpen(false)} title="Reject payment">
+        <p className="text-sm text-[var(--admin-text)]">
+          Order <strong>{view.orderId}</strong> will be cancelled and the customer will see your reason.
+        </p>
+        <div className="mt-4">
+          <label className={labelClass}>Reason (optional)</label>
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            maxLength={255}
+            rows={3}
+            placeholder="e.g. no transfer received for this amount"
+            className={`${inputClass} resize-none`}
+          />
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          <button onClick={() => setRejectOpen(false)} className={secondaryButtonClass}>
+            Cancel
+          </button>
+          <button onClick={handleReject} disabled={acting} className={dangerButtonClass}>
+            {acting ? "Rejecting…" : "Reject payment"}
           </button>
         </div>
       </Modal>

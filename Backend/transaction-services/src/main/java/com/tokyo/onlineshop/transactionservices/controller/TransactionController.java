@@ -39,10 +39,4 @@ public class TransactionController {
         BaseResponse response = transactionService.getTransactionDetail(transactionId);
         return new ResponseEntity<>(response, response.code());
     }
-
-    @PostMapping("/{transactionId}/confirm")
-    ResponseEntity<BaseResponse> confirmTransaction(@PathVariable UUID transactionId) {
-        BaseResponse response = transactionService.confirmTransaction(transactionId);
-        return new ResponseEntity<>(response, response.code());
-    }
 }

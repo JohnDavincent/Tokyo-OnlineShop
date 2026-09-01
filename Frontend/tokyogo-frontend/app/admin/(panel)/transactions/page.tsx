@@ -17,7 +17,15 @@ import {
 import { formatDateTime, formatRupiah } from "../../lib/format";
 import { toast } from "sonner";
 
-const STATUS_OPTIONS: Array<TransactionStatus | "ALL"> = ["ALL", "PENDING", "SUCCESS", "FAILED"];
+const STATUS_OPTIONS: Array<TransactionStatus | "ALL"> = [
+  "ALL",
+  "WAITING_PAYMENT",
+  "WAITING_CONFIRMATION",
+  "SUCCESS",
+  "FAILED",
+  "EXPIRED",
+  "PENDING",
+];
 
 export default function AdminTransactionsPage() {
   const router = useRouter();
@@ -99,7 +107,7 @@ export default function AdminTransactionsPage() {
         >
           {STATUS_OPTIONS.map((status) => (
             <option key={status} value={status}>
-              {status === "ALL" ? "All statuses" : status}
+              {status === "ALL" ? "All statuses" : status.replaceAll("_", " ")}
             </option>
           ))}
         </select>

@@ -566,9 +566,11 @@ function CheckoutReviewModal({
 function CheckoutConfirmationModal({
   result,
   onClose,
+  onPayNow,
 }: {
   result: TransactionResponse;
   onClose: () => void;
+  onPayNow: () => void;
 }) {
   const data = result.data;
   const addr = data.userAddress;
@@ -580,7 +582,7 @@ function CheckoutConfirmationModal({
         <div className="border-b border-black/[0.06] bg-primary/[0.03] px-7 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-primary">Order Confirmed</p>
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-primary">Order Placed</p>
               <h2 className="mt-1 font-headline text-xl font-extrabold tracking-[-0.03em] text-[#101210]">
                 {result.message}
               </h2>
@@ -659,17 +661,21 @@ function CheckoutConfirmationModal({
 
         {/* Actions */}
         <div className="px-7 pb-7">
+          <p className="mb-4 rounded-2xl bg-amber-50 px-4 py-3 text-xs font-semibold leading-relaxed text-amber-700">
+            Your order is reserved but not paid yet. Complete the payment before the window closes, or it will be
+            cancelled automatically.
+          </p>
           <button
-            onClick={onClose}
+            onClick={onPayNow}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,105,65,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dim hover:shadow-[0_12px_32px_rgba(0,105,65,0.28)] active:translate-y-0"
           >
-            Done
+            Pay Now
           </button>
           <button
             onClick={onClose}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-black/[0.08] bg-white py-3.5 text-sm font-bold text-[#101210] transition-all hover:bg-[#f6f8f5]"
           >
-            Continue Shopping
+            Pay Later
           </button>
         </div>
       </div>
@@ -1128,6 +1134,7 @@ export default function CartPage() {
             setCheckoutResult(null);
             loadCart();
           }}
+          onPayNow={() => router.push(`/payment/${checkoutResult.data.transactionId}`)}
         />
       )}
 

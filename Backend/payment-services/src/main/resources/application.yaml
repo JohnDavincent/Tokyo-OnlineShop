@@ -2,9 +2,7 @@ server:
   port: 5101
 
 spring:
-
   application:
-
     name: payment-services
 
   datasource:
@@ -16,14 +14,62 @@ spring:
       maximum-pool-size: 3
       minimum-idle: 1
 
-    jpa:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
       hibernate:
-        ddl-auto: update
-      properties:
-        hibernate:
-          default_schema: product_service
-          dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: payment_service
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  app:
-    jwt:
-      secret: "x9FvQ2@lZ7mP#kR1sT8wY!bC3dE6uH$jN0aG%rL5oI^qXz&V4nWp*UeKf+M=cD~hB2JtS8yA1"
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+    consumer:
+      group-id: payment-services
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.trusted.packages: com.tokyo.common.event
+        spring.json.value.default.type: com.tokyo.common.event.TransactionCreatedEvent
+
+app:
+  jwt:
+    secret: "x9FvQ2@lZ7mP#kR1sT8wY!bC3dE6uH$jN0aG%rL5oI^qXz&V4nWp*UeKf+M=cD~hB2JtS8yA1"
+
+  payment:
+    # How long the customer has to pay before the order is voided.
+    expiry-minutes: 30
+    # How often the expiry sweep runs.
+    expiry-scan-ms: 60000
+    channels:
+      - code: QRIS_MAIN
+        method: QRIS
+        label: QRIS
+        qr-image-url: /images/payment/qris.png
+        instruction: "Scan the QR with any e-wallet or mobile banking app that supports QRIS."
+        enabled: true
+      - code: BCA
+        method: BANK_TRANSFER
+        label: Bank BCA
+        account-number: "1234567890"
+        account-name: "PT Tokyo Guntung Online"
+        instruction: "Transfer the exact amount so we can match your payment automatically."
+        enabled: true
+      - code: MANDIRI
+        method: BANK_TRANSFER
+        label: Bank Mandiri
+        account-number: "9876543210"
+        account-name: "PT Tokyo Guntung Online"
+        instruction: "Transfer the exact amount so we can match your payment automatically."
+        enabled: true
+
+logging:
+  level:
+    com.tokyo.onlineshop.paymentservices: DEBUG

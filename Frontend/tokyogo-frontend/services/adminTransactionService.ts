@@ -50,11 +50,7 @@ export async function getAdminTransactionDetail(transactionId: string): Promise<
   return json.data;
 }
 
-export async function confirmTransaction(transactionId: string) {
-  const response = await adminFetch(
-    `${TRANSACTION_API_BASE_URL}/tokyo/gropup/ad-min/transaction/${encodeURIComponent(transactionId)}/confirm`,
-    { method: "POST" },
-  );
-  if (!response.ok) throw new Error(await parseApiError(response, "Failed to confirm transaction"));
-  return response.json();
-}
+/*
+ * Orders are no longer confirmed from here. A transaction only becomes SUCCESS
+ * or FAILED when an admin approves or rejects its payment — see adminPaymentService.
+ */

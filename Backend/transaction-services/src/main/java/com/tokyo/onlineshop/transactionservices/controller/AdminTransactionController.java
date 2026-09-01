@@ -37,11 +37,4 @@ public class AdminTransactionController {
         BaseResponse response = transactionService.getAdminTransactionDetail(transactionId);
         return new ResponseEntity<>(response, response.code());
     }
-
-    @PostMapping("/{transactionId}/confirm")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BaseResponse> confirmTransaction(@PathVariable UUID transactionId) {
-        BaseResponse response = transactionService.confirmAdminTransaction(transactionId);
-        return new ResponseEntity<>(response, response.code());
-    }
 }

@@ -7,7 +7,7 @@ import StatusBadge from "./StatusBadge";
 export default function TransactionCard({ tx }: { tx: TransactionListItem }) {
   return (
     <Link
-      href={`/orders/${tx.transactionId}`}
+      href={tx.status === "WAITING_PAYMENT" ? `/payment/${tx.transactionId}` : `/orders/${tx.transactionId}`}
       className="group flex items-center justify-between rounded-[24px] border border-black/[0.06] bg-white p-5 shadow-[0_4px_16px_rgba(0,39,25,0.04)] transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_8px_24px_rgba(0,39,25,0.08)]"
     >
       <div className="min-w-0 flex-1">
@@ -28,6 +28,11 @@ export default function TransactionCard({ tx }: { tx: TransactionListItem }) {
         <p className="text-[0.6rem] font-bold uppercase tracking-[0.12em] text-black/35">
           Grand Total
         </p>
+        {tx.status === "WAITING_PAYMENT" && (
+          <span className="mt-2 inline-flex items-center rounded-full bg-primary px-3 py-1 text-[0.6rem] font-bold uppercase tracking-[0.1em] text-white">
+            Pay Now
+          </span>
+        )}
       </div>
     </Link>
   );

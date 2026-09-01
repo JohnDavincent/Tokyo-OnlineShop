@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { clearAdminAuth, getAdminEmail } from "../../../services/adminAuth";
+import { getAdminPaymentInboxCount } from "../../../services/adminPaymentService";
 
 function NavIcon({ name, className = "h-5 w-5" }: { name: string; className?: string }) {
   const icons: Record<string, React.ReactNode> = {
@@ -42,6 +44,13 @@ function NavIcon({ name, className = "h-5 w-5" }: { name: string; className?: st
         <circle cx="14" cy="14.5" r="1" />
       </>
     ),
+    payments: (
+      <>
+        <rect x="2" y="5" width="20" height="14" rx="2" />
+        <path d="M2 10h20" strokeLinecap="round" />
+        <path d="M6 15h4" strokeLinecap="round" />
+      </>
+    ),
     sales: (
       <>
         <path d="M3 3v16a2 2 0 0 0 2 2h16" strokeLinecap="round" />
@@ -69,10 +78,19 @@ function NavIcon({ name, className = "h-5 w-5" }: { name: string; className?: st
   );
 }
 
-const NAV_ITEMS = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+  /** Marks a nav entry that shows a live count. */
+  badge?: "payments";
+}
+
+const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: "dashboard" },
   { href: "/admin/products", label: "Product", icon: "products" },
   { href: "/admin/transactions", label: "Transaction", icon: "transactions" },
+  { href: "/admin/payments", label: "Payment", icon: "payments", badge: "payments" },
   { href: "/admin/customers", label: "Customer", icon: "customers" },
   { href: "/admin/vouchers", label: "Voucher", icon: "vouchers" },
   { href: "/admin/sales", label: "Sales", icon: "sales" },
@@ -83,6 +101,28 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const adminEmail = typeof window !== "undefined" ? getAdminEmail() : null;
+  const [pendingPayments, setPendingPayments] = useState(0);
+
+  // Payments arrive on their own, so the badge polls instead of waiting for a navigation.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refresh() {
+      try {
+        const count = await getAdminPaymentInboxCount();
+        if (!cancelled) setPendingPayments(count.waitingConfirmation);
+      } catch {
+        // A failing badge should never take the panel down.
+      }
+    }
+
+    refresh();
+    const poll = setInterval(refresh, 20000);
+    return () => {
+      cancelled = true;
+      clearInterval(poll);
+    };
+  }, [pathname]);
 
   function isActive(href: string) {
     if (href === "/admin") return pathname === "/admin";
@@ -122,7 +162,12 @@ export default function AdminSidebar() {
               }`}
             >
               <NavIcon name={item.icon} />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.badge === "payments" && pendingPayments > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#feaa00] px-1.5 text-[0.65rem] font-extrabold text-[#003627]">
+                  {pendingPayments > 99 ? "99+" : pendingPayments}
+                </span>
+              )}
             </Link>
           );
         })}

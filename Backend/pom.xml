@@ -24,6 +24,7 @@
         <module>cart-services</module>
         <module>common</module>
         <module>transaction-services</module>
+        <module>payment-services</module>
     </modules>
 
     <properties>

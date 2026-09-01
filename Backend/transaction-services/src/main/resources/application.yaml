@@ -22,6 +22,23 @@ spring:
         default_schema: transaction_service
         dialect : org.hibernate.dialect.PostgreSQLDialect
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+    consumer:
+      group-id: transaction-services
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.trusted.packages: com.tokyo.common.event
+        spring.json.value.default.type: com.tokyo.common.event.PaymentCompletedEvent
+
 app:
   jwt:
     secret: "x9FvQ2@lZ7mP#kR1sT8wY!bC3dE6uH$jN0aG%rL5oI^qXz&V4nWp*UeKf+M=cD~hB2JtS8yA1"
